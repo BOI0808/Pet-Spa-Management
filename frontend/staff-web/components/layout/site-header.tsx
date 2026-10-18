@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { PawLogo } from "@/components/icons";
 import { ROUTES } from "@/lib/routes";
 import { ActiveHeaderNav, HeaderNav } from "./header-nav";
+import { onDarkFocusClass } from "./header-styles";
 
 /** Logo trên nền tối: ô trắng có dấu chân Lagoon đậm, chấm Apricot ở góc (`.sw-top .brand-mark`). */
 function BrandMark() {
@@ -20,7 +21,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-5 px-6 max-[980px]:gap-3 max-[980px]:px-3">
         <Link
           href={ROUTES.appointments}
-          className="flex items-center gap-2.5 whitespace-nowrap text-base font-bold text-white hover:text-white max-[640px]:gap-0"
+          className={`flex items-center gap-2.5 whitespace-nowrap text-base font-bold text-white hover:text-white max-[640px]:gap-0 ${onDarkFocusClass}`}
         >
           <BrandMark />
           <span className="max-[640px]:sr-only">

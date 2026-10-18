@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { ROUTES } from "@/lib/routes";
 import type { StaffRole } from "@/lib/staff-role";
 import { Dropdown, dropdownItemClass } from "./dropdown";
+import { onDarkFocusClass } from "./header-styles";
 
 type NavItem = {
   href: string;
@@ -44,8 +45,7 @@ function isUnder(pathname: string | null, base: string) {
 }
 
 // Vùng chạm cao 44px cho web nhân viên (mục 6.1).
-const navItemClass =
-  "inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] px-[13px] font-medium text-[#CFE7E9] hover:bg-white/10 hover:text-white max-[640px]:gap-0 max-[640px]:px-[11px]";
+const navItemClass = `inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] px-[13px] font-medium text-[#CFE7E9] hover:bg-white/10 hover:text-white max-[640px]:gap-0 max-[640px]:px-[11px] ${onDarkFocusClass}`;
 const navItemActiveClass = "bg-white font-semibold text-lagoon-700 hover:bg-white hover:text-lagoon-700";
 
 // Màn hẹp hơn 640px chỉ còn icon (như ui-demo); nhãn vẫn còn cho trình đọc màn hình.
@@ -65,9 +65,12 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
 
   return (
     <>
+      {/* `relative`: nhãn `sr-only` (position: absolute) của mục bị cuộn khuất phải nằm trong vùng cuộn này,
+          nếu không chúng tràn ra ngoài và làm cả trang cuộn ngang ở màn hẹp.
+          `p-1`: chừa chỗ cho vòng focus, vì vùng cuộn cắt mọi thứ nằm ngoài nó. */}
       <nav
         aria-label="Menu nhân viên"
-        className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] max-[980px]:flex-1 [&::-webkit-scrollbar]:hidden"
+        className="relative flex min-w-0 items-center gap-0.5 overflow-x-auto p-1 [scrollbar-width:none] max-[980px]:flex-1 [&::-webkit-scrollbar]:hidden"
       >
         {NAV_ITEMS.filter((item) => canSee(item.roles, role)).map((item) => {
           const active = isUnder(pathname, item.href);
@@ -93,7 +96,7 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
             aria-label="Thông báo"
             title="Thông báo"
             aria-current={notificationsActive ? "page" : undefined}
-            className={`relative grid size-11 place-items-center rounded-xl text-white hover:bg-white/10 ${
+            className={`relative grid size-11 place-items-center rounded-xl text-white hover:bg-white/10 ${onDarkFocusClass} ${
               notificationsActive ? "bg-white text-lagoon-700 hover:bg-white" : ""
             }`}
           >
@@ -103,7 +106,7 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
         {/* Tên và vai trò người dùng (`.user-chip` trong ui-demo) hiển thị khi làm đăng nhập (thẻ 121). */}
         <Dropdown
           align="right"
-          buttonClassName="flex h-11 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border border-white/25 pl-1 pr-2.5 text-sm font-medium text-white hover:border-white/50 max-[860px]:gap-1 max-[860px]:pr-1.5"
+          buttonClassName={`flex h-11 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border border-white/25 pl-1 pr-2.5 text-sm font-medium text-white hover:border-white/50 max-[860px]:gap-1 max-[860px]:pr-1.5 ${onDarkFocusClass}`}
           label={
             <>
               <span className="grid size-8 place-items-center rounded-full bg-apricot-100 text-apricot-700">
