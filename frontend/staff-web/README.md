@@ -18,7 +18,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | Thư mục | Nội dung |
 | --- | --- |
 | `app/(main)` | Các màn hình có thanh trên (SW-02 → SW-15) |
-| `app/page.tsx` | Chuyển `/` về SW-02 Lịch hẹn |
+| `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh trên của web nhân viên, menu thả xuống |
 | `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
