@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Web nhân viên – Spa thú cưng
 
-## Getting Started
+Next.js (App Router, TypeScript), TailwindCSS, Axios, TanStack Query, React Hook Form (WBS 1.6).
+Dùng cho lễ tân (LT) và nhân viên spa (NVS); cùng một khung, menu hiển thị theo vai trò.
 
-First, run the development server:
+## Chạy trên máy
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # điền NEXT_PUBLIC_API_BASE_URL
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm run build`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Cấu trúc
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Thư mục | Nội dung |
+| --- | --- |
+| `app/(main)` | Các màn hình có thanh trên (SW-02 → SW-15) |
+| `app/page.tsx` | Chuyển `/` về SW-02 Lịch hẹn |
+| `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
+| `components/layout` | Thanh trên của web nhân viên, menu thả xuống |
+| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
+| `lib/api` | `apiClient` (Axios) và chuẩn hóa error envelope thành `ApiError` |
+| `lib/routes.ts` | Đường dẫn các màn hình SW-01 → SW-15 |
+| `lib/staff-role.ts` | Vai trò nhân viên: lễ tân, nhân viên spa |
 
-## Learn More
+## Menu theo vai trò
 
-To learn more about Next.js, take a look at the following resources:
+- Mỗi mục menu khai báo vai trò được thấy (`NAV_ITEMS` trong `components/layout/header-nav.tsx`), theo Authorization mục 9.
+- Khi chưa có đăng nhập (`role = null`) menu hiện đủ mục của cả hai vai trò; thẻ 1.6.1.1.2 truyền vai trò thật.
+- Ẩn menu chỉ là giao diện; quyền thật luôn do backend kiểm tra.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Gọi API và hiển thị lỗi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Phần này giống Web khách hàng để 3 web dùng chung một cách:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Mọi lời gọi backend dùng `apiClient`; lỗi trả ra luôn là `ApiError` (`kind`, `status`, `code`, `title`, `detail`).
+- `getErrorMessage(error)` trả câu hiển thị theo mục 6.6: mất mạng / 5xx → câu chung, 429 → nhắc thử lại sau,
+  403 `FORBIDDEN` → không có quyền, còn lại → `detail` (thiếu thì `title`) của envelope.
+- 409: dùng `<ErrorAlert error={error} />` ngay tại chỗ thao tác rồi tải lại dữ liệu liên quan.
+- 403: dùng `<ForbiddenState />` thay cho nội dung trang (kiểm tra bằng `isForbiddenError`).
+- Kết quả tức thời: `useToast().showSuccess(...)` (tự ẩn) hoặc `useToast().showError(error)` (giữ đến khi đóng).
+- Lỗi của ô nhập (React Hook Form): `<FieldError id="..." message={errors.field?.message} />`.
+- TanStack Query không thử lại lỗi 4xx.
