@@ -1,1 +1,61 @@
+# ==========================================
+# 1. Kế hoạch / Tài liệu nội bộ
+# ==========================================
 plan/
+*.docx
+*.xlsx
+*.pptx
+
+# ==========================================
+# 2. File hệ điều hành & Editor / IDE
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Visual Studio / VS Code / JetBrains Rider
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ==========================================
+# 3. Backend (ASP.NET Core / C# / .NET)
+# ==========================================
+**/bin/
+**/obj/
+**/TestResults/
+[Dd]ebug/
+[Rr]elease/
+
+# File cấu hình chứa secret cá nhân (nếu có)
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# ==========================================
+# 4. Frontend (Node.js / React / Vite / Vue)
+# ==========================================
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.output/
+**/.turbo/
+
+# Log của npm/yarn/pnpm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# File môi trường biến bí mật
+.env
+.env.local
+.env.*.local
+!.env.example
