@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "0arXbvyqaew=",
+  "success": true,
+  "projectFilePath": "D:\\PetSpa\\Pet-Spa-Management\\backend\\src\\PetSpa.Application\\PetSpa.Application.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Admin\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.21\\microsoft.extensions.dependencyinjection.abstractions.9.0.21.nupkg.sha512"
+  ],
+  "logs": []
+}

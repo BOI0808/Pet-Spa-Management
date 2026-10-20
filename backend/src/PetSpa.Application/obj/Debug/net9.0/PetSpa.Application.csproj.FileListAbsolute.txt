@@ -1,0 +1,16 @@
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\bin\Debug\net9.0\PetSpa.Application.deps.json
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\bin\Debug\net9.0\PetSpa.Application.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\bin\Debug\net9.0\PetSpa.Application.pdb
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\bin\Debug\net9.0\PetSpa.Domain.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\bin\Debug\net9.0\PetSpa.Domain.pdb
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.csproj.AssemblyReference.cache
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.AssemblyInfoInputs.cache
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.AssemblyInfo.cs
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.csproj.CoreCompileInputs.cache
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.sourcelink.json
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.A.6268468D.Up2Date
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\refint\PetSpa.Application.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\PetSpa.Application.pdb
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Application\obj\Debug\net9.0\ref\PetSpa.Application.dll

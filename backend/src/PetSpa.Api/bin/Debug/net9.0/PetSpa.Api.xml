@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>PetSpa.Api</name>
+    </assembly>
+    <members>
+        <member name="M:PetSpa.Api.Controllers.HealthController.Get">
+            <summary>Kiểm tra API đang chạy.</summary>
+        </member>
+    </members>
+</doc>

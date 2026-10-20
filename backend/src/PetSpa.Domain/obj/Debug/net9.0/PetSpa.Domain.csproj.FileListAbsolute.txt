@@ -1,0 +1,12 @@
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\bin\Debug\net9.0\PetSpa.Domain.deps.json
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\bin\Debug\net9.0\PetSpa.Domain.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\bin\Debug\net9.0\PetSpa.Domain.pdb
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.AssemblyInfoInputs.cache
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.AssemblyInfo.cs
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.csproj.CoreCompileInputs.cache
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.sourcelink.json
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\refint\PetSpa.Domain.dll
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\PetSpa.Domain.pdb
+D:\PetSpa\Pet-Spa-Management\backend\src\PetSpa.Domain\obj\Debug\net9.0\ref\PetSpa.Domain.dll

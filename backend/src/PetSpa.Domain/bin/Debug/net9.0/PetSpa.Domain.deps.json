@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "PetSpa.Domain/1.0.0": {
+        "runtime": {
+          "PetSpa.Domain.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "PetSpa.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
