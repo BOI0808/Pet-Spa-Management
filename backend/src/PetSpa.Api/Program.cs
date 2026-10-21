@@ -11,6 +11,11 @@ using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)          // mức log: Serilog__MinimumLevel
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .WriteTo.Console());
+
 builder.Services.AddControllers(options =>
     {
         options.Filters.Add<ValidationFilter>();
