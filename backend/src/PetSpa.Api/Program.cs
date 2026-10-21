@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.OpenApi.Models;          // đổi từ Microsoft.OpenApi
 using PetSpa.Application;
 using PetSpa.Infrastructure;
+using PetSpa.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
