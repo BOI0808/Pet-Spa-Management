@@ -6,10 +6,24 @@ using PetSpa.Domain.Exceptions;
 using PetSpa.Api.Filters;
 using FluentValidation;
 using PetSpa.Api.Middleware;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+        // Để FluentValidation là nơi duy nhất kiểm tra trường bắt buộc.
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Body sai định dạng JSON hoặc sai kiểu dữ liệu: trả cùng error envelope VALIDATION_ERROR qua middleware.
+        options.InvalidModelStateResponseFactory = _ =>
+            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu gửi lên không hợp lệ hoặc sai định dạng.");
+    });
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
