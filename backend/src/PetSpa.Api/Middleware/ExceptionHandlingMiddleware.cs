@@ -1,7 +1,7 @@
 using System.Text.Json;
 using PetSpa.Api.Dtos;
 using PetSpa.Domain.Exceptions;
-
+using FluentValidation;
 namespace PetSpa.Api.Middleware;
 
 // Bắt mọi lỗi chưa xử lý trong pipeline và trả error envelope thống nhất.
@@ -26,6 +26,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         ErrorResponse? error = exception switch
         {
             BusinessException business => ErrorCatalog.Create(business.Code, business.Detail),
+            ValidationException validation => ErrorCatalog.Create(ErrorCodes.ValidationError, JoinMessages(validation)),
             _ => null,
         };
 
@@ -43,4 +44,8 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         context.Response.StatusCode = error.Status;
         await context.Response.WriteAsJsonAsync(error, (JsonSerializerOptions?)null, "application/problem+json");
     }
+
+    // Gộp thông báo của các rule không đạt thành một câu cho trường detail.
+    private static string JoinMessages(ValidationException exception) =>
+        string.Join(" ", exception.Errors.Select(failure => failure.ErrorMessage).Distinct());
 }

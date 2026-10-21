@@ -2,6 +2,9 @@ using System.Reflection;
 using Microsoft.OpenApi.Models;          // đổi từ Microsoft.OpenApi
 using PetSpa.Application;
 using PetSpa.Infrastructure;
+using PetSpa.Domain.Exceptions;
+using PetSpa.Api.Filters;
+using FluentValidation;
 using PetSpa.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
