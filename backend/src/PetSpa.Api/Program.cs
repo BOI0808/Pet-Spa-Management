@@ -8,7 +8,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -57,7 +64,7 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swa
 }
 
 app.UseHttpsRedirection();
-// TODO task 58 (Vương): app.UseCors(...)
+app.UseCors();
 // TODO task 57 (Vương): app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
