@@ -1,5 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
-import { toApiError } from "@/lib/api/errors";
+import { toApiError, type ApiError } from "@/lib/api/errors";
+
+declare module "@tanstack/react-query" {
+  interface Register {
+    // Lỗi của query/mutation luôn là ApiError (xem lib/api/client.ts).
+    defaultError: ApiError;
+  }
+}
 
 const DEFAULT_QUERY_RETRY = 3;
 
