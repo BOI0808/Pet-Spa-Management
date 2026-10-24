@@ -542,6 +542,28 @@ namespace PetSpa.Infrastructure.Persistence.Migrations
                 table: "Staff",
                 column: "UserId",
                 unique: true);
+            
+            migrationBuilder.Sql("""
+                ALTER TABLE "AppointmentStaff" ADD CONSTRAINT ex_staff_busy
+                    EXCLUDE USING gist ("StaffId" WITH =, tstzrange("BusyFrom", "BusyUntil") WITH &&)
+                    WHERE ("IsHolding");
+                """);
+
+            migrationBuilder.Sql("""
+                ALTER TABLE "WorkShift" ADD CONSTRAINT ex_shift_overlap
+                    EXCLUDE USING gist ("StaffId" WITH =, tstzrange("ShiftStart", "ShiftEnd") WITH &&);
+                """);
+
+            migrationBuilder.Sql("""
+                ALTER TABLE "Appointment" ADD CONSTRAINT ex_cage_night
+                    EXCLUDE USING gist (
+                        "CageId" WITH =,
+                        daterange(
+                            ("PlannedCheckIn" AT TIME ZONE 'Asia/Ho_Chi_Minh')::date,
+                            ("PlannedCheckOut" AT TIME ZONE 'Asia/Ho_Chi_Minh')::date,
+                            '[)') WITH &&)
+                    WHERE ("Type" = 'Hotel' AND "Status" IN ('Confirmed', 'InStay'));
+                """);
         }
 
         /// <inheritdoc />
