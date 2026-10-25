@@ -91,7 +91,7 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swa
 
 app.UseHttpsRedirection();
 app.UseCors();
-// TODO task 57 (Vương): app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
