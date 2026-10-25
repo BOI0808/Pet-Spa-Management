@@ -601,6 +601,8 @@ namespace PetSpa.Infrastructure.Persistence.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("RefreshToken", (string)null);
                 });
 

@@ -17,6 +17,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         b.Property(t => t.CreatedAt).IsRequired();
 
         b.HasIndex(t => t.TokenHash).IsUnique();
+        b.HasIndex(t => t.UserId);
 
         b.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId);
     }
