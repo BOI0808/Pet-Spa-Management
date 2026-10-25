@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using PetSpa.Application.Security;
 using PetSpa.Infrastructure.Identity;
 using PetSpa.Infrastructure.Persistence;
+using PetSpa.Application.Ports;
 namespace PetSpa.Infrastructure;
 
 public static class DependencyInjection
@@ -47,6 +48,7 @@ public static class DependencyInjection
                     RoleClaimType = TokenClaims.Role,
                 };
             });
+            services.AddScoped<IIdentityTokenService, IdentityTokenService>();
 
         return services;
     }
