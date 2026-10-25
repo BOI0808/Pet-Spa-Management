@@ -1,5 +1,5 @@
 using System.Reflection;
-using Microsoft.OpenApi.Models;          // đổi từ Microsoft.OpenApi
+using Microsoft.OpenApi.Models;          
 using PetSpa.Application;
 using PetSpa.Infrastructure;
 using PetSpa.Domain.Exceptions;
@@ -8,6 +8,7 @@ using FluentValidation;
 using PetSpa.Api.Middleware;
 using Serilog;
 using Serilog.Events;
+using PetSpa.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddPetSpaAuthorization();
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     .Select(o => o.TrimEnd('/'))
