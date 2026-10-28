@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using PetSpa.Application.Security;
 using PetSpa.Infrastructure.Identity;
 using PetSpa.Infrastructure.Persistence;
+using PetSpa.Infrastructure.Persistence.Repositories;
 using PetSpa.Application.Ports;
 namespace PetSpa.Infrastructure;
 
@@ -64,6 +65,7 @@ public static class DependencyInjection
             });
             services.AddScoped<IIdentityTokenService, IdentityTokenService>();
             services.AddScoped<IStaffRoleReader, StaffRoleReader>();
+            services.AddScoped<IPetRepository, PetRepository>();
 
         return services;
     }
