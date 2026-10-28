@@ -67,6 +67,7 @@ public static class DependencyInjection
             services.AddScoped<IStaffRoleReader, StaffRoleReader>();
             services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
             services.AddScoped<IPetRepository, PetRepository>();
+            services.AddScoped<IAccountRepository, AccountRepository>();
 
         return services;
     }
