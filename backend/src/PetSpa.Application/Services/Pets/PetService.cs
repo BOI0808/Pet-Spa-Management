@@ -53,7 +53,7 @@ public sealed class PetService(IPetRepository pets, IStaffRoleReader staffRoles)
     public async Task<Pet> GetAsync(CurrentUser user, Guid petId, CancellationToken ct = default)
     {
         var actor = await ResolveActorAsync(user, ct);
-        var found = await pets.FindWithOwnerAsync(petId, ct)
+        var found = await pets.FindWithOwnerAsync(petId, asNoTracking: true, ct)
             ?? throw new BusinessException(ErrorCodes.NotFound);
 
         switch (actor)
@@ -81,10 +81,16 @@ public sealed class PetService(IPetRepository pets, IStaffRoleReader staffRoles)
         if (actor is not (PetActor.Customer or PetActor.Receptionist))
             throw new BusinessException(ErrorCodes.Forbidden);
 
-        var found = await pets.FindWithOwnerAsync(petId, ct)
+        var found = await pets.FindWithOwnerAsync(petId, asNoTracking: false, ct)
             ?? throw new BusinessException(ErrorCodes.NotFound);
 
+        if (!found.Pet.IsActive)
+            throw new BusinessException(ErrorCodes.NotFound);
+
         if (actor == PetActor.Customer) OwnershipGuard.EnsureOwner(user, found.OwnerUserId);
+
+        if (found.Pet.Species != input.Species && await pets.HasAppointmentsAsync(petId, ct))
+            throw new BusinessException(ErrorCodes.ValidationError, "Không thể thay đổi loài khi thú cưng đã có lịch hẹn.");
 
         Apply(found.Pet, input);
         found.Pet.DetermineSizeGroup(await pets.GetSizeRulesAsync(found.Pet.Species, ct));
@@ -97,7 +103,7 @@ public sealed class PetService(IPetRepository pets, IStaffRoleReader staffRoles)
     {
         if (user.Role != UserRole.Customer) throw new BusinessException(ErrorCodes.Forbidden);
 
-        var found = await pets.FindWithOwnerAsync(petId, ct)
+        var found = await pets.FindWithOwnerAsync(petId, asNoTracking: false, ct)
             ?? throw new BusinessException(ErrorCodes.NotFound);
 
         OwnershipGuard.EnsureOwner(user, found.OwnerUserId);
@@ -153,7 +159,7 @@ public sealed class PetService(IPetRepository pets, IStaffRoleReader staffRoles)
         pet.Breed = input.Breed;
         pet.Temperament = input.Temperament ?? Temperament.Normal;
         pet.WeightKg = input.WeightKg;
-        pet.HeightCm = input.HeightCm;
+        pet.HeightCm = input.Species == Species.Dog ? input.HeightCm : null;
         pet.CoatNote = input.CoatNote;
         pet.Notes = input.Notes;
     }
