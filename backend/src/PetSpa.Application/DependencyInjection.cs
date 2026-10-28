@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PetSpa.Application.Services.Auth;
 using PetSpa.Application.Services.Pets;
 namespace PetSpa.Application;
 
@@ -8,6 +9,7 @@ public static class DependencyInjection
     {
         // Các module đăng ký service của mình ở đây
         services.AddScoped<PetService>();
+        services.AddScoped<AccountService>();
         return services;
     }
 }
