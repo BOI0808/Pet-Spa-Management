@@ -12,4 +12,5 @@ public interface IServiceCatalogRepository
     Task AddAsync(Service service, IReadOnlyList<ServicePricing> pricing, CancellationToken ct = default);
     Task<IReadOnlyList<TimeOnly>> GetSlotTimesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default);
+    Task<bool> UpdateAsync(Service service, IReadOnlyList<ServicePricing> pricing, CancellationToken ct = default);
 }
