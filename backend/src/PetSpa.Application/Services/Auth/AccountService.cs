@@ -44,6 +44,18 @@ public sealed class AccountService(IAccountRepository accounts)
         string.IsNullOrWhiteSpace(fullName)
             ? throw new BusinessException(ErrorCodes.ValidationError, "Vui lòng nhập họ tên.")
             : fullName.Trim();
+    
+        // FR-ACC-04 (BR-01): khách vãng lai không có tài khoản đăng nhập.
+    public Task<Guid> CreateWalkInAsync(string fullName, string phone, CancellationToken ct = default) =>
+        accounts.CreateWalkInAsync(fullName.Trim(), PhoneNumber.Normalize(phone), ct);
+
+    public Task<PagedResult<CustomerSummary>> SearchCustomersAsync(
+        string? search, int page, int pageSize, CancellationToken ct = default)
+    {
+        var term = PhoneNumber.Normalize(search);
+        return accounts.SearchCustomersAsync(term.Length == 0 ? null : term, page, pageSize, ct);
+    }
+    
     private static string? NormalizeEmail(string? email) =>
         string.IsNullOrWhiteSpace(email) ? null : email.Trim();
 }

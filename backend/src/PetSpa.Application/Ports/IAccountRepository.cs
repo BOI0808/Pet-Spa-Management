@@ -1,10 +1,14 @@
 using PetSpa.Domain.Enums;
+using PetSpa.Application.Common;
 namespace PetSpa.Application.Ports;
 
 // Hồ sơ của chính người gọi. StaffRole chỉ có khi Role = Staff; Phone chỉ có với khách hàng.
 public sealed record MeProfile(
     Guid UserId, string UserName, UserRole Role, StaffRole? StaffRole,
     string? FullName, string? Phone, string? Email);
+
+public sealed record CustomerSummary(Guid CustomerId, string FullName, string Phone, string? Email, bool IsBookingLocked);
+
 public interface IAccountRepository
 {
     // Tạo AppUser (Role = Customer) và Customer trong một giao dịch.
@@ -19,4 +23,10 @@ public interface IAccountRepository
         Guid userId, string fullName, string? phone, string? email, CancellationToken ct = default);
 
     Task UpdateStaffFullNameAsync(Guid userId, string fullName, CancellationToken ct = default);
+        // Customer.UserId = NULL, không tạo AppUser. Trùng số điện thoại -> DUPLICATE_CONTACT.
+    Task<Guid> CreateWalkInAsync(string fullName, string phone, CancellationToken ct = default);
+
+    // phone = null: lấy tất cả. Tìm theo số điện thoại chứa chuỗi tìm.
+    Task<PagedResult<CustomerSummary>> SearchCustomersAsync(
+        string? phone, int page, int pageSize, CancellationToken ct = default);
 }
