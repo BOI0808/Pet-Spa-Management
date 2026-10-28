@@ -10,6 +10,7 @@ using Serilog;
 using Serilog.Events;
 using PetSpa.Api.Security;
 using Microsoft.AspNetCore.HttpOverrides;
+using PetSpa.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +93,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+await app.Services.SeedDatabaseAsync();
 app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
