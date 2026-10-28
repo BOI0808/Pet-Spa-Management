@@ -13,7 +13,7 @@ public interface IPetRepository
 
     Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(Species species, CancellationToken ct = default);
 
-    Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, CancellationToken ct = default);
+    Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, bool asNoTracking = false, CancellationToken ct = default);
 
     Task<(IReadOnlyList<Pet> Items, int Total)> ListActiveByCustomerAsync(Guid customerId, int page, int pageSize, CancellationToken ct = default);
 

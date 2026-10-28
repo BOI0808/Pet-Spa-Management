@@ -23,10 +23,11 @@ public sealed class PetRepository(AppDbContext db) : IPetRepository
             .Where(r => r.Species == species)
             .ToListAsync(ct);
 
-    public async Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, CancellationToken ct = default)
+    public async Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, bool asNoTracking = false, CancellationToken ct = default)
     {
+        var petsQuery = asNoTracking ? db.Set<Pet>().AsNoTracking() : db.Set<Pet>();
         var row = await (
-            from pet in db.Set<Pet>()
+            from pet in petsQuery
             join customer in db.Set<Customer>() on pet.CustomerId equals customer.CustomerId
             where pet.PetId == petId
             select new { Pet = pet, OwnerUserId = customer.UserId })
