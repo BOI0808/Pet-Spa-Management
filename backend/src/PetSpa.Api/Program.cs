@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;          
 using PetSpa.Application;
 using PetSpa.Infrastructure;
@@ -25,6 +26,8 @@ builder.Services.AddControllers(options =>
         // Để FluentValidation là nơi duy nhất kiểm tra trường bắt buộc.
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
     })
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)))
     .ConfigureApiBehaviorOptions(options =>
     {
         // Body sai định dạng JSON hoặc sai kiểu dữ liệu: trả cùng error envelope VALIDATION_ERROR qua middleware.
