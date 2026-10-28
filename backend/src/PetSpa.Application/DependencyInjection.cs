@@ -10,6 +10,7 @@ public static class DependencyInjection
         // Các module đăng ký service của mình ở đây
         services.AddScoped<PetService>();
         services.AddScoped<AccountService>();
+        services.AddScoped<AuthService>();
         return services;
     }
 }

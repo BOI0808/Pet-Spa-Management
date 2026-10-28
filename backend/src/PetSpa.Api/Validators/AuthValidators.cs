@@ -27,3 +27,21 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
             .When(x => !string.IsNullOrWhiteSpace(x.Email));
     }
 }
+
+public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
+{
+    public LoginRequestValidator()
+    {
+        // Chỉ kiểm tra có nhập; không kiểm tra định dạng để không lộ quy tắc và vẫn đăng nhập được mọi vai trò.
+        RuleFor(x => x.UserName).NotEmpty().WithMessage("Vui lòng nhập số điện thoại.");
+        RuleFor(x => x.Password).NotEmpty().WithMessage("Vui lòng nhập mật khẩu.");
+    }
+}
+
+public sealed class RefreshRequestValidator : AbstractValidator<RefreshRequest>
+{
+    public RefreshRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken).NotEmpty().WithMessage("Vui lòng cung cấp refresh token.");
+    }
+}
