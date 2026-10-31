@@ -33,10 +33,11 @@ export function SessionGate({ children }: { children: ReactNode }) {
 
   if (me) return <>{children}</>;
 
-  // Lỗi 4xx (401 hết phiên, 403 sai vai trò) đã dẫn tới việc về màn đăng nhập; chỉ mất mạng hoặc 5xx mới cho thử lại.
+  // 401 (hết phiên) và 403 (sai vai trò) đã kích hoạt việc về màn đăng nhập nên chỉ cần chờ chuyển trang: giữ khung xương.
+  // Mọi lỗi còn lại (mất mạng, 400, 429, 5xx…) không tự dẫn đi đâu, phải hiện lỗi và cho thử lại.
   if (error) {
     const { status } = toApiError(error);
-    if (status === null || status >= 500) {
+    if (status !== 401 && status !== 403) {
       return (
         <div className="space-y-3">
           <ErrorAlert error={error} />
