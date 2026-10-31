@@ -4,9 +4,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useToast } from "@/components/feedback/toast";
 import { loginSession, logoutSession } from "@/lib/api/endpoints/session";
-import type { Me } from "@/lib/api/types";
+import type { LoginRequest, Me } from "@/lib/api/types";
 import { meKeys, useMe } from "@/lib/queries/me";
-import { endSession, setSessionExpiredHandler, startSession } from "./access-token";
+import { endSession, runSessionChange, setSessionExpiredHandler, startSession } from "./access-token";
 import { SESSION_MESSAGES } from "./session-config";
 
 export const sessionKeys = {
@@ -21,8 +21,8 @@ type SessionValue = {
   /** Kết quả GET /me; null khi chưa tải xong hoặc chưa đăng nhập. */
   me: Me | null;
   endReason: SessionEndReason | null;
-  /** Lưu phiên sau khi POST /api/session/login thành công. */
-  begin: (accessToken: string, me: Me) => void;
+  /** Hiện phiên mới sau khi POST /api/session/login thành công (access token đã lưu trong useLogin). */
+  begin: (me: Me) => void;
   /** Thu hồi refresh token, xóa access token và bộ đệm TanStack Query (User-Flows 4.2). */
   logout: (options?: { message?: string }) => Promise<void>;
 };
@@ -48,8 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Không clear() ở đây: bộ đệm đã được xóa khi đăng xuất/hết phiên, và clear() khi không render lại
   // làm các useQuery đang mở (thanh trên, SessionProvider) mất liên kết với dữ liệu mới.
   const begin = useCallback(
-    (accessToken: string, nextMe: Me) => {
-      startSession(accessToken);
+    (nextMe: Me) => {
       queryClient.setQueryData(meKeys.detail, nextMe);
       queryClient.setQueryData(sessionKeys.ready, true);
       setEndReason(null);
@@ -60,13 +59,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(
     async ({ message }: { message?: string } = {}) => {
       try {
-        await logoutSession();
+        // Chờ lần làm mới đang dở để thu hồi refresh token mới nhất; kết thúc phiên ngay trong khóa
+        // để lần làm mới xếp hàng phía sau biết phiên đã hết mà không gửi nữa.
+        await runSessionChange(async () => {
+          await logoutSession();
+          endSession();
+        });
       } catch (error) {
         // Không tới được route handler thì cookie còn nguyên: báo lỗi, giữ phiên.
         showError(error);
         return;
       }
-      endSession();
       queryClient.clear();
       if (message) showError(message);
       setEndReason("logout");
@@ -88,11 +91,19 @@ export function useSession() {
   return context;
 }
 
-/** CW-02: gọi POST /api/session/login, thành công thì lưu phiên. */
+/**
+ * CW-02: gọi POST /api/session/login, thành công thì lưu phiên. Chạy trong khóa phiên để phản hồi làm mới
+ * của phiên trước tới muộn không ghi đè cookie và access token của tài khoản vừa đăng nhập.
+ */
 export function useLogin() {
   const { begin } = useSession();
   return useMutation({
-    mutationFn: loginSession,
-    onSuccess: ({ accessToken, me }) => begin(accessToken, me),
+    mutationFn: (body: LoginRequest) =>
+      runSessionChange(async () => {
+        const result = await loginSession(body);
+        startSession(result.accessToken);
+        return result;
+      }),
+    onSuccess: ({ me }) => begin(me),
   });
 }

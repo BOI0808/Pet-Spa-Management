@@ -9,6 +9,8 @@ let pendingRefresh: Promise<string | null> | null = null;
 let onSessionExpired: () => void = () => {};
 // Sau khi đăng xuất hoặc hết phiên: request còn dở gặp 401 thì trả lỗi luôn, không gọi làm mới nữa.
 let sessionEnded = false;
+// Tăng mỗi lần đăng nhập/đăng xuất/hết phiên; lần làm mới bắt đầu ở thế hệ cũ thì bỏ kết quả.
+let generation = 0;
 
 export function getAccessToken() {
   return accessToken;
@@ -16,12 +18,14 @@ export function getAccessToken() {
 
 /** Đăng nhập thành công. */
 export function startSession(token: string) {
+  generation += 1;
   accessToken = token;
   sessionEnded = false;
 }
 
 /** Đăng xuất hoặc hết phiên. */
 export function endSession() {
+  generation += 1;
   accessToken = null;
   sessionEnded = true;
 }
@@ -32,21 +36,25 @@ export function setSessionExpiredHandler(handler: () => void) {
 }
 
 // Refresh token xoay vòng: gửi lại token cũ bị backend coi là dùng lại và thu hồi mọi phiên của tài khoản.
-// Vì vậy trong một tab chỉ có một lần làm mới tại một thời điểm, và các tab xếp hàng bằng Web Locks
-// để tab sau gửi cookie mới mà tab trước vừa nhận.
-async function withRefreshLock<T>(task: () => Promise<T>): Promise<T> {
+// Vì vậy mọi thao tác ghi cookie phiên (làm mới, đăng nhập, đăng xuất) chạy lần lượt: trong một tab qua
+// pendingRefresh, giữa các tab qua Web Locks, để thao tác sau luôn đọc cookie mà thao tác trước vừa ghi.
+async function withSessionLock<T>(task: () => Promise<T>): Promise<T> {
   if (typeof navigator !== "undefined" && "locks" in navigator) {
-    return navigator.locks.request("ps.refresh", task);
+    return navigator.locks.request("ps.session", task);
   }
   return task();
 }
 
-async function requestAccessToken(): Promise<string | null> {
+async function requestAccessToken(startedIn: number): Promise<string | null> {
+  // Đăng xuất/đăng nhập xen vào lúc chờ khóa: lần làm mới này thuộc phiên cũ, không gửi nữa.
+  if (startedIn !== generation) return null;
   try {
     const { accessToken: token } = await refreshSession();
+    if (startedIn !== generation) return null;
     accessToken = token;
     return token;
   } catch (error) {
+    if (startedIn !== generation) return null;
     // Mất mạng, 5xx, 429: phiên có thể vẫn còn, ném lỗi để màn hình cho thử lại.
     if (toApiError(error).status !== 401) throw error;
     endSession();
@@ -58,15 +66,27 @@ async function requestAccessToken(): Promise<string | null> {
 /** Lấy access token mới; mọi lời gọi cùng lúc dùng chung một lần làm mới. Trả null khi phiên đã hết. */
 export function refreshAccessToken(): Promise<string | null> {
   if (sessionEnded) return Promise.resolve(null);
-  pendingRefresh ??= withRefreshLock(requestAccessToken).finally(() => {
-    pendingRefresh = null;
-  });
+  if (!pendingRefresh) {
+    const startedIn = generation;
+    pendingRefresh = withSessionLock(() => requestAccessToken(startedIn)).finally(() => {
+      pendingRefresh = null;
+    });
+  }
   return pendingRefresh;
 }
 
 /** Dùng access token đang có, chưa có (vừa tải lại trang) thì làm mới. */
 export async function ensureAccessToken() {
   return accessToken ?? refreshAccessToken();
+}
+
+/**
+ * Chạy đăng nhập/đăng xuất sau lần làm mới đang dở và giữ khóa phiên đến khi xong, để route handler đọc
+ * refresh token mới nhất và phản hồi làm mới tới muộn không ghi lại cookie sau khi đã đăng xuất.
+ */
+export async function runSessionChange<T>(task: () => Promise<T>): Promise<T> {
+  await pendingRefresh?.catch(() => null);
+  return withSessionLock(task);
 }
 
 setAccessTokenProvider(getAccessToken);
