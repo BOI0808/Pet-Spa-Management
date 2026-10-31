@@ -19,4 +19,14 @@ public sealed class HotelPricingController(HotelCatalogService hotelCatalog) : C
         var snapshot = await hotelCatalog.GetPricingAsync(ct);
         return Ok(HotelPricingResponse.From(snapshot));
     }
+
+    [HttpPut]
+    [Authorize(Policy = AuthorizationPolicies.Manager)]
+    [EndpointSummary("Thiết lập giá lưu trú, giá thức ăn và phí phạt trả muộn")]
+    [EndpointDescription("Chỉ quản lý. Mỗi dòng pricing thêm mới hoặc cập nhật giá của một cặp loài và nhóm kích cỡ; dòng không gửi thì giữ nguyên. lateFeePerBlock chỉ chỉnh tại đây. Có hiệu lực cho các lịch lưu trú tạo sau đó.")]
+    public async Task<IActionResult> Update(HotelPricingRequest request, CancellationToken ct)
+    {
+        await hotelCatalog.SavePricingAsync(request.ToInput(), ct);
+        return Ok();
+    }
 }

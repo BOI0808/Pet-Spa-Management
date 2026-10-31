@@ -1,5 +1,6 @@
 using PetSpa.Application.Ports;
 using PetSpa.Domain.Entities;
+using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
 
 namespace PetSpa.Application.Services;
@@ -34,4 +35,49 @@ public sealed class HotelCatalogService(IHotelCatalogRepository repository)
 
     public Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default) =>
         repository.GetPricingAsync(ct);
+
+    public async Task SavePricingAsync(HotelPricingInput input, CancellationToken ct = default)
+    {
+        await EnsureValidPricingAsync(input, ct);
+
+        var rows = input.Pricing.Select(p => new HotelPricing
+        {
+            Species = p.Species,
+            SizeGroup = p.SizeGroup,
+            PricePerNight = p.PricePerNight,
+            FoodPerNight = p.FoodPerNight,
+        }).ToList();
+
+        await repository.SavePricingAsync(rows, input.LateFeePerBlock, ct);
+    }
+
+    private async Task EnsureValidPricingAsync(HotelPricingInput input, CancellationToken ct)
+    {
+        var duplicated = input.Pricing
+            .GroupBy(p => new { p.Species, p.SizeGroup })
+            .FirstOrDefault(g => g.Count() > 1);
+        if (duplicated is not null)
+            throw new BusinessException(
+                ErrorCodes.ValidationError,
+                $"Giá lưu trú của loài {duplicated.Key.Species}, nhóm kích cỡ {duplicated.Key.SizeGroup} bị khai báo trùng.");
+
+        var sizeRules = await repository.GetSizeRulesAsync(ct);
+        foreach (var row in input.Pricing)
+        {
+            if (!GetSizeGroups(sizeRules, row.Species).Contains(row.SizeGroup))
+                throw new BusinessException(
+                    ErrorCodes.ValidationError,
+                    $"Loài {row.Species} không có nhóm kích cỡ {row.SizeGroup}.");
+        }
+    }
+
+    private static List<SizeGroup> GetSizeGroups(IReadOnlyList<SizeRule> sizeRules, Species species)
+    {
+        var rulesOfSpecies = sizeRules.Where(r => r.Species == species).ToList();
+        if (rulesOfSpecies.Count == 0) return new List<SizeGroup>();
+
+        return rulesOfSpecies.Any(r => r.MediumUpper is null)
+            ? new List<SizeGroup> { SizeGroup.Small, SizeGroup.Large }
+            : new List<SizeGroup> { SizeGroup.Small, SizeGroup.Medium, SizeGroup.Large };
+    }
 }
