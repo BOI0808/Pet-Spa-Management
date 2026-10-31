@@ -68,7 +68,7 @@ public static class DependencyInjection
             services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
             services.AddScoped<IPetRepository, PetRepository>();
             services.AddScoped<IAccountRepository, AccountRepository>();
-
+            services.AddScoped<IStaffRepository, StaffRepository>();
         return services;
     }
 }
