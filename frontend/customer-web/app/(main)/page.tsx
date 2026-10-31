@@ -1,4 +1,8 @@
 // Trang chủ tạm. CW-03 (danh mục dịch vụ & giá lưu trú) làm ở thẻ 1.5.3.1.
+
+// Màn nằm sau SessionGate – xem ghi chú trong app/(main)/layout.tsx.
+export const instant = false;
+
 export default function HomePage() {
   return (
     <div className="mb-6">

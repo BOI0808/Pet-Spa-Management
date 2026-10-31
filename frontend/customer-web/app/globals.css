@@ -40,9 +40,16 @@
   --color-st-cancelled-bg: #f8dada;
   --color-st-cancelled: #8a1f16;
 
+  /* Nền hình minh họa theo loài (`.sp-*` trong ui-demo) */
+  --color-sp-dog: #ffe6b8;
+  --color-sp-cat: #d4eef0;
+  --color-sp-rabbit: #e6e4fa;
+  --color-sp-guinea: #ddf1dd;
+
   --shadow-pop: 0 18px 40px -12px rgba(20, 50, 58, 0.28), 0 2px 8px rgba(20, 50, 58, 0.08);
 
   --animate-toast-in: toast-in 0.2s ease-out;
+  --animate-shimmer: shimmer 1.4s linear infinite;
 
   @keyframes toast-in {
     from {
@@ -52,6 +59,15 @@
     to {
       transform: none;
       opacity: 1;
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
     }
   }
 }

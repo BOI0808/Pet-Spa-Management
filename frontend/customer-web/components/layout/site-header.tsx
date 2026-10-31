@@ -4,11 +4,18 @@ import { PawLogo } from "@/components/icons";
 import { ROUTES } from "@/lib/routes";
 import { ActiveHeaderNav, HeaderNav } from "./header-nav";
 
-/** Logo “Spa thú cưng”: ô Lagoon có dấu chân, chấm Apricot ở góc. */
-export function BrandMark() {
+/**
+ * Logo “Spa thú cưng”: ô Lagoon có dấu chân, chấm Apricot ở góc.
+ * `inverted`: trên nền Lagoon (khối giới thiệu màn đăng nhập) ô trắng, dấu chân Lagoon.
+ */
+export function BrandMark({ inverted = false }: { inverted?: boolean }) {
   return (
-    <span className="relative grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-lagoon after:absolute after:-right-[3px] after:-top-[3px] after:size-[11px] after:rounded-full after:border-2 after:border-white after:bg-apricot after:content-['']">
-      <PawLogo className="size-5 fill-white" />
+    <span
+      className={`relative grid size-[34px] shrink-0 place-items-center rounded-[11px] after:absolute after:-right-[3px] after:-top-[3px] after:size-[11px] after:rounded-full after:border-2 after:bg-apricot after:content-[''] ${
+        inverted ? "bg-white after:border-lagoon" : "bg-lagoon after:border-white"
+      }`}
+    >
+      <PawLogo className={`size-5 ${inverted ? "fill-lagoon" : "fill-white"}`} />
     </span>
   );
 }
