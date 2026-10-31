@@ -59,3 +59,6 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - `proxy.ts` chuyển hướng theo cookie; `SessionGate` (trong `app/(main)/layout.tsx`) kiểm tra phiên và vai trò thật.
   Chỉ vai trò `Manager` được dùng web này (`ALLOWED_ROLE` trong `lib/auth/config.ts`).
 - Khi chạy cả 3 web trên `localhost`, cookie `ps_rt` dùng chung (cookie không tách theo cổng): thử từng web một.
+- Route handler chuyển tiếp `X-Forwarded-For` lên backend để giới hạn tốc độ theo từng người dùng. Khi triển khai, web phải nằm sau proxy đặt header này (Vercel đã làm); chạy local thì mọi người dùng chung một IP.
+- Việc làm mới token được xếp hàng giữa các tab bằng `navigator.locks`: hai tab dùng chung một refresh token thì backend sẽ thu hồi cả phiên.
+- `SessionGate` chỉ giữ khung xương khi 401/403; lỗi khác (mất mạng, 429, 5xx…) hiện `ErrorAlert` kèm nút Thử lại.
