@@ -17,6 +17,8 @@ import { ROUTES } from "@/lib/routes";
 import { LOGIN_DEFAULT_VALUES, LOGIN_RULES, toLoginRequest, type LoginFormValues } from "../forms";
 
 // Hai câu này do web đặt, không đến từ backend; đóng gói thành ApiError để `ErrorAlert` hiển thị (`detail`).
+// `status: 401` là cố ý, kể cả với WRONG_WEB_ERROR (ý nghĩa là sai vai trò): getErrorMessage đổi mọi 403 FORBIDDEN
+// thành câu "Bạn không có quyền xem trang này" và làm mất `detail`. Giá trị status chỉ phục vụ hiển thị, không gửi đi đâu.
 const SESSION_EXPIRED_ERROR = new ApiError({
   kind: "http",
   status: 401,
