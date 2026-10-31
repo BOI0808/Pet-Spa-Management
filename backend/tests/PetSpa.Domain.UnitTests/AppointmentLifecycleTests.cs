@@ -50,6 +50,7 @@ public class AppointmentLifecycleTests
 
         appointment.CheckOut();
         Assert.Equal(AppointmentStatus.Completed, appointment.Status);
+        Assert.NotNull(appointment.ActualCheckOut);
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public class AppointmentLifecycleTests
     {
         var appointment = Hotel(AppointmentStatus.Confirmed);
 
-        AssertInvalidTransition(appointment.CheckOut);
+        AssertInvalidTransition(() => appointment.CheckOut());
 
         Assert.Equal(AppointmentStatus.Confirmed, appointment.Status);
     }
@@ -157,7 +158,7 @@ public class AppointmentLifecycleTests
             appointment.Confirm,
             appointment.ReturnToPending,
             appointment.CheckIn,
-            appointment.CheckOut,
+            () => appointment.CheckOut(),
             () => appointment.Cancel(CancelReason.StoreUnable),
         ];
 
