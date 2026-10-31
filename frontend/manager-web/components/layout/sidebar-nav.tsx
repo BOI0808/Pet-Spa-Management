@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
+import { useSession } from "@/lib/auth/use-session";
 import { ROUTES } from "@/lib/routes";
 import { onDarkFocusClass } from "./sidebar-styles";
 
@@ -52,6 +53,7 @@ type SidebarNavProps = {
 /** Menu quản lý (vùng B, C) và khối tài khoản cuối thanh bên (vùng D). */
 export function SidebarNav({ pathname, pendingCount }: SidebarNavProps) {
   const profileActive = isUnder(pathname, ROUTES.profile);
+  const { me, logout } = useSession();
 
   return (
     <>
@@ -90,7 +92,7 @@ export function SidebarNav({ pathname, pendingCount }: SidebarNavProps) {
       </nav>
 
       <div className="flex items-center gap-2.5 border-t border-white/10 p-3 max-[980px]:hidden">
-        {/* Tên hiển thị lấy `userName` của GET /me (UI-Screens 2.1 vùng D, G-11) ở thẻ 136 – 1.7.1.1.2 (đăng nhập). */}
+        {/* Tên hiển thị là `userName` của GET /me (UI-Screens 2.1 vùng D, G-11). */}
         <Link
           href={ROUTES.profile}
           aria-current={profileActive ? "page" : undefined}
@@ -100,14 +102,19 @@ export function SidebarNav({ pathname, pendingCount }: SidebarNavProps) {
             <Icon name="user" />
           </span>
           <span className="leading-[18px]">
-            <span className="block font-bold">Tài khoản</span>
+            <span className="block font-bold">{me?.userName ?? "Tài khoản"}</span>
             <span className="block text-xs text-[#89BDC2]">Quản lý</span>
           </span>
         </Link>
-        {/* Thu hồi refresh token (POST /auth/logout) làm ở thẻ 136 – 1.7.1.1.2. */}
-        <Link href={ROUTES.login} aria-label="Đăng xuất" title="Đăng xuất" className={`${userLinkClass} ${userLinkIdleClass} flex-none`}>
+        <button
+          type="button"
+          aria-label="Đăng xuất"
+          title="Đăng xuất"
+          onClick={logout}
+          className={`${userLinkClass} ${userLinkIdleClass} flex-none`}
+        >
           <Icon name="logout" />
-        </Link>
+        </button>
       </div>
     </>
   );
