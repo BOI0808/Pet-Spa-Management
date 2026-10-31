@@ -12,9 +12,21 @@ public interface IWorkShiftRepository
         Guid? staffId, DateTimeOffset? rangeStart, DateTimeOffset? rangeEnd,
         int page, int pageSize, CancellationToken ct = default);
 
+    // null nếu không có ca này.
+    Task<WorkShiftItem?> FindAsync(Guid shiftId, CancellationToken ct = default);
+
     // Nhân viên tồn tại, là nhân viên spa và tài khoản đang hoạt động.
     Task<bool> IsActiveSpaStaffAsync(Guid staffId, CancellationToken ct = default);
 
+    // Có lịch spa Confirmed của nhân viên mà khoảng bận (BusyFrom–BusyUntil) giao với [rangeStart, rangeEnd).
+    Task<bool> HasConfirmedAppointmentsAsync(
+        Guid staffId, DateTimeOffset rangeStart, DateTimeOffset rangeEnd, CancellationToken ct = default);
+
     // Chồng ca của cùng nhân viên: ném SHIFT_OVERLAP (do ràng buộc ex_shift_overlap của CSDL). Trả ShiftId.
     Task<Guid> AddAsync(Guid staffId, DateTimeOffset shiftStart, DateTimeOffset shiftEnd, CancellationToken ct = default);
+
+    // Không có ShiftId -> NOT_FOUND. Chồng ca -> SHIFT_OVERLAP.
+    Task UpdateAsync(Guid shiftId, DateTimeOffset shiftStart, DateTimeOffset shiftEnd, CancellationToken ct = default);
+
+    Task DeleteAsync(Guid shiftId, CancellationToken ct = default);
 }

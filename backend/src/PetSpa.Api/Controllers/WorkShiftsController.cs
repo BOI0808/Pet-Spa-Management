@@ -30,4 +30,22 @@ public sealed class WorkShiftsController(WorkShiftService workShiftService) : Co
             request.StaffId!.Value, request.ShiftStart!.Value, request.ShiftEnd!.Value, ct);
         return StatusCode(StatusCodes.Status201Created, new CreateWorkShiftResponse(shiftId));
     }
+    
+    [HttpPut("{id}")]
+    [EndpointSummary("Quản lý sửa ca làm")]
+    [EndpointDescription("Đổi giờ bắt đầu, giờ kết thúc. Chồng ca khác của nhân viên trả 409 SHIFT_OVERLAP; còn lịch Đã xác nhận của nhân viên trong phần ca bị bỏ trả 409 SHIFT_HAS_APPOINTMENTS (lịch Chờ xác nhận không chặn).")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkShiftRequest request, CancellationToken ct)
+    {
+        await workShiftService.UpdateAsync(id, request.ShiftStart!.Value, request.ShiftEnd!.Value, ct);
+        return Ok();
+    }
+
+    [HttpDelete("{id}")]
+    [EndpointSummary("Quản lý xóa ca làm")]
+    [EndpointDescription("Cùng kiểm tra như sửa: còn lịch Đã xác nhận của nhân viên trong ca trả 409 SHIFT_HAS_APPOINTMENTS. Không tìm thấy ca trả 404.")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        await workShiftService.DeleteAsync(id, ct);
+        return NoContent();
+    }
 }

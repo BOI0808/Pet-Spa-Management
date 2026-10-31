@@ -42,7 +42,25 @@ public sealed class WorkShiftRepository(AppDbContext db) : IWorkShiftRepository
 
         return await query.AnyAsync(ct);
     }
+        public async Task<WorkShiftItem?> FindAsync(Guid shiftId, CancellationToken ct = default)
+    {
+        var shift = await db.Set<WorkShift>().AsNoTracking().FirstOrDefaultAsync(w => w.ShiftId == shiftId, ct);
+        return shift is null ? null : ToItem(shift);
+    }
 
+    public Task<bool> HasConfirmedAppointmentsAsync(
+        Guid staffId, DateTimeOffset rangeStart, DateTimeOffset rangeEnd, CancellationToken ct = default)
+    {
+        // BusyFrom/BusyUntil là khoảng nhân viên bị giữ bận của lịch (AppointmentStaff).
+        var query = from asg in db.Set<AppointmentStaff>()
+                    join a in db.Set<Appointment>() on asg.AppointmentId equals a.AppointmentId
+                    where asg.StaffId == staffId
+                          && a.Status == AppointmentStatus.Confirmed
+                          && asg.BusyFrom < rangeEnd && asg.BusyUntil > rangeStart
+                    select asg.AppointmentId;
+
+        return query.AnyAsync(ct);
+    }
     public async Task<Guid> AddAsync(
         Guid staffId, DateTimeOffset shiftStart, DateTimeOffset shiftEnd, CancellationToken ct = default)
     {
@@ -57,6 +75,20 @@ public sealed class WorkShiftRepository(AppDbContext db) : IWorkShiftRepository
         await SaveAsync(ct);
         return shift.ShiftId;
     }
+    
+    public async Task UpdateAsync(
+        Guid shiftId, DateTimeOffset shiftStart, DateTimeOffset shiftEnd, CancellationToken ct = default)
+    {
+        var shift = await db.Set<WorkShift>().FirstOrDefaultAsync(w => w.ShiftId == shiftId, ct)
+            ?? throw new BusinessException(ErrorCodes.NotFound);
+
+        shift.ShiftStart = shiftStart;
+        shift.ShiftEnd = shiftEnd;
+        await SaveAsync(ct);
+    }
+
+    public Task DeleteAsync(Guid shiftId, CancellationToken ct = default) =>
+        db.Set<WorkShift>().Where(w => w.ShiftId == shiftId).ExecuteDeleteAsync(ct);
 
     private static WorkShiftItem ToItem(WorkShift w) => new(w.ShiftId, w.StaffId, w.ShiftStart, w.ShiftEnd);
 

@@ -16,3 +16,6 @@ public sealed class ListWorkShiftsQuery
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
+
+// PUT /work-shifts/{id}. Không có staffId: ca không đổi người.
+public sealed record UpdateWorkShiftRequest(DateTimeOffset? ShiftStart, DateTimeOffset? ShiftEnd);

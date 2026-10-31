@@ -33,3 +33,18 @@ public sealed class ListWorkShiftsQueryValidator : AbstractValidator<ListWorkShi
             .InclusiveBetween(1, 100).WithMessage("pageSize phải từ 1 đến 100.");
     }
 }
+
+public sealed class UpdateWorkShiftRequestValidator : AbstractValidator<UpdateWorkShiftRequest>
+{
+    public UpdateWorkShiftRequestValidator()
+    {
+        RuleFor(x => x.ShiftStart)
+            .NotNull().WithMessage("Vui lòng nhập giờ bắt đầu ca.");
+
+        RuleFor(x => x.ShiftEnd)
+            .Cascade(CascadeMode.Stop)
+            .NotNull().WithMessage("Vui lòng nhập giờ kết thúc ca.")
+            .Must((x, end) => x.ShiftStart is null || end > x.ShiftStart)
+            .WithMessage("Giờ kết thúc phải sau giờ bắt đầu.");
+    }
+}
