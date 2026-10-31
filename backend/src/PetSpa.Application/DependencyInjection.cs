@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<AccountService>();
         services.AddScoped<AuthService>();
         services.AddScoped<StaffService>();
+        services.AddScoped<WorkShiftService>();
         return services;
     }
 }
