@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PetSpa.Application.Ports;
@@ -9,6 +10,7 @@ namespace PetSpa.Infrastructure.Persistence.Repositories;
 
 public sealed class HotelCatalogRepository(AppDbContext db) : IHotelCatalogRepository
 {
+    private const string LateFeeKey = "Hotel.LateFeePerBlock";
     public async Task AddCageAsync(Cage cage, CancellationToken ct = default)
     {
         db.Set<Cage>().Add(cage);
@@ -52,6 +54,20 @@ public sealed class HotelCatalogRepository(AppDbContext db) : IHotelCatalogRepos
             .ExecuteUpdateAsync(c => c.SetProperty(x => x.IsActive, isActive), ct);
 
         return affected > 0;
+    }
+
+    public async Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default)
+    {
+        var rows = await db.Set<HotelPricing>().AsNoTracking().ToListAsync(ct);
+
+        var lateFee = await db.Set<SystemConfig>().AsNoTracking()
+            .Where(c => c.ConfigKey == LateFeeKey)
+            .Select(c => c.ConfigValue)
+            .FirstOrDefaultAsync(ct);
+
+        return new HotelPricingSnapshot(
+            rows.OrderBy(p => p.Species).ThenBy(p => p.SizeGroup).ToList(),
+            lateFee is null ? 0m : decimal.Parse(lateFee, CultureInfo.InvariantCulture));
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>

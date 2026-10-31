@@ -31,4 +31,7 @@ public sealed class HotelCatalogService(IHotelCatalogRepository repository)
         if (!await repository.SetCageActiveAsync(cageId, isActive, ct))
             throw new BusinessException(ErrorCodes.NotFound);
     }
+
+    public Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default) =>
+        repository.GetPricingAsync(ct);
 }
