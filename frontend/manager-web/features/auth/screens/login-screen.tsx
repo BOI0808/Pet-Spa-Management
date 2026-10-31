@@ -3,6 +3,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { FieldError } from "@/components/feedback/field-error";
@@ -41,6 +42,12 @@ export function LoginScreen() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
+
+  // Đến màn đăng nhập (đăng xuất, hết phiên, sai web) thì bỏ dữ liệu của phiên trước. Làm ở đây vì các màn sau đăng nhập
+  // đã được gỡ, không còn thành phần nào theo dõi `me` để tự tải lại.
+  useEffect(() => {
+    queryClient.clear();
+  }, [queryClient]);
 
   const {
     register,

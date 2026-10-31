@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useToast } from "@/components/feedback/toast";
@@ -30,18 +30,18 @@ async function loadMe() {
 /** Phiên đăng nhập hiện tại: kết quả GET /me, đăng xuất và rời khỏi phiên. */
 export function useSession() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const toast = useToast();
   const meQuery = useQuery({ queryKey: meKeys.all, queryFn: loadMe, staleTime: Infinity });
 
-  /** Bỏ token trong bộ nhớ và bộ đệm dữ liệu rồi về màn đăng nhập (User-Flows 4.2). */
+  /** Bỏ token trong bộ nhớ rồi về màn đăng nhập (User-Flows 4.2). Bộ đệm dữ liệu được xóa khi LoginScreen hiện ra. */
   const leave = useCallback(
     (options?: { reason?: LoginReason; next?: string }) => {
+      // Không xóa bộ đệm ở đây: router.replace chưa gỡ xong Sidebar và SessionGate, xóa `me` lúc này làm chúng tải lại
+      // ngay (refresh 401 rồi báo "hết hạn" sai).
       clearAccessToken();
-      queryClient.clear();
       router.replace(buildLoginUrl(options));
     },
-    [queryClient, router],
+    [router],
   );
 
   const logoutMutation = useMutation({
