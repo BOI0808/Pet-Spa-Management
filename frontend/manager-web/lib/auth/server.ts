@@ -40,8 +40,15 @@ function isMe(data: unknown): data is Me {
   );
 }
 
+/** Chuyển tiếp IP người dùng để backend giới hạn tốc độ theo từng người (RateLimitPolicies.GetClientIp), không theo IP của server Next.js. */
+function forwardedForHeader(request: NextRequest): Record<string, string> {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  return forwardedFor ? { "X-Forwarded-For": forwardedFor } : {};
+}
+
 /** Route handler là nơi duy nhất gọi backend bằng `fetch` (FA 6.2, 7.1); server → server nên không cần CORS. */
 export async function callBackend(
+  request: NextRequest,
   path: string,
   options: { method?: "GET" | "POST"; body?: unknown; accessToken?: string } = {},
 ) {
@@ -50,6 +57,7 @@ export async function callBackend(
       method: options.method ?? "POST",
       headers: {
         "Content-Type": "application/json",
+        ...forwardedForHeader(request),
         ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}),
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
@@ -106,16 +114,16 @@ export function clearRefreshCookie(response: NextResponse) {
  * Thu hồi refresh token ở backend. POST /auth/logout cần access token còn hạn: nếu đã hết hạn thì đổi lấy cặp mới
  * rồi thu hồi cặp đó. Lỗi bị bỏ qua để người dùng vẫn thoát được phiên ở web.
  */
-export async function revokeRefreshToken(refreshToken: string, accessToken?: string) {
+export async function revokeRefreshToken(request: NextRequest, refreshToken: string, accessToken?: string) {
   const logout = (pair: TokenPair) =>
-    callBackend("/auth/logout", { accessToken: pair.accessToken, body: { refreshToken: pair.refreshToken } });
+    callBackend(request, "/auth/logout", { accessToken: pair.accessToken, body: { refreshToken: pair.refreshToken } });
 
   if (accessToken) {
     const response = await logout({ accessToken, refreshToken });
     if (response?.status !== 401) return;
   }
 
-  const refreshed = await callBackend("/auth/refresh", { body: { refreshToken } });
+  const refreshed = await callBackend(request, "/auth/refresh", { body: { refreshToken } });
   const pair = refreshed?.ok ? await readTokenPair(refreshed) : null;
   if (pair) await logout(pair);
 }

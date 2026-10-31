@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   if (!refreshToken) return errorResponse(SESSION_EXPIRED);
 
-  const refreshResponse = await callBackend("/auth/refresh", { body: { refreshToken } });
+  const refreshResponse = await callBackend(request, "/auth/refresh", { body: { refreshToken } });
 
   // Backend từ chối token: phiên đã chết, xóa cookie. Lỗi khác (mất kết nối, 5xx) giữ cookie để thử lại.
   if (refreshResponse && (refreshResponse.status === 401 || refreshResponse.status === 400)) {

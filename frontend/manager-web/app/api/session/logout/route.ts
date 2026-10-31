@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   if (refreshToken) {
     const accessToken = request.headers.get("authorization")?.replace(/^Bearer /, "");
-    await revokeRefreshToken(refreshToken, accessToken);
+    await revokeRefreshToken(request, refreshToken, accessToken);
   }
 
   const response = new NextResponse(null, { status: 204 });
