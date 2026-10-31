@@ -33,13 +33,25 @@ export function notifySessionEnded(reason: LoginReason) {
   sessionEndedListener?.(reason);
 }
 
+const REFRESH_LOCK_NAME = "ps-refresh-session";
+
+// Cookie refresh token dùng chung cho mọi tab của web này. Hai tab gửi cùng một refresh token thì backend coi bên chậm là
+// dùng lại token và thu hồi mọi phiên của tài khoản. Khóa này xếp các lần làm mới của mọi tab vào hàng: tab đến sau
+// sẽ gửi cookie mới mà tab trước vừa đặt.
+async function runExclusively<T>(task: () => Promise<T>): Promise<T> {
+  // navigator.locks chỉ có ở ngữ cảnh an toàn (https hoặc localhost); không có thì làm mới như cũ.
+  if (typeof navigator === "undefined" || !("locks" in navigator)) return task();
+  // `await`: navigator.locks.request trả Promise<Promise<T>> ở lib.dom của TS 5.9; chờ xong để lấy đúng T.
+  return await navigator.locks.request(REFRESH_LOCK_NAME, task);
+}
+
 /**
  * Đổi cookie refresh token lấy access token mới.
  * Refresh token xoay vòng và dùng lại token cũ sẽ bị thu hồi cả chuỗi, nên các lời gọi
  * đồng thời phải dùng chung một lần làm mới.
  */
 export function refreshAccessToken() {
-  refreshing ??= refreshSession()
+  refreshing ??= runExclusively(() => refreshSession())
     .then(({ accessToken: token }) => {
       accessToken = token;
       return token;
