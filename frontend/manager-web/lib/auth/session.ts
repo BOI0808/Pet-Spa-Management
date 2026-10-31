@@ -6,7 +6,15 @@ import type { LoginReason } from "./login-url";
 // Access token chỉ nằm trong bộ nhớ của tab: tải lại trang là mất, khi đó đổi lại từ cookie refresh token (FA 6.1).
 let accessToken: string | null = null;
 let refreshing: Promise<string> | null = null;
-let sessionEndedListener: ((reason: LoginReason) => void) | null = null;
+let sessionEndedListener: ((reason: LoginReason | undefined) => void) | null = null;
+
+// Người dùng vừa tự đăng xuất ở tab này. Bấm Back về màn sau đăng nhập thì không còn cookie nên việc làm mới thất bại;
+// đó không phải hết hạn nên không báo như vậy.
+let isSignedOut = false;
+
+export function markSignedOut() {
+  isSignedOut = true;
+}
 
 export function getAccessToken() {
   return accessToken;
@@ -14,6 +22,7 @@ export function getAccessToken() {
 
 export function setAccessToken(token: string) {
   accessToken = token;
+  isSignedOut = false;
 }
 
 export function clearAccessToken() {
@@ -21,7 +30,7 @@ export function clearAccessToken() {
 }
 
 /** Đăng ký hàm được gọi khi phiên kết thúc ngoài ý muốn (hết hạn, sai web). Trả về hàm hủy đăng ký. */
-export function onSessionEnded(listener: (reason: LoginReason) => void) {
+export function onSessionEnded(listener: (reason: LoginReason | undefined) => void) {
   sessionEndedListener = listener;
   return () => {
     if (sessionEndedListener === listener) sessionEndedListener = null;
@@ -30,7 +39,7 @@ export function onSessionEnded(listener: (reason: LoginReason) => void) {
 
 export function notifySessionEnded(reason: LoginReason) {
   accessToken = null;
-  sessionEndedListener?.(reason);
+  sessionEndedListener?.(reason === "expired" && isSignedOut ? undefined : reason);
 }
 
 const REFRESH_LOCK_NAME = "ps-refresh-session";

@@ -9,7 +9,7 @@ import { logoutSession } from "@/lib/api/endpoints/session";
 import { ApiError } from "@/lib/api/errors";
 import { ALLOWED_ROLE } from "./config";
 import { buildLoginUrl, type LoginReason } from "./login-url";
-import { clearAccessToken, getAccessToken, notifySessionEnded, refreshAccessToken } from "./session";
+import { clearAccessToken, getAccessToken, markSignedOut, notifySessionEnded, refreshAccessToken } from "./session";
 
 export const meKeys = { all: ["me"] as const };
 
@@ -46,7 +46,10 @@ export function useSession() {
 
   const logoutMutation = useMutation({
     mutationFn: logoutSession,
-    onSuccess: () => leave(),
+    onSuccess: () => {
+      markSignedOut();
+      leave();
+    },
     onError: (error) => toast.showError(error),
   });
 
