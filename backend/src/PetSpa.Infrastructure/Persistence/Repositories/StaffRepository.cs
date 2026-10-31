@@ -11,7 +11,8 @@ using PetSpa.Application.Common;
 namespace PetSpa.Infrastructure.Persistence.Repositories;
 
 // Số điện thoại là AppUser.UserName (SA 4.2.4); bảng Staff không có cột số điện thoại.
-public sealed class StaffRepository(UserManager<AppUser> userManager, AppDbContext db) : IStaffRepository
+public sealed class StaffRepository(
+    UserManager<AppUser> userManager, AppDbContext db, IIdentityTokenService identity) : IStaffRepository
 {
     public async Task<Guid> CreateAsync(
         string phone, string fullName, StaffRole staffRole, string password, CancellationToken ct = default)
@@ -73,6 +74,22 @@ public sealed class StaffRepository(UserManager<AppUser> userManager, AppDbConte
         staff.FullName = fullName;
         staff.StaffRole = staffRole;
         await db.SaveChangesAsync(ct);
+    }
+        public async Task DeactivateAsync(Guid staffId, CancellationToken ct = default)
+    {
+        var staff = await db.Set<Staff>().AsNoTracking().FirstOrDefaultAsync(s => s.StaffId == staffId, ct)
+            ?? throw new BusinessException(ErrorCodes.NotFound);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+        var user = await db.Users.FirstAsync(u => u.Id == staff.UserId, ct);
+        user.IsActive = false;
+        await db.SaveChangesAsync(ct);
+
+        // Cùng DbContext nên lệnh thu hồi nằm trong giao dịch này: hoặc cả hai thành công, hoặc cả hai hoàn tác.
+        await identity.RevokeAllAsync(staff.UserId, ct);
+
+        await transaction.CommitAsync(ct);
     }
     private static BusinessException ToBusinessException(IdentityResult result)
     {
