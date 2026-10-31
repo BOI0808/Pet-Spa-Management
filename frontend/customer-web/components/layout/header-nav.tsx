@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { Avatar } from "@/components/ui/avatar";
+import { useSession } from "@/lib/auth/session";
+import { getInitials, getShortName } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { Dropdown, dropdownItemClass } from "./dropdown";
 
@@ -22,8 +25,10 @@ function NavLabel({ children }: { children: string }) {
 
 /** Menu chính và góc phải của thanh trên; `pathname = null` khi chưa biết trang hiện tại. */
 export function HeaderNav({ pathname }: { pathname: string | null }) {
+  const { me, logout } = useSession();
   const bookingActive = isUnder(pathname, "/dat-lich");
   const notificationsActive = isUnder(pathname, ROUTES.notifications);
+  const fullName = me ? (me.fullName ?? me.userName) : null;
 
   return (
     <>
@@ -92,16 +97,20 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
         >
           <Icon name="bell" className="size-[22px]" />
         </Link>
-        {/* Tên người dùng lấy từ GET /me khi làm đăng nhập (thẻ 1.5.2.1). */}
+        {/* Avatar chữ cái đầu + tên ngắn từ GET /me; chưa tải xong thì hiện biểu tượng (UI-Screens 2.1, vùng E). */}
         <Dropdown
           align="right"
           buttonClassName="flex h-[42px] cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border border-line bg-white pl-1 pr-2.5 text-sm font-medium text-ink hover:border-[#B9CED2] max-[860px]:gap-1 max-[860px]:pr-1.5"
           label={
             <>
-              <span className="grid size-8 place-items-center rounded-full bg-apricot-100 text-apricot-700">
-                <Icon name="user" />
-              </span>
-              <span className="max-[860px]:sr-only">Tài khoản</span>
+              {fullName ? (
+                <Avatar initials={getInitials(fullName)} />
+              ) : (
+                <span className="grid size-8 place-items-center rounded-full bg-apricot-100 text-apricot-700">
+                  <Icon name="user" />
+                </span>
+              )}
+              <span className="max-[860px]:sr-only">{fullName ? getShortName(fullName) : "Tài khoản"}</span>
               <Icon name="chev-d" className="size-4 text-muted" />
             </>
           }
@@ -115,11 +124,10 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
             Lịch sử dịch vụ
           </Link>
           <div className="mx-1 my-1.5 h-px bg-line" />
-          {/* Thu hồi refresh token (POST /auth/logout) làm ở thẻ 1.5.2.1. */}
-          <Link href={ROUTES.login} className={dropdownItemClass}>
+          <button type="button" onClick={() => void logout()} className={`${dropdownItemClass} cursor-pointer`}>
             <Icon name="logout" />
             Đăng xuất
-          </Link>
+          </button>
         </Dropdown>
       </div>
     </>

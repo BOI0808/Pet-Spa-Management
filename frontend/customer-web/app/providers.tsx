@@ -3,6 +3,7 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/feedback/toast";
+import { SessionProvider } from "@/lib/auth/session";
 import { makeQueryClient } from "@/lib/query-client";
 
 let browserQueryClient: QueryClient | undefined;
@@ -17,7 +18,9 @@ function getQueryClient() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={getQueryClient()}>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        <SessionProvider>{children}</SessionProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
