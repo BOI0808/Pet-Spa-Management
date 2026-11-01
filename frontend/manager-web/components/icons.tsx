@@ -156,6 +156,15 @@ const ICON_PATHS = {
     </>
   ),
   x: <path d="M18 6 6 18M6 6l12 12" />,
+  // Ba biểu tượng của màn Danh mục dịch vụ MW-06 (ui-demo: i-plus, i-edit, i-ban).
+  plus: <path d="M12 5v14M5 12h14" />,
+  edit: <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />,
+  ban: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m4.9 4.9 14.2 14.2" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICON_PATHS;
