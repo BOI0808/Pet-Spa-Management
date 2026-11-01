@@ -20,9 +20,13 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `app/(auth)` | Màn hình không có thanh bên (MW-01 Đăng nhập) |
 | `app/api/session` | Route handler phiên đăng nhập: `login`, `refresh`, `logout` (cookie httpOnly) |
 | `features/auth` | Màn MW-01 Đăng nhập |
+| `features/services` | Màn MW-06 Danh mục dịch vụ: bảng, ngăn kéo thêm/sửa, hộp thoại ngừng cung cấp |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
 | `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
+| `components/ui`, `components/domain` | Thành phần dùng chung: Button, Card, Skeleton, Field/Input/Select/Textarea, Tag, EmptyState, ConfirmDialog, Drawer, PetAvatar |
+| `lib/queries` | Hook TanStack Query theo từng nhóm endpoint (`useServices`, `useCreateService`, …) |
+| `lib/labels.ts`, `lib/format.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ) và định dạng tiền |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu dữ liệu và hàm gọi endpoint |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `proxy.ts` | Chuyển hướng theo cookie phiên: chưa đăng nhập → `/dang-nhap` |
@@ -62,3 +66,9 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - Route handler chuyển tiếp `X-Forwarded-For` lên backend để giới hạn tốc độ theo từng người dùng. Khi triển khai, web phải nằm sau proxy đặt header này (Vercel đã làm); chạy local thì mọi người dùng chung một IP.
 - Việc làm mới token được xếp hàng giữa các tab bằng `navigator.locks`: hai tab dùng chung một refresh token thì backend sẽ thu hồi cả phiên.
 - `SessionGate` chỉ giữ khung xương khi 401/403; lỗi khác (mất mạng, 429, 5xx…) hiện `ErrorAlert` kèm nút Thử lại.
+
+## Danh mục dịch vụ (MW-06)
+
+- Gọi `GET/POST /services`, `PUT /services/{id}`, `PATCH /services/{id}/status`; Quản lý nhận cả dịch vụ đã ngừng. "Ngừng cung cấp" và "Mở lại" cùng gọi `PATCH` với `isActive` là `false` / `true`.
+- Mốc "Bắt đầu muộn nhất" chọn trong `SLOT_TIME_OPTIONS` (`features/services/forms.ts`): tạm là mặc định của `Booking.SlotTimes` vì backend chưa có `GET /config`. Khi có API này thì đọc từ `settings["Booking.SlotTimes"]`; backend vẫn kiểm tra lại.
+- Chuột lang chỉ có hai nhóm kích cỡ Nhỏ và Lớn (BR-19); chó, mèo, thỏ có ba nhóm.
