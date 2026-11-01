@@ -1,8 +1,13 @@
 // Đường dẫn các màn hình web khách hàng (sitemap – System Analysis mục 6.2).
 export const ROUTES = {
   home: "/", // CW-03 Trang chủ: danh mục dịch vụ & giá lưu trú
-  pets: "/thu-cung", // CW-04, CW-05
+  pets: "/thu-cung", // CW-04
+  petNew: "/thu-cung/them", // CW-05 thêm
+  petEdit: (petId: string) => `/thu-cung/${encodeURIComponent(petId)}/sua`, // CW-05 sửa
   spaBooking: "/dat-lich/spa", // CW-06
+  // Đặt lịch, xem lịch sử cho một bé chọn sẵn (UI-Screens CW-04 vùng 2).
+  spaBookingForPet: (petId: string) => `/dat-lich/spa?petId=${encodeURIComponent(petId)}`,
+  historyForPet: (petId: string) => `/lich-su?petId=${encodeURIComponent(petId)}`,
   hotelBooking: "/dat-lich/luu-tru", // CW-07
   appointments: "/lich-hen", // CW-08, CW-09, CW-10
   history: "/lich-su", // CW-11

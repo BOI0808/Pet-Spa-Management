@@ -49,3 +49,23 @@ export type Pet = {
 };
 
 export type PetPage = Page<Pet>;
+
+/** Không có `sizeGroup` (hệ thống xác định – FR-PET-04); khách hàng không gửi `customerId`. */
+export type PetRequest = {
+  name: string;
+  species: Species;
+  breed: string;
+  temperament?: Temperament;
+  weightKg: number;
+  /** Bắt buộc khi species = Dog. */
+  heightCm?: number;
+  coatNote?: string;
+  notes?: string;
+  customerId?: string;
+};
+
+export type PetSizeResult = {
+  /** Chỉ có ở phản hồi tạo hồ sơ. */
+  petId?: string;
+  sizeGroup: SizeGroup;
+};
