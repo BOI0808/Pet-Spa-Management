@@ -5,14 +5,17 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 type DropdownProps = {
   /** Nội dung nút mở menu. */
   label: ReactNode;
+  /** Tên đọc được của nút khi nút chỉ có biểu tượng (vd. menu ⋯ trên thẻ thú cưng). */
+  buttonLabel?: string;
   buttonClassName: string;
   /** Căn mép menu theo mép trái (mặc định) hoặc mép phải của nút. */
   align?: "left" | "right";
   children: ReactNode;
 };
 
-// Menu thả xuống của thanh trên (`.dd` trong ui-demo): đóng khi bấm ra ngoài, nhấn Esc hoặc chọn một mục.
-export function Dropdown({ label, buttonClassName, align = "left", children }: DropdownProps) {
+// Menu thả xuống (`.dd` trong ui-demo): đóng khi bấm ra ngoài, nhấn Esc hoặc chọn một mục.
+// Chọn mục thì focus quay về nút mở menu, để hộp thoại mở từ mục đó trả focus về đúng chỗ khi đóng.
+export function Dropdown({ label, buttonLabel, buttonClassName, align = "left", children }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -44,6 +47,7 @@ export function Dropdown({ label, buttonClassName, align = "left", children }: D
       <button
         ref={buttonRef}
         type="button"
+        aria-label={buttonLabel}
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
@@ -55,7 +59,10 @@ export function Dropdown({ label, buttonClassName, align = "left", children }: D
         id={menuId}
         hidden={!open}
         onClick={(event) => {
-          if ((event.target as HTMLElement).closest("a")) setOpen(false);
+          if ((event.target as HTMLElement).closest("a, button")) {
+            setOpen(false);
+            buttonRef.current?.focus();
+          }
         }}
         className={`absolute top-[calc(100%+6px)] z-[70] min-w-[220px] rounded-xl border border-line bg-white p-1.5 shadow-pop ${
           align === "right" ? "right-0" : "left-0"
@@ -67,6 +74,10 @@ export function Dropdown({ label, buttonClassName, align = "left", children }: D
   );
 }
 
+const dropdownItemBaseClass = "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left text-sm hover:bg-mist";
+
 /** Lớp chung cho từng mục trong menu (`.dd-menu a` của ui-demo). */
-export const dropdownItemClass =
-  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left text-sm text-ink hover:bg-mist";
+export const dropdownItemClass = `${dropdownItemBaseClass} text-ink`;
+
+/** Mục thao tác nguy hiểm, chữ đỏ (vd. “Gỡ hồ sơ” – CW-04). */
+export const dropdownDangerItemClass = `${dropdownItemBaseClass} text-danger`;

@@ -21,3 +21,21 @@ export function getInitials(fullName: string) {
     .map((word) => word.charAt(0).toLocaleUpperCase("vi-VN"))
     .join("");
 }
+
+// Số thập phân kiểu Việt Nam (dấu phẩy), không nhóm hàng nghìn vì cân nặng, chiều cao đều nhỏ.
+const decimalFormat = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2, useGrouping: false });
+const weightFormat = new Intl.NumberFormat("vi-VN", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+/** 1.5 → “1,5”; 30 → “30”. */
+export function formatDecimal(value: number) {
+  return decimalFormat.format(value);
+}
+
+/** 9 → “9,0 kg”; giữ chữ số thập phân thứ hai nếu có (4.25 → “4,25 kg”) để không làm tròn số khách đã khai. */
+export function formatWeight(kg: number) {
+  return `${weightFormat.format(kg)} kg`;
+}

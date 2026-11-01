@@ -20,15 +20,16 @@ Kiểm tra trước khi tạo PR: `npm run lint` và `npm run build`.
 | `app/(main)` | Các màn hình có thanh trên (CW-03 → CW-13), bọc trong `SessionGate` |
 | `app/api/session` | Route handler phiên đăng nhập: `login`, `refresh`, `logout` |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
-| `components/ui` | Thành phần cơ bản: `Button`, `Field` + `Input`, `Card`, `Avatar`, `Skeleton` |
+| `components/ui` | Thành phần cơ bản: `Button`, `ButtonLink`, `Field` + `Input`/`Textarea`, `FieldSet`, `ChoiceCard`, `Card`, `Tag`, `Modal`/`ConfirmDialog`, `EmptyState`, `Avatar`, `Skeleton` |
 | `components/domain` | Thành phần nghiệp vụ: `PetAvatar` |
-| `components/layout` | Thanh trên của web khách hàng, `AuthLayout` của màn đăng nhập/đăng ký |
-| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
-| `features/<tính năng>` | Màn hình theo tính năng (`auth`, `profile`) và luật form (`forms.ts`) |
+| `components/layout` | Thanh trên của web khách hàng, `PageHeader` (đường dẫn + tiêu đề), `AuthLayout` của màn đăng nhập/đăng ký |
+| `components/feedback` | `Alert`, hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
+| `features/<tính năng>` | Màn hình theo tính năng (`auth`, `pets`, `profile`) và luật form (`forms.ts`) |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu (`types.ts`), hàm gọi API (`endpoints/`) |
 | `lib/queries` | Hook TanStack Query theo tài nguyên |
 | `lib/auth` | Phiên đăng nhập: access token trong bộ nhớ, `SessionProvider`, `SessionGate` |
 | `lib/routes.ts` | Đường dẫn các màn hình |
+| `lib/labels.ts` | Nhãn hiển thị của enum API (loài, nhóm kích cỡ, tính cách – UI-Screens 2.4) |
 | `proxy.ts` | Chuyển hướng lạc quan theo cookie phiên |
 
 ## Phiên đăng nhập
