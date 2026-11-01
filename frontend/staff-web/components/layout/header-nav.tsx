@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
+import { useSession } from "@/lib/auth/use-session";
+import { ROUTE_ROLES } from "@/lib/route-access";
 import { ROUTES } from "@/lib/routes";
-import type { StaffRole } from "@/lib/staff-role";
+import { STAFF_ROLE_LABELS, type StaffRole } from "@/lib/staff-role";
 import { Dropdown, dropdownItemClass } from "./dropdown";
 import { onDarkFocusClass } from "./header-styles";
 
@@ -12,31 +14,27 @@ type NavItem = {
   href: string;
   label: string;
   icon: IconName;
-  /** Vai trò được thấy mục này (Authorization mục 9; `data-role` trong ui-demo). */
+  /** Vai trò được thấy mục này trên menu; lấy từ `ROUTE_ROLES` (Authorization mục 9; `data-role` trong ui-demo). */
   roles: StaffRole[];
 };
 
-const BOTH_ROLES: StaffRole[] = ["Receptionist", "SpaStaff"];
-
 // Thứ tự và biểu tượng theo `.sw-nav` của ui-demo.
 const NAV_ITEMS: NavItem[] = [
-  { href: ROUTES.appointments, label: "Lịch hẹn", icon: "calendar", roles: BOTH_ROLES },
-  { href: ROUTES.checkIn, label: "Tiếp nhận", icon: "clipboard", roles: ["Receptionist"] },
-  { href: ROUTES.checkOut, label: "Trả thú cưng", icon: "handover", roles: ["Receptionist"] },
-  { href: ROUTES.customers, label: "Khách hàng", icon: "users", roles: ["Receptionist"] },
-  { href: ROUTES.bookForCustomer, label: "Đặt lịch thay", icon: "calendar-plus", roles: ["Receptionist"] },
-  { href: ROUTES.cages, label: "Chuồng", icon: "grid", roles: ["Receptionist"] },
-  { href: ROUTES.payments, label: "Thanh toán", icon: "wallet", roles: ["Receptionist"] },
-  { href: ROUTES.workHistory, label: "Lịch sử công việc", icon: "history", roles: ["SpaStaff"] },
+  { href: ROUTES.appointments, label: "Lịch hẹn", icon: "calendar", roles: ROUTE_ROLES.appointments },
+  { href: ROUTES.checkIn, label: "Tiếp nhận", icon: "clipboard", roles: ROUTE_ROLES.checkIn },
+  { href: ROUTES.checkOut, label: "Trả thú cưng", icon: "handover", roles: ROUTE_ROLES.checkOut },
+  { href: ROUTES.customers, label: "Khách hàng", icon: "users", roles: ROUTE_ROLES.customers },
+  { href: ROUTES.bookForCustomer, label: "Đặt lịch thay", icon: "calendar-plus", roles: ROUTE_ROLES.bookForCustomer },
+  { href: ROUTES.cages, label: "Chuồng", icon: "grid", roles: ROUTE_ROLES.cages },
+  { href: ROUTES.payments, label: "Thanh toán", icon: "wallet", roles: ROUTE_ROLES.payments },
+  { href: ROUTES.workHistory, label: "Lịch sử công việc", icon: "history", roles: ROUTE_ROLES.workHistory },
+  // Cả hai vai trò được vào SW-14, nhưng chỉ nhân viên spa có mục này trên menu; lễ tân mở từ menu tài khoản (ui-demo).
   { href: ROUTES.services, label: "Dịch vụ", icon: "list", roles: ["SpaStaff"] },
 ];
 
-/**
- * `role = null`: chưa biết vai trò (chưa có đăng nhập) nên hiện đủ mục của cả hai vai trò.
- * Đây chỉ là ẩn/hiện giao diện; quyền thật luôn do backend kiểm tra (Authorization mục 2).
- */
+/** Chưa biết vai trò (`role = null`, đang tải phiên) thì không mục nào hiện: không để lộ mục của vai trò kia rồi mới ẩn. */
 function canSee(roles: StaffRole[], role: StaffRole | null) {
-  return role === null || roles.includes(role);
+  return role !== null && roles.includes(role);
 }
 
 function isUnder(pathname: string | null, base: string) {
@@ -56,11 +54,27 @@ function NavLabel({ children }: { children: string }) {
 type HeaderNavProps = {
   /** `null` khi chưa biết trang hiện tại. */
   pathname: string | null;
+  /** `null` khi chưa có kết quả GET /me. */
   role: StaffRole | null;
+  /** Tên hiển thị trong ô tài khoản; `null` khi chưa tải xong phiên. */
+  userName?: string | null;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
 };
 
+// Khung xương của menu trong lúc chờ biết vai trò; giữ chỗ để thanh trên không nhảy.
+function NavSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Đang tải menu" className="flex items-center gap-0.5 p-1 max-[980px]:flex-1">
+      {[0, 1, 2].map((index) => (
+        <span key={index} className="h-11 w-24 animate-pulse rounded-[10px] bg-white/10 max-[640px]:w-11" />
+      ))}
+    </div>
+  );
+}
+
 /** Menu chính và góc phải của thanh trên. */
-export function HeaderNav({ pathname, role }: HeaderNavProps) {
+export function HeaderNav({ pathname, role, userName = null, onLogout, isLoggingOut = false }: HeaderNavProps) {
   const notificationsActive = isUnder(pathname, ROUTES.notifications);
 
   return (
@@ -68,6 +82,9 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
       {/* `relative`: nhãn `sr-only` (position: absolute) của mục bị cuộn khuất phải nằm trong vùng cuộn này,
           nếu không chúng tràn ra ngoài và làm cả trang cuộn ngang ở màn hẹp.
           `p-1`: chừa chỗ cho vòng focus, vì vùng cuộn cắt mọi thứ nằm ngoài nó. */}
+      {role === null ? (
+        <NavSkeleton />
+      ) : (
       <nav
         aria-label="Menu nhân viên"
         className="relative flex min-w-0 items-center gap-0.5 overflow-x-auto p-1 [scrollbar-width:none] max-[980px]:flex-1 [&::-webkit-scrollbar]:hidden"
@@ -87,6 +104,7 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
           );
         })}
       </nav>
+      )}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {/* Chỉ nhân viên spa có thông báo (SA 6.2). Số chưa đọc hiển thị ở thẻ 1.6.3.3. */}
@@ -103,7 +121,7 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
             <Icon name="bell" className="size-[22px]" />
           </Link>
         )}
-        {/* Tên và vai trò người dùng (`.user-chip` trong ui-demo) hiển thị khi làm đăng nhập (thẻ 121). */}
+        {/* Tên và vai trò người dùng (`.user-chip` và `.uc-text` trong ui-demo); màn hẹp chỉ còn biểu tượng. */}
         <Dropdown
           align="right"
           buttonClassName={`flex h-11 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border border-white/25 pl-1 pr-2.5 text-sm font-medium text-white hover:border-white/50 max-[860px]:gap-1 max-[860px]:pr-1.5 ${onDarkFocusClass}`}
@@ -112,7 +130,10 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
               <span className="grid size-8 place-items-center rounded-full bg-apricot-100 text-apricot-700">
                 <Icon name="user" />
               </span>
-              <span className="max-[860px]:sr-only">Tài khoản</span>
+              <span className="flex flex-col items-start text-left leading-[15px] max-[860px]:sr-only">
+                {userName ?? "Tài khoản"}
+                {role && <small className="text-[11px] font-medium opacity-80">{STAFF_ROLE_LABELS[role]}</small>}
+              </span>
               <Icon name="chev-d" className="size-4" />
             </>
           }
@@ -129,18 +150,35 @@ export function HeaderNav({ pathname, role }: HeaderNavProps) {
             </Link>
           )}
           <div className="mx-1 my-1.5 h-px bg-line" />
-          {/* Thu hồi refresh token (POST /auth/logout) làm ở thẻ 121. */}
-          <Link href={ROUTES.login} className={dropdownItemClass}>
+          {/* Thu hồi refresh token ở backend rồi về SW-01 (POST /api/session/logout). */}
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={!onLogout || isLoggingOut}
+            className={`${dropdownItemClass} cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
+          >
             <Icon name="logout" />
-            Đăng xuất
-          </Link>
+            {isLoggingOut ? "Đang đăng xuất…" : "Đăng xuất"}
+          </button>
         </Dropdown>
       </div>
     </>
   );
 }
 
-/** Bản đọc trang hiện tại để tô mục đang chọn; đặt trong Suspense vì đang bật cacheComponents. */
-export function ActiveHeaderNav({ role }: { role: StaffRole | null }) {
-  return <HeaderNav pathname={usePathname()} role={role} />;
+/**
+ * Bản đọc trang hiện tại để tô mục đang chọn, và đọc phiên đăng nhập để biết vai trò, tên, đăng xuất.
+ * Đặt trong Suspense vì đang bật cacheComponents.
+ */
+export function ActiveHeaderNav() {
+  const { me, logout, isLoggingOut } = useSession();
+  return (
+    <HeaderNav
+      pathname={usePathname()}
+      role={me?.staffRole ?? null}
+      userName={me ? (me.fullName ?? me.userName) : null}
+      onLogout={logout}
+      isLoggingOut={isLoggingOut}
+    />
+  );
 }

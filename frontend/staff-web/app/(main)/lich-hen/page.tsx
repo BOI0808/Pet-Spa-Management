@@ -1,3 +1,6 @@
+// Màn nằm sau SessionGate – xem ghi chú trong app/(main)/layout.tsx.
+export const instant = false;
+
 // Trang tạm. SW-02 (lễ tân: cả cửa hàng · nhân viên spa: được phân công) làm ở thẻ 1.6.2.3.1 và 1.6.3.1.
 export default function AppointmentsPage() {
   return (
