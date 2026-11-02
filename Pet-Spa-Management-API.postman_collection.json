@@ -763,37 +763,704 @@
       "name": "02. Staff & WorkShifts",
       "item": [
         {
-          "name": "/staff",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "Staff",
+          "item": [
+            {
+              "name": "POST /staff – tạo lễ tân (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 201', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.test('Trả staffId dạng GUID', () => pm.expect(body.staffId).to.match(GUID));",
+                      "if (pm.response.code === 201) pm.environment.set('receptionistId', body.staffId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{receptionistPhone}}\",\n  \"fullName\": \"Lễ Tân Test\",\n  \"staffRole\": \"Receptionist\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"Manager\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – tạo nhân viên spa (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 201', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.test('Trả staffId dạng GUID', () => pm.expect(body.staffId).to.match(GUID));",
+                      "if (pm.response.code === 201) pm.environment.set('spaStaffId', body.staffId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{spaStaffPhone}}\",\n  \"fullName\": \"Nhân Viên Spa Test\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – lễ tân mới đăng nhập (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const claims = (jwt) => {",
+                      "  const p = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                      "  return JSON.parse(atob(p + '='.repeat((4 - p.length % 4) % 4)));",
+                      "};",
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Token chứa role = Staff (không phải Manager dù lúc tạo có gửi role)', () =>",
+                      "  pm.expect(claims(body.accessToken).role).to.eql('Staff'));",
+                      "if (pm.response.code === 200) pm.environment.set('receptionistToken', body.accessToken);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{receptionistPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /me – lễ tân mới xem tài khoản (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const me = pm.response.json();",
+                      "pm.test('Đúng vai trò Staff / Receptionist', () => {",
+                      "  pm.expect(me.role).to.eql('Staff');",
+                      "  pm.expect(me.staffRole).to.eql('Receptionist');",
+                      "});",
+                      "pm.test('Đúng họ tên và số điện thoại đăng nhập', () => {",
+                      "  pm.expect(me.fullName).to.eql('Lễ Tân Test');",
+                      "  pm.expect(me.userName).to.eql(pm.environment.get('receptionistPhone'));",
+                      "});",
+                      "pm.test('userId dạng GUID', () => pm.expect(me.userId).to.match(GUID));",
+                      "if (pm.response.code === 200) pm.environment.set('receptionistUserId', me.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – trùng số điện thoại (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là DUPLICATE_CONTACT', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_CONTACT'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{receptionistPhone}}\",\n  \"fullName\": \"Lễ Tân Test\",\n  \"staffRole\": \"Receptionist\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – vai trò không hợp lệ (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{unusedPhone}}\",\n  \"fullName\": \"Nhân Viên Sai Vai Trò\",\n  \"staffRole\": \"Manager\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – mật khẩu yếu (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{unusedPhone}}\",\n  \"fullName\": \"Nhân Viên Mật Khẩu Yếu\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"abc\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /staff – xem danh sách nhân viên (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "const find = (id) => body.items.find((s) => s.staffId === id);",
+                      "pm.test('Có phân trang đúng định dạng', () => {",
+                      "  pm.expect(body.items).to.be.an('array');",
+                      "  pm.expect(body.page).to.eql(1);",
+                      "  pm.expect(body.pageSize).to.eql(100);",
+                      "  pm.expect(body.total).to.be.at.least(2);",
+                      "});",
+                      "pm.test('Lễ tân vừa tạo có trong danh sách và đang hoạt động', () => {",
+                      "  const s = find(pm.environment.get('receptionistId'));",
+                      "  pm.expect(s).to.be.an('object');",
+                      "  pm.expect(s.userName).to.eql(pm.environment.get('receptionistPhone'));",
+                      "  pm.expect(s.fullName).to.eql('Lễ Tân Test');",
+                      "  pm.expect(s.staffRole).to.eql('Receptionist');",
+                      "  pm.expect(s.isActive).to.eql(true);",
+                      "});",
+                      "pm.test('Nhân viên spa vừa tạo có trong danh sách và đang hoạt động', () => {",
+                      "  const s = find(pm.environment.get('spaStaffId'));",
+                      "  pm.expect(s).to.be.an('object');",
+                      "  pm.expect(s.fullName).to.eql('Nhân Viên Spa Test');",
+                      "  pm.expect(s.staffRole).to.eql('SpaStaff');",
+                      "  pm.expect(s.isActive).to.eql(true);",
+                      "});",
+                      "pm.test('Response không có passwordHash', () => pm.expect(pm.response.text().toLowerCase()).to.not.include('passwordhash'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff?page=1&pageSize=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /staff/{id} – sửa họ tên và vai trò (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff/{{spaStaffId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff",
+                    "{{spaStaffId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nhân Viên Spa Đã Sửa\",\n  \"staffRole\": \"Receptionist\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /staff – danh sách phản ánh thay đổi (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "const find = (id) => body.items.find((s) => s.staffId === id);",
+                      "pm.test('Thay đổi đã được lưu', () => {",
+                      "  const s = find(pm.environment.get('spaStaffId'));",
+                      "  pm.expect(s).to.be.an('object');",
+                      "  pm.expect(s.fullName).to.eql('Nhân Viên Spa Đã Sửa');",
+                      "  pm.expect(s.staffRole).to.eql('Receptionist');",
+                      "  pm.expect(s.userName).to.eql(pm.environment.get('spaStaffPhone'));",
+                      "  pm.expect(s.isActive).to.eql(true);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff?page=1&pageSize=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /staff/{id} – đổi lại vai trò nhân viên spa (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff/{{spaStaffId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff",
+                    "{{spaStaffId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nhân Viên Spa Test\",\n  \"staffRole\": \"SpaStaff\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /staff/{id} – nhân viên không tồn tại (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 404', () => pm.response.to.have.status(404));",
+                      "pm.test('code lỗi là NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Không Tồn Tại\",\n  \"staffRole\": \"SpaStaff\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /staff/{id} – thiếu họ tên (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff/{{spaStaffId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff",
+                    "{{spaStaffId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"\",\n  \"staffRole\": \"SpaStaff\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "/staff",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/staff/{id}",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
+          ]
         },
         {
           "name": "/staff/{id}/deactivate",
