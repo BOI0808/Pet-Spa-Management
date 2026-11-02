@@ -714,48 +714,672 @@
           ]
         },
         {
-          "name": "/me",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "Accounts",
+          "item": [
+            {
+              "name": "GET /me – khách hàng xem tài khoản (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const me = pm.response.json();",
+                      "pm.test('Đúng danh tính và vai trò Customer', () => {",
+                      "  pm.expect(me.userId).to.eql(pm.environment.get('customerUserId'));",
+                      "  pm.expect(me.role).to.eql('Customer');",
+                      "  pm.expect(me.staffRole).to.eql(null);",
+                      "});",
+                      "pm.test('Đúng thông tin đã đăng ký', () => {",
+                      "  pm.expect(me.userName).to.eql(pm.environment.get('customerPhone'));",
+                      "  pm.expect(me.phone).to.eql(pm.environment.get('customerPhone'));",
+                      "  pm.expect(me.fullName).to.eql('Nguyễn Văn Test');",
+                      "  pm.expect(me.email).to.eql('vuong.test@example.com');",
+                      "});",
+                      "pm.test('Response không có passwordHash', () => pm.expect(pm.response.text().toLowerCase()).to.not.include('passwordhash'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /me – khách hàng cập nhật thông tin (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nguyễn Văn Test Đã Sửa\",\n  \"email\": \"doi.email@example.com\",\n  \"userId\": \"{{receptionistUserId}}\",\n  \"role\": \"Manager\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /me – xác nhận thay đổi đã lưu (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const me = pm.response.json();",
+                      "pm.test('Thông tin mới đã được lưu', () => {",
+                      "  pm.expect(me.fullName).to.eql('Nguyễn Văn Test Đã Sửa');",
+                      "  pm.expect(me.email).to.eql('doi.email@example.com');",
+                      "  pm.expect(me.phone).to.eql(pm.environment.get('customerPhone'));",
+                      "});",
+                      "pm.test('Danh tính và vai trò không bị đổi bởi trường thừa', () => {",
+                      "  pm.expect(me.userId).to.eql(pm.environment.get('customerUserId'));",
+                      "  pm.expect(me.role).to.eql('Customer');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /me – lễ tân không bị ảnh hưởng (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const me = pm.response.json();",
+                      "pm.test('Tài khoản lễ tân giữ nguyên, không bị ghi đè bởi yêu cầu của khách', () => {",
+                      "  pm.expect(me.userId).to.eql(pm.environment.get('receptionistUserId'));",
+                      "  pm.expect(me.role).to.eql('Staff');",
+                      "  pm.expect(me.fullName).to.eql('Lễ Tân Test');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/walk-in – lễ tân ghi nhận khách vãng lai (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 201', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.test('Trả customerId dạng GUID', () => pm.expect(body.customerId).to.match(GUID));",
+                      "if (pm.response.code === 201) pm.environment.set('walkInCustomerId', body.customerId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/walk-in",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "walk-in"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Khách Vãng Lai Test\",\n  \"phone\": \"{{walkInPhone}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách vãng lai không đăng nhập được (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{walkInPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/walk-in – trùng khách vãng lai (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là DUPLICATE_CONTACT', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_CONTACT'));",
+                      "pm.test('Thông báo yêu cầu chọn khách hàng hiện có', () => pm.expect(pm.response.json().detail).to.include('khách hàng hiện có'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/walk-in",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "walk-in"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Khách Vãng Lai Test\",\n  \"phone\": \"{{walkInPhone}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/walk-in – trùng khách có tài khoản (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là DUPLICATE_CONTACT', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_CONTACT'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/walk-in",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "walk-in"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Khách Có Tài Khoản\",\n  \"phone\": \"{{customerPhone}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/walk-in – số điện thoại sai định dạng (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/walk-in",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "walk-in"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Khách Sai Số\",\n  \"phone\": \"12345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /customers – lễ tân tìm khách theo số điện thoại (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Tìm đúng 1 khách theo số điện thoại', () => {",
+                      "  pm.expect(body.page).to.eql(1);",
+                      "  pm.expect(body.pageSize).to.eql(20);",
+                      "  pm.expect(body.total).to.eql(1);",
+                      "  pm.expect(body.items).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Thông tin khách vãng lai đúng', () => {",
+                      "  const c = body.items[0];",
+                      "  pm.expect(c.customerId).to.eql(pm.environment.get('walkInCustomerId'));",
+                      "  pm.expect(c.fullName).to.eql('Khách Vãng Lai Test');",
+                      "  pm.expect(c.phone).to.eql(pm.environment.get('walkInPhone'));",
+                      "  pm.expect(c.isBookingLocked).to.eql(false);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers?search={{walkInPhone}}&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "{{walkInPhone}}"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /me – đổi sang số của khách khác (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là DUPLICATE_CONTACT', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_CONTACT'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nguyễn Văn Test Đã Sửa\",\n  \"phone\": \"{{walkInPhone}}\",\n  \"email\": \"doi.email@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /me – đổi số điện thoại hợp lệ (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "if (pm.response.code === 200) pm.environment.set('customerPhone', pm.environment.get('customerPhoneNew'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nguyễn Văn Test Đã Sửa\",\n  \"phone\": \"{{customerPhoneNew}}\",\n  \"email\": \"doi.email@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /me – xác nhận số điện thoại mới (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const me = pm.response.json();",
+                      "pm.test('userName và phone cùng đổi sang số mới', () => {",
+                      "  pm.expect(me.userName).to.eql(pm.environment.get('customerPhoneNew'));",
+                      "  pm.expect(me.phone).to.eql(pm.environment.get('customerPhoneNew'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "/me",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/customers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/customers/walk-in",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
+          ]
         }
       ]
     },
