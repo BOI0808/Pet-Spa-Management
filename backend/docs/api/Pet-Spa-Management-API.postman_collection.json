@@ -2589,59 +2589,3051 @@
       "name": "03. Pets",
       "item": [
         {
-          "name": "/pets",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "03.0 Chuẩn bị tài khoản và token (task 164)",
+          "item": [
+            {
+              "name": "POST /auth/login – quản lý (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "    pm.environment.set(\"managerToken\", body.accessToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{managerPhone}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – khách hàng thử 1 (201 hoặc 409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created hoặc 409 Conflict (đã tạo từ lần trước)\", function () {",
+                      "    pm.expect([201, 409]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000101\",\n  \"fullName\": \"Postman Khách 1 (task 164)\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – khách hàng thử 2 (201 hoặc 409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created hoặc 409 Conflict (đã tạo từ lần trước)\", function () {",
+                      "    pm.expect([201, 409]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000102\",\n  \"fullName\": \"Postman Khách 2 (task 164)\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – tạo lễ tân thử (201 hoặc 409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created hoặc 409 Conflict (đã tạo từ lần trước)\", function () {",
+                      "    pm.expect([201, 409]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000201\",\n  \"fullName\": \"Postman Lễ tân (task 164)\",\n  \"staffRole\": \"Receptionist\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – tạo nhân viên spa thử (201 hoặc 409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created hoặc 409 Conflict (đã tạo từ lần trước)\", function () {",
+                      "    pm.expect([201, 409]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000202\",\n  \"fullName\": \"Postman Nhân viên spa (task 164)\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách hàng thử 1 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "    pm.environment.set(\"customerToken\", body.accessToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000101\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách hàng thử 2 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "    pm.environment.set(\"customer2Token\", body.accessToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000102\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – lễ tân thử (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "    pm.environment.set(\"receptionistToken\", body.accessToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000201\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – nhân viên spa thử (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "    pm.environment.set(\"spaStaffToken\", body.accessToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000202\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /customers – lễ tân tìm khách thử 1, lấy customerId (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const customer = body.items.find((c) => c.phone === \"0900000101\");",
+                      "    pm.test(\"Tìm thấy khách hàng thử 1\", function () {",
+                      "        pm.expect(customer !== undefined).to.eql(true);",
+                      "    });",
+                      "    pm.environment.set(\"customerId\", customer.customerId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers?search=0900000101",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "0900000101"
+                    }
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "/pets",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "03.1 Tạo hồ sơ và xác định nhóm kích cỡ – FR-PET-01, FR-PET-04",
+          "item": [
+            {
+              "name": "POST /pets – khách tạo chó 8kg, cao 30cm, đủ các trường (201) → Small",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "    pm.environment.set(\"petId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Bông\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"coatNote\": \"Lông xoăn, màu trắng\",\n  \"notes\": \"Test data created by Postman (task 164)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – chó 12kg, cao 30cm: cân nặng quyết định (201) → Medium",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Medium\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Medium\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mực\",\n  \"species\": \"Dog\",\n  \"breed\": \"Corgi\",\n  \"weightKg\": 12,\n  \"heightCm\": 30\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – chó 8kg, cao 60cm: chiều cao quyết định (201) → Large",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Large\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Large\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Sói\",\n  \"species\": \"Dog\",\n  \"breed\": \"Husky\",\n  \"weightKg\": 8,\n  \"heightCm\": 60\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – mèo 4kg, client gửi sizeGroup Small bị bỏ qua (201) → Medium",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Medium\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Medium\");",
+                      "    });",
+                      "    pm.environment.set(\"catPetId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mimi\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo Anh lông ngắn\",\n  \"weightKg\": 4,\n  \"sizeGroup\": \"Small\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – thỏ 1.5kg (201) → Medium",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Medium\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Medium\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Bunny\",\n  \"species\": \"Rabbit\",\n  \"breed\": \"Thỏ Hà Lan\",\n  \"weightKg\": 1.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – chuột lang 0.9kg (201) → Small",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Nâu\",\n  \"species\": \"GuineaPig\",\n  \"breed\": \"Chuột lang Mỹ\",\n  \"weightKg\": 0.9\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – chuột lang 1kg, không có nhóm Medium (201) → Large",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Large\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Large\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Lớn\",\n  \"species\": \"GuineaPig\",\n  \"breed\": \"Chuột lang Mỹ\",\n  \"weightKg\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – thiếu tên (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 400 Bad Request\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – chó thiếu chiều cao (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 400 Bad Request\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                      "});",
+                      "",
+                      "pm.test(\"Thông báo nêu rõ thiếu chiều cao\", function () {",
+                      "    pm.expect(pm.response.json().detail).to.include(\"Chiều cao\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Thiếu chiều cao\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"weightKg\": 8\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – loài không được phục vụ (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 400 Bad Request\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Hamster\",\n  \"species\": \"Hamster\",\n  \"breed\": \"Hamster Syria\",\n  \"weightKg\": 0.1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – nhân viên spa không có quyền (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{spaStaffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – quản lý không có quyền (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – lễ tân tạo hồ sơ cho khách (201) → Small",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "    pm.environment.set(\"receptionistPetId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Lu\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5,\n  \"customerId\": \"{{customerId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – lễ tân thiếu customerId (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 400 Bad Request\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – khách gửi customerId của người khác, bị bỏ qua (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "    pm.environment.set(\"ownerCheckPetId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Kẻ lạ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5,\n  \"customerId\": \"3f2a9c1e-7b4d-4e8a-9c55-1d2e3f4a5b6c\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – khách hàng thứ hai tạo hồ sơ của mình (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "    pm.environment.set(\"otherPetId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Của khách 2\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "/pets/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "03.2 Xem và cập nhật hồ sơ – FR-PET-02",
+          "item": [
+            {
+              "name": "GET /pets/{id} – khách xem hồ sơ của mình (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hồ sơ đúng dữ liệu đã tạo và gắn đúng khách hàng\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"petId\"));",
+                      "        pm.expect(body.customerId).to.eql(pm.environment.get(\"customerId\"));",
+                      "        pm.expect(body.name).to.eql(\"Postman Bông\");",
+                      "        pm.expect(body.species).to.eql(\"Dog\");",
+                      "        pm.expect(body.breed).to.eql(\"Poodle\");",
+                      "        pm.expect(body.temperament).to.eql(\"Calm\");",
+                      "        pm.expect(body.weightKg).to.eql(8);",
+                      "        pm.expect(body.heightCm).to.eql(30);",
+                      "        pm.expect(body.coatNote).to.eql(\"Lông xoăn, màu trắng\");",
+                      "        pm.expect(body.notes).to.eql(\"Test data created by Postman (task 164)\");",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "        pm.expect(body.isActive).to.eql(true);",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – khách xem hồ sơ do lễ tân tạo (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hồ sơ thuộc về khách hàng đang đăng nhập\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"receptionistPetId\"));",
+                      "        pm.expect(body.customerId).to.eql(pm.environment.get(\"customerId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{receptionistPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{receptionistPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – hồ sơ tạo kèm customerId lạ vẫn thuộc khách (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hồ sơ thuộc về khách hàng đang đăng nhập\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"ownerCheckPetId\"));",
+                      "        pm.expect(body.customerId).to.eql(pm.environment.get(\"customerId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{ownerCheckPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{ownerCheckPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – khách xem hồ sơ của khách khác (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{otherPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{otherPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – hồ sơ không tồn tại (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 404 Not Found\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – lễ tân xem hồ sơ của khách (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Đúng hồ sơ được yêu cầu\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"petId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – quản lý xem hồ sơ (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Đúng hồ sơ được yêu cầu\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"petId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – nhân viên spa xem hồ sơ chưa được phân công (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{spaStaffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets – khách xem danh sách mặc định (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Mặc định page = 1, pageSize = 20\", function () {",
+                      "        pm.expect(body.page).to.eql(1);",
+                      "        pm.expect(body.pageSize).to.eql(20);",
+                      "    });",
+                      "    pm.test(\"Chỉ có hồ sơ của khách đang đăng nhập\", function () {",
+                      "        pm.expect(body.items.every((p) => p.customerId === pm.environment.get(\"customerId\"))).to.eql(true);",
+                      "    });",
+                      "    pm.test(\"Không có hồ sơ của khách khác\", function () {",
+                      "        pm.expect(body.items.map((p) => p.petId)).to.not.include(pm.environment.get(\"otherPetId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets?pageSize=100 – khách thấy các hồ sơ vừa tạo (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const ids = body.items.map((p) => p.petId);",
+                      "    pm.test(\"Danh sách có các hồ sơ vừa tạo\", function () {",
+                      "        pm.expect(ids).to.include(pm.environment.get(\"petId\"));",
+                      "        pm.expect(ids).to.include(pm.environment.get(\"catPetId\"));",
+                      "        pm.expect(ids).to.include(pm.environment.get(\"receptionistPetId\"));",
+                      "        pm.expect(ids).to.include(pm.environment.get(\"ownerCheckPetId\"));",
+                      "    });",
+                      "    pm.test(\"Chỉ gồm hồ sơ đang hoạt động\", function () {",
+                      "        pm.expect(body.items.every((p) => p.isActive === true)).to.eql(true);",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets?pageSize=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageSize",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets?customerId – lễ tân xem danh sách hồ sơ của khách (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có hồ sơ của khách và chỉ của khách đó\", function () {",
+                      "        pm.expect(body.items.map((p) => p.petId)).to.include(pm.environment.get(\"petId\"));",
+                      "        pm.expect(body.items.every((p) => p.customerId === pm.environment.get(\"customerId\"))).to.eql(true);",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets?customerId={{customerId}}&pageSize=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ],
+                  "query": [
+                    {
+                      "key": "customerId",
+                      "value": "{{customerId}}"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets – lễ tân thiếu customerId (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 400 Bad Request\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – khách đổi cân nặng mèo 4kg lên 5.5kg, nhóm đổi sang Large (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hệ thống xác định lại nhóm kích cỡ là Large\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Large\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mimi\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo Anh lông ngắn\",\n  \"weightKg\": 5.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{catPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{catPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – khách xem lại mèo sau khi cập nhật (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Thay đổi đã được lưu\", function () {",
+                      "        pm.expect(body.weightKg).to.eql(5.5);",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Large\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{catPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{catPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – khách sửa hồ sơ của khách khác (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{otherPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{otherPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – hồ sơ không tồn tại (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 404 Not Found\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – lễ tân cập nhật cân nặng mèo 3.5kg khi tiếp nhận, nhóm Medium (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hệ thống xác định lại nhóm kích cỡ là Medium\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Medium\");",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mimi\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo Anh lông ngắn\",\n  \"weightKg\": 3.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{catPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{catPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – nhân viên spa không được cập nhật hồ sơ (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{spaStaffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /pets/{id} – quản lý chỉ xem, không được cập nhật (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Mèo hợp lệ\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "/pets/{id}",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "03.3 Gỡ bỏ hồ sơ – FR-PET-03",
+          "item": [
+            {
+              "name": "DELETE /pets/{id} – khách gỡ hồ sơ của khách khác (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{otherPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{otherPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /pets/{id} – lễ tân không có quyền gỡ (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /pets/{id} – quản lý không có quyền gỡ (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 403 Forbidden\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{petId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{petId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /pets/{id} – hồ sơ không tồn tại (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 404 Not Found\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /pets/{id} – gỡ hồ sơ chưa có lịch hẹn, xóa hẳn (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{ownerCheckPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{ownerCheckPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – hồ sơ đã xóa hẳn không còn (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 404 Not Found\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{ownerCheckPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{ownerCheckPetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – hồ sơ của khách khác vẫn còn nguyên (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Đúng hồ sơ được yêu cầu\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"otherPetId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{otherPetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{otherPetId}}"
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "/pets/{id}",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "03.4 Hồ sơ đã có lịch hẹn – chạy từng request, xen bước SQL (xem hướng dẫn)",
+          "item": [
+            {
+              "name": "POST /pets – tạo hồ sơ để thử xóa mềm (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "    pm.test(\"Nhóm kích cỡ do hệ thống xác định là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "    pm.environment.set(\"softDeletePetId\", body.petId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Xóa mềm\",\n  \"species\": \"Cat\",\n  \"breed\": \"Mèo ta\",\n  \"weightKg\": 2.5,\n  \"notes\": \"Test data created by Postman (task 164)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets/{id} – nhân viên spa xem hồ sơ của lịch hẹn được phân công (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Đúng hồ sơ được yêu cầu\", function () {",
+                      "        pm.expect(body.petId).to.eql(pm.environment.get(\"softDeletePetId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{spaStaffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{softDeletePetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{softDeletePetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /pets/{id} – gỡ hồ sơ đã có lịch hẹn, xóa mềm (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets/{{softDeletePetId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets",
+                    "{{softDeletePetId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /pets?pageSize=100 – hồ sơ đã gỡ mềm không còn trong danh sách (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Hồ sơ đã gỡ mềm bị ẩn khỏi danh sách của khách\", function () {",
+                      "        pm.expect(body.items.map((p) => p.petId)).to.not.include(pm.environment.get(\"softDeletePetId\"));",
+                      "    });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets?pageSize=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageSize",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         }
       ]
     },
