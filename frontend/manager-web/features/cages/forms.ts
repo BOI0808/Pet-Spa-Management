@@ -1,4 +1,4 @@
-import type { HotelPricing, HotelPricingRow, SizeGroup, Species } from "@/lib/api/types";
+import type { Cage, CageCreateRequest, HotelPricing, HotelPricingRow, SizeGroup, Species } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
 
 // MW-07 Chuồng và giá lưu trú – UI-Screens.md (FR-HTL-01 → 03; BR-19, BR-21, BR-22)
@@ -120,4 +120,51 @@ export function validateLateFee(value: string) {
   if (Number.isNaN(amount)) return "Mức phí phải là số nguyên không âm.";
   if (amount > MAX_AMOUNT) return "Mức phí tối đa 999.999.999.999đ.";
   return true;
+}
+
+// ── Thêm / sửa chuồng (FR-HTL-01, FR-HTL-02) ──
+
+/** Khớp CageCreateRequestValidator của backend. */
+const MAX_CAGE_CODE_LENGTH = 20;
+
+/** Cả ba trường đều là ô chọn/nhập: chưa chọn thì là chuỗi rỗng. */
+export type CageFormValues = {
+  code: string;
+  species: Species | "";
+  sizeGroup: SizeGroup | "";
+};
+
+/** Giá trị ban đầu của hộp thoại: chuồng đang sửa, hoặc để trống khi thêm mới. */
+export function toCageFormValues(cage: Cage | null): CageFormValues {
+  if (!cage) return { code: "", species: "", sizeGroup: "" };
+  return { code: cage.code, species: cage.species, sizeGroup: cage.sizeGroup };
+}
+
+export function validateCageCode(value: string) {
+  const code = value.trim();
+  if (code === "") return "Vui lòng nhập mã chuồng.";
+  if (code.length > MAX_CAGE_CODE_LENGTH) return `Mã chuồng tối đa ${MAX_CAGE_CODE_LENGTH} ký tự.`;
+  return true;
+}
+
+export function validateCageSpecies(value: CageFormValues["species"]) {
+  return value !== "" || "Vui lòng chọn loài.";
+}
+
+/** Nhóm kích cỡ có áp dụng cho loài này không (BR-19). Chưa chọn nhóm hoặc chưa chọn loài thì coi là phù hợp. */
+export function isSizeGroupAllowed(species: string, sizeGroup: CageFormValues["sizeGroup"]) {
+  if (sizeGroup === "" || species === "") return true;
+  return SPECIES_ORDER.some((item) => item === species && SIZE_GROUPS_BY_SPECIES[item].includes(sizeGroup));
+}
+
+export function validateCageSizeGroup(value: CageFormValues["sizeGroup"], values: CageFormValues) {
+  if (value === "") return "Vui lòng chọn nhóm kích cỡ.";
+  if (!isSizeGroupAllowed(values.species, value)) return "Chuột lang chỉ có nhóm Nhỏ và Lớn.";
+  return true;
+}
+
+/** Form → body POST/PUT /cages; null khi còn thiếu loài hoặc nhóm (gọi sau khi các ô đã hợp lệ). */
+export function toCageRequest(values: CageFormValues): CageCreateRequest | null {
+  if (values.species === "" || values.sizeGroup === "") return null;
+  return { code: values.code.trim(), species: values.species, sizeGroup: values.sizeGroup };
 }
