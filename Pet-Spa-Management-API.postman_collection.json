@@ -1,0 +1,2409 @@
+{
+  "info": {
+    "_postman_id": "9b195652-1847-447a-afb3-efa91eaf6972",
+    "name": "Pet Spa Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "48767967",
+    "_collection_link": "https://go.postman.co/collection/48767967-9b195652-1847-447a-afb3-efa91eaf6972?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01. Auth & Accounts",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "POST /auth/register – đăng ký hợp lệ (201)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const used = new Set();",
+                      "const newPhone = () => {",
+                      "  let p;",
+                      "  do { p = '09' + String(Math.floor(Math.random() * 1e8)).padStart(8, '0'); } while (used.has(p));",
+                      "  used.add(p);",
+                      "  return p;",
+                      "};",
+                      "['customerPhone', 'customerPhoneNew', 'unusedPhone', 'walkInPhone', 'receptionistPhone', 'spaStaffPhone']",
+                      "  .forEach((k) => pm.environment.set(k, newPhone()));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 201', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.test('Trả userId dạng GUID', () => pm.expect(body.userId).to.match(GUID));",
+                      "pm.test('Response không có passwordHash', () => pm.expect(pm.response.text().toLowerCase()).to.not.include('passwordhash'));",
+                      "if (pm.response.code === 201) pm.environment.set('customerUserId', body.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{customerPhone}}\",\n  \"fullName\": \"Nguyễn Văn Test\",\n  \"password\": \"{{testPassword}}\",\n  \"email\": \"vuong.test@example.com\",\n  \"role\": \"Manager\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – trùng số điện thoại (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là DUPLICATE_CONTACT', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_CONTACT'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{customerPhone}}\",\n  \"fullName\": \"Nguyễn Văn Test\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – số điện thoại sai định dạng (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"123\",\n  \"fullName\": \"Nguyễn Văn Test\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – mật khẩu yếu (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{unusedPhone}}\",\n  \"fullName\": \"Nguyễn Văn Test\",\n  \"password\": \"abc\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách hàng đăng nhập (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const claims = (jwt) => {",
+                      "  const p = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                      "  return JSON.parse(atob(p + '='.repeat((4 - p.length % 4) % 4)));",
+                      "};",
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Có accessToken và refreshToken', () => {",
+                      "  pm.expect(body.accessToken).to.be.a('string');",
+                      "  pm.expect(body.refreshToken).to.be.a('string');",
+                      "});",
+                      "pm.test('Token chứa role = Customer và sub = userId của tài khoản vừa đăng ký', () => {",
+                      "  const c = claims(body.accessToken);",
+                      "  pm.expect(c.role).to.eql('Customer');",
+                      "  pm.expect(c.sub).to.eql(pm.environment.get('customerUserId'));",
+                      "});",
+                      "if (pm.response.code === 200) {",
+                      "  pm.environment.set('customerToken', body.accessToken);",
+                      "  pm.environment.set('customerRefreshToken', body.refreshToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{customerPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – sai mật khẩu (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));",
+                      "pm.environment.set('loginErrorDetail', pm.response.json().detail);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{customerPhone}}\",\n  \"password\": \"Sai@12345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – số điện thoại không tồn tại (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));",
+                      "pm.test('Thông báo giống hệt trường hợp sai mật khẩu (không lộ trường sai)', () =>",
+                      "  pm.expect(pm.response.json().detail).to.eql(pm.environment.get('loginErrorDetail')));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{unusedPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – Quản lý đăng nhập (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const claims = (jwt) => {",
+                      "  const p = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                      "  return JSON.parse(atob(p + '='.repeat((4 - p.length % 4) % 4)));",
+                      "};",
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Token chứa role = Manager', () => pm.expect(claims(body.accessToken).role).to.eql('Manager'));",
+                      "if (pm.response.code === 200) pm.environment.set('managerToken', body.accessToken);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{managerUserName}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/refresh – làm mới token (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "const oldRefresh = pm.environment.get('customerRefreshToken');",
+                      "pm.test('Cấp cặp token mới, refresh token đã xoay vòng', () => {",
+                      "  pm.expect(body.accessToken).to.be.a('string');",
+                      "  pm.expect(body.refreshToken).to.be.a('string');",
+                      "  pm.expect(body.refreshToken).to.not.eql(oldRefresh);",
+                      "});",
+                      "if (pm.response.code === 200) {",
+                      "  pm.environment.set('refreshTokenOld', oldRefresh);",
+                      "  pm.environment.set('customerToken', body.accessToken);",
+                      "  pm.environment.set('customerRefreshToken', body.refreshToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{customerRefreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/refresh – dùng lại token đã thu hồi (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshTokenOld}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/refresh – token mới cũng bị thu hồi (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{customerRefreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách hàng đăng nhập lại (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const claims = (jwt) => {",
+                      "  const p = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                      "  return JSON.parse(atob(p + '='.repeat((4 - p.length % 4) % 4)));",
+                      "};",
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Có accessToken và refreshToken', () => {",
+                      "  pm.expect(body.accessToken).to.be.a('string');",
+                      "  pm.expect(body.refreshToken).to.be.a('string');",
+                      "});",
+                      "pm.test('Token chứa role = Customer và sub = userId của tài khoản vừa đăng ký', () => {",
+                      "  const c = claims(body.accessToken);",
+                      "  pm.expect(c.role).to.eql('Customer');",
+                      "  pm.expect(c.sub).to.eql(pm.environment.get('customerUserId'));",
+                      "});",
+                      "if (pm.response.code === 200) {",
+                      "  pm.environment.set('customerToken', body.accessToken);",
+                      "  pm.environment.set('customerRefreshToken', body.refreshToken);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{customerPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/logout – đăng xuất (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 204', () => pm.response.to.have.status(204));",
+                      "pm.test('Body rỗng', () => pm.expect(pm.response.text()).to.eql(''));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{customerRefreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/refresh – token sau khi đăng xuất (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code lỗi là UNAUTHENTICATED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{customerRefreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/me",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/customers/walk-in",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Staff & WorkShifts",
+      "item": [
+        {
+          "name": "/staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/staff",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/staff/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/staff/{id}/deactivate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/work-shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/work-shifts",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/work-shifts/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/work-shifts/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Pets",
+      "item": [
+        {
+          "name": "/pets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/pets",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/pets/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/pets/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/pets/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. ServiceCatalog",
+      "item": [
+        {
+          "name": "POST /services – thêm dịch vụ hợp lệ (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.test(\"Có serviceId dạng GUID\", function () {",
+                  "        pm.expect(body.serviceId).to.match(/^[0-9a-f-]{36}$/i);",
+                  "    });",
+                  "    pm.environment.set(\"serviceId\", body.serviceId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Bath and Dry\",\n  \"description\": \"Test data created by Postman (task 163)\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 300000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 80000,\n      \"durationMinutes\": 30,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 100000,\n      \"durationMinutes\": 40,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /services – thiếu giá nhóm Large của chó (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Missing Group\",\n  \"description\": \"Test data created by Postman (task 163)\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /services – Khách hàng không có quyền (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Bath and Dry\",\n  \"description\": \"Test data created by Postman (task 163)\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 300000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 80000,\n      \"durationMinutes\": 30,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 100000,\n      \"durationMinutes\": 40,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services – Khách hàng xem danh mục (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const services = pm.response.code === 200 ? pm.response.json() : [];",
+                  "const service = services.find((s) => s.serviceId === pm.environment.get(\"serviceId\"));",
+                  "",
+                  "pm.test(\"Khách hàng thấy dịch vụ vừa thêm\", function () {",
+                  "    pm.expect(service !== undefined).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test(\"Đang cung cấp, giờ muộn nhất 19:00, có 5 dòng giá\", function () {",
+                  "    pm.expect(service.isActive).to.eql(true);",
+                  "    pm.expect(service.latestStartTime).to.eql(\"19:00\");",
+                  "    pm.expect(service.pricing.length).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test(\"Chuột lang chỉ có nhóm Small và Large\", function () {",
+                  "    const groups = service.pricing",
+                  "        .filter((p) => p.species === \"GuineaPig\")",
+                  "        .map((p) => p.sizeGroup)",
+                  "        .sort();",
+                  "    pm.expect(groups).to.eql([\"Large\", \"Small\"]);",
+                  "});",
+                  "",
+                  "pm.test(\"Dòng Dog/Medium có đủ giá, thời lượng, số nhân viên\", function () {",
+                  "    const row = service.pricing.find((p) => p.species === \"Dog\" && p.sizeGroup === \"Medium\");",
+                  "    pm.expect(row.price).to.eql(200000);",
+                  "    pm.expect(row.durationMinutes).to.eql(75);",
+                  "    pm.expect(row.staffRequired).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /services/{id} – sửa giá, thời lượng (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Bath and Dry Edited\",\n  \"description\": \"Test data created by Postman (task 163)\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 180000,\n      \"durationMinutes\": 70,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 300000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 80000,\n      \"durationMinutes\": 30,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 100000,\n      \"durationMinutes\": 40,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services/{{serviceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services",
+                "{{serviceId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services – lọc Dog/Small sau khi sửa (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const services = pm.response.code === 200 ? pm.response.json() : [];",
+                  "const service = services.find((s) => s.serviceId === pm.environment.get(\"serviceId\"));",
+                  "",
+                  "pm.test(\"Thấy dịch vụ với tên đã sửa\", function () {",
+                  "    pm.expect(service !== undefined).to.eql(true);",
+                  "    pm.expect(service.name).to.eql(\"Postman Bath and Dry Edited\");",
+                  "});",
+                  "",
+                  "pm.test(\"Chỉ còn dòng Dog/Small với giá và thời lượng mới\", function () {",
+                  "    pm.expect(service.pricing.length).to.eql(1);",
+                  "    pm.expect(service.pricing[0].species).to.eql(\"Dog\");",
+                  "    pm.expect(service.pricing[0].sizeGroup).to.eql(\"Small\");",
+                  "    pm.expect(service.pricing[0].price).to.eql(180000);",
+                  "    pm.expect(service.pricing[0].durationMinutes).to.eql(70);",
+                  "});",
+                  "",
+                  "pm.test(\"Mọi dịch vụ trả về đều chỉ có dòng giá Dog/Small\", function () {",
+                  "    const onlyDogSmall = services.every((s) =>",
+                  "        s.pricing.every((p) => p.species === \"Dog\" && p.sizeGroup === \"Small\")",
+                  "    );",
+                  "    pm.expect(onlyDogSmall).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services?species=Dog&sizeGroup=Small",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ],
+              "query": [
+                {
+                  "key": "species",
+                  "value": "Dog"
+                },
+                {
+                  "key": "sizeGroup",
+                  "value": "Small"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /services/{id}/status – ngừng cung cấp (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 204 No Content\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services/{{serviceId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services",
+                "{{serviceId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services – Khách hàng không thấy dịch vụ đã ngừng (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Khách hàng không còn thấy dịch vụ đã ngừng\", function () {",
+                  "    const services = pm.response.json();",
+                  "    const found = services.some((s) => s.serviceId === pm.environment.get(\"serviceId\"));",
+                  "    pm.expect(found).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /services/{id} – dịch vụ không tồn tại (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Bath and Dry Edited\",\n  \"description\": \"Test data created by Postman (task 163)\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 180000,\n      \"durationMinutes\": 70,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 300000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 80000,\n      \"durationMinutes\": 30,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 100000,\n      \"durationMinutes\": 40,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/services/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "services",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05. Cage & Hotel Pricing",
+      "item": [
+        {
+          "name": "PUT /hotel/pricing – thiết lập giá lưu trú, thức ăn, phí phạt (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"pricePerNight\": 100000,\n      \"foodPerNight\": 30000\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"pricePerNight\": 130000,\n      \"foodPerNight\": 40000\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"pricePerNight\": 170000,\n      \"foodPerNight\": 50000\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"pricePerNight\": 50000,\n      \"foodPerNight\": 10000\n    }\n  ],\n  \"lateFeePerBlock\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hotel/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hotel",
+                "pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /hotel/pricing – Khách hàng xem giá (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.code === 200 ? pm.response.json() : { pricing: [], lateFeePerBlock: null };",
+                  "",
+                  "pm.test(\"Phí phạt trả muộn mỗi lần là 50000\", function () {",
+                  "    pm.expect(body.lateFeePerBlock).to.eql(50000);",
+                  "});",
+                  "",
+                  "pm.test(\"Dòng Dog/Small có đúng giá lưu trú và giá thức ăn đã thiết lập\", function () {",
+                  "    const row = body.pricing.find((p) => p.species === \"Dog\" && p.sizeGroup === \"Small\");",
+                  "    pm.expect(row !== undefined).to.eql(true);",
+                  "    pm.expect(row.pricePerNight).to.eql(100000);",
+                  "    pm.expect(row.foodPerNight).to.eql(30000);",
+                  "});",
+                  "",
+                  "pm.test(\"Dòng GuineaPig/Small có đúng giá đã thiết lập\", function () {",
+                  "    const row = body.pricing.find((p) => p.species === \"GuineaPig\" && p.sizeGroup === \"Small\");",
+                  "    pm.expect(row !== undefined).to.eql(true);",
+                  "    pm.expect(row.pricePerNight).to.eql(50000);",
+                  "    pm.expect(row.foodPerNight).to.eql(10000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hotel/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hotel",
+                "pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /hotel/pricing – chuột lang không có nhóm Medium (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricing\": [\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Medium\",\n      \"pricePerNight\": 50000,\n      \"foodPerNight\": 10000\n    }\n  ],\n  \"lateFeePerBlock\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hotel/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hotel",
+                "pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /hotel/pricing – Khách hàng không có quyền (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"pricePerNight\": 100000,\n      \"foodPerNight\": 30000\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"pricePerNight\": 130000,\n      \"foodPerNight\": 40000\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"pricePerNight\": 170000,\n      \"foodPerNight\": 50000\n    },\n    {\n      \"species\": \"GuineaPig\",\n      \"sizeGroup\": \"Small\",\n      \"pricePerNight\": 50000,\n      \"foodPerNight\": 10000\n    }\n  ],\n  \"lateFeePerBlock\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hotel/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hotel",
+                "pricing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /cages – thêm chuồng hợp lệ (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"cageCode\", \"PM-\" + Date.now().toString().slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.test(\"Có cageId dạng GUID\", function () {",
+                  "        pm.expect(body.cageId).to.match(/^[0-9a-f-]{36}$/i);",
+                  "    });",
+                  "    pm.environment.set(\"cageId\", body.cageId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{cageCode}}\",\n  \"species\": \"Dog\",\n  \"sizeGroup\": \"Small\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /cages – trùng mã chuồng (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 409 Conflict\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là DUPLICATE_CAGE_CODE\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"DUPLICATE_CAGE_CODE\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{cageCode}}\",\n  \"species\": \"Dog\",\n  \"sizeGroup\": \"Small\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /cages – thiếu mã chuồng (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"species\": \"Dog\",\n  \"sizeGroup\": \"Small\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /cages/{id} – đổi nhóm kích cỡ (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sizeGroup\": \"Medium\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages/{{cageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages",
+                "{{cageId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /cages/{id}/status – ngừng sử dụng (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 204 No Content\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages/{{cageId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages",
+                "{{cageId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /cages/{id}/status – chuồng không tồn tại (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Trả 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cages/00000000-0000-0000-0000-000000000000/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cages",
+                "00000000-0000-0000-0000-000000000000",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/cages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06. Spa & Hotel Booking, Confirmation & Change",
+      "item": [
+        {
+          "name": "/spa/slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/spa",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/hotel/availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/hotel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/suggestions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/confirm",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/reject",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07. Service Execution, Weight Check & Photos",
+      "item": [
+        {
+          "name": "/appointments/{id}/check-in",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/weight-check",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/cost-confirmation/respond",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/start",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/services/{serviceId}",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/complete",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/check-out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/photos",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/appointments/{id}/photos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08. Payments",
+      "item": [
+        {
+          "name": "/appointments/{id}/payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/payments/{id}/counter",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/payments/{id}/online",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/payments/ipn/vnpay",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/payments/ipn/momo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09. Notifications",
+      "item": [
+        {
+          "name": "/notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/notifications/{id}/read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10. Automated Jobs & Booking Lock",
+      "item": [
+        {
+          "name": "/internal/jobs/run",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/customers/{id}/unlock-booking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11. System Configurations",
+      "item": [
+        {
+          "name": "/config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/config",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
