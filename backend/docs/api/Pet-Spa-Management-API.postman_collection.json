@@ -1379,6 +1379,93 @@
               },
               "response": []
             }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const recToken = pm.environment.get('receptionistToken');",
+                  "if (!recToken) {",
+                  "    const baseUrl = pm.environment.get('baseUrl') || pm.collectionVariables.get('baseUrl') || 'http://localhost:5116';",
+                  "    let mgrToken = pm.environment.get('managerToken') || pm.collectionVariables.get('managerToken');",
+                  "    const pwd = pm.environment.get('testPassword') || pm.collectionVariables.get('testPassword') || 'Test@123';",
+                  "    const mgrUser = pm.environment.get('managerUserName') || pm.collectionVariables.get('managerUserName') || '0903596791';",
+                  "    const mgrPass = pm.environment.get('managerPassword') || pm.collectionVariables.get('managerPassword') || 'Test@123';",
+                  "",
+                  "    function createAndLoginReceptionist(token) {",
+                  "        const phone = '09' + Math.floor(10000000 + Math.random() * 90000000);",
+                  "        pm.environment.set('receptionistPhone', phone);",
+                  "        pm.sendRequest({",
+                  "            url: baseUrl + '/api/v1/staff',",
+                  "            method: 'POST',",
+                  "            header: {",
+                  "                'Content-Type': 'application/json',",
+                  "                'Authorization': 'Bearer ' + token",
+                  "            },",
+                  "            body: {",
+                  "                mode: 'raw',",
+                  "                raw: JSON.stringify({",
+                  "                    userName: phone,",
+                  "                    fullName: 'Lễ Tân Test',",
+                  "                    staffRole: 'Receptionist',",
+                  "                    password: pwd",
+                  "                })",
+                  "            }",
+                  "        }, function (err, res) {",
+                  "            if (!err && res.code === 201) {",
+                  "                pm.sendRequest({",
+                  "                    url: baseUrl + '/api/v1/auth/login',",
+                  "                    method: 'POST',",
+                  "                    header: { 'Content-Type': 'application/json' },",
+                  "                    body: {",
+                  "                        mode: 'raw',",
+                  "                        raw: JSON.stringify({",
+                  "                            userName: phone,",
+                  "                            password: pwd",
+                  "                        })",
+                  "                    }",
+                  "                }, function (errLogin, resLogin) {",
+                  "                    if (!errLogin && resLogin.code === 200) {",
+                  "                        const data = resLogin.json();",
+                  "                        pm.environment.set('receptionistToken', data.accessToken);",
+                  "                        try {",
+                  "                            const payload = JSON.parse(atob(data.accessToken.split('.')[1]));",
+                  "                            pm.environment.set('receptionistUserId', payload.sub);",
+                  "                        } catch (e) {}",
+                  "                    }",
+                  "                });",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "",
+                  "    if (!mgrToken) {",
+                  "        pm.sendRequest({",
+                  "            url: baseUrl + '/api/v1/auth/login',",
+                  "            method: 'POST',",
+                  "            header: { 'Content-Type': 'application/json' },",
+                  "            body: {",
+                  "                mode: 'raw',",
+                  "                raw: JSON.stringify({",
+                  "                    userName: mgrUser,",
+                  "                    password: mgrPass",
+                  "                })",
+                  "            }",
+                  "        }, function (err, res) {",
+                  "            if (!err && res.code === 200) {",
+                  "                mgrToken = res.json().accessToken;",
+                  "                pm.environment.set('managerToken', mgrToken);",
+                  "                createAndLoginReceptionist(mgrToken);",
+                  "            }",
+                  "        });",
+                  "    } else {",
+                  "        createAndLoginReceptionist(mgrToken);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
           ]
         }
       ]
@@ -2084,6 +2171,38 @@
               },
               "response": []
             }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const mgrToken = pm.environment.get('managerToken') || pm.collectionVariables.get('managerToken');",
+                  "if (!mgrToken) {",
+                  "    const baseUrl = pm.environment.get('baseUrl') || pm.collectionVariables.get('baseUrl') || 'http://localhost:5116';",
+                  "    const mgrUser = pm.environment.get('managerUserName') || pm.collectionVariables.get('managerUserName') || '0903596791';",
+                  "    const mgrPass = pm.environment.get('managerPassword') || pm.collectionVariables.get('managerPassword') || 'Test@123';",
+                  "    pm.sendRequest({",
+                  "        url: baseUrl + '/api/v1/auth/login',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                userName: mgrUser,",
+                  "                password: mgrPass",
+                  "            })",
+                  "        }",
+                  "    }, function (err, res) {",
+                  "        if (!err && res.code === 200) {",
+                  "            pm.environment.set('managerToken', res.json().accessToken);",
+                  "        }",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
           ]
         },
         {
@@ -2449,7 +2568,17 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": ""
+              "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "staff",
+                "{{staffId}}",
+                "deactivate"
+              ]
             }
           },
           "response": []
@@ -4008,6 +4137,28 @@
           "response": []
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5116",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "Test@123",
+      "type": "string"
+    },
+    {
+      "key": "managerUserName",
+      "value": "0903596791",
+      "type": "string"
+    },
+    {
+      "key": "managerPassword",
+      "value": "Test@123",
+      "type": "string"
     }
   ]
 }
