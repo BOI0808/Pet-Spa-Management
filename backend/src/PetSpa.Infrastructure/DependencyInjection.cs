@@ -71,6 +71,7 @@ public static class DependencyInjection
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IStaffRepository, StaffRepository>();
             services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+            services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
         return services;
     }
 }
