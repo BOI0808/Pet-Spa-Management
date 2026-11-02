@@ -2087,53 +2087,366 @@
           ]
         },
         {
+          "name": "WorkShifts",
+          "item": [
+            {
+              "name": "POST /work-shifts – thêm ca cho nhân viên spa (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                      "pm.test('Mã HTTP là 201', () => pm.response.to.have.status(201));",
+                      "const body = pm.response.json();",
+                      "pm.test('Trả shiftId dạng GUID', () => pm.expect(body.shiftId).to.match(GUID));",
+                      "if (pm.response.code === 201) pm.environment.set('shiftId', body.shiftId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffId\": \"{{spaStaffId}}\",\n  \"shiftStart\": \"2026-11-10T01:00:00Z\",\n  \"shiftEnd\": \"2026-11-10T10:00:00Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /work-shifts – thêm ca cho lễ tân (400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code lỗi là VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffId\": \"{{receptionistId}}\",\n  \"shiftStart\": \"2026-11-11T01:00:00Z\",\n  \"shiftEnd\": \"2026-11-11T10:00:00Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /work-shifts – ca chồng giờ (409)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code lỗi là SHIFT_OVERLAP', () => pm.expect(pm.response.json().code).to.eql('SHIFT_OVERLAP'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffId\": \"{{spaStaffId}}\",\n  \"shiftStart\": \"2026-11-10T08:00:00Z\",\n  \"shiftEnd\": \"2026-11-10T12:00:00Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /work-shifts/{id} – sửa giờ ca (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts/{{shiftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts",
+                    "{{shiftId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"shiftStart\": \"2026-11-10T02:00:00Z\",\n  \"shiftEnd\": \"2026-11-10T09:00:00Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /work-shifts – xem ca của nhân viên (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Có đúng 1 ca của nhân viên spa trong khoảng lọc', () => {",
+                      "  pm.expect(body.total).to.eql(1);",
+                      "  pm.expect(body.items).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Ca mang giờ đã sửa ở bước 4.4', () => {",
+                      "  const s = body.items[0];",
+                      "  pm.expect(s.shiftId).to.eql(pm.environment.get('shiftId'));",
+                      "  pm.expect(s.staffId).to.eql(pm.environment.get('spaStaffId'));",
+                      "  pm.expect(new Date(s.shiftStart).getTime()).to.eql(new Date('2026-11-10T02:00:00Z').getTime());",
+                      "  pm.expect(new Date(s.shiftEnd).getTime()).to.eql(new Date('2026-11-10T09:00:00Z').getTime());",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts?staffId={{spaStaffId}}&from=2026-11-09T17:00:00Z&to=2026-11-10T17:00:00Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts"
+                  ],
+                  "query": [
+                    {
+                      "key": "staffId",
+                      "value": "{{spaStaffId}}"
+                    },
+                    {
+                      "key": "from",
+                      "value": "2026-11-09T17:00:00Z"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-11-10T17:00:00Z"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /work-shifts/{id} – xóa ca (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 204', () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts/{{shiftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts",
+                    "{{shiftId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /work-shifts/{id} – xóa lại ca đã xóa (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Mã HTTP là 404', () => pm.response.to.have.status(404));",
+                      "pm.test('code lỗi là NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts/{{shiftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts",
+                    "{{shiftId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "/staff/{id}/deactivate",
           "request": {
             "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/work-shifts",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/work-shifts",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/work-shifts/{id}",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/work-shifts/{id}",
-          "request": {
-            "method": "DELETE",
             "header": [],
             "url": {
               "raw": ""
