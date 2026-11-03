@@ -26,5 +26,10 @@ public interface IConcurrencyGuard
     Task LockHotelGroupAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default);
 
     // Xác nhận phân công nhân viên / gán chuồng (BR-04, BR-21): khóa dòng lịch hẹn (SELECT ... FOR UPDATE).
+    // Ném BusinessException(ErrorCodes.NotFound) nếu lịch hẹn không tồn tại.
     Task LockAppointmentAsync(Guid appointmentId, CancellationToken ct = default);
+
+    // Khóa dòng thanh toán (Backend-Conventions 7.1, 7.2, 10.1): chống xử lý lặp webhook / thanh toán quầy (SELECT ... FOR UPDATE).
+    // Ném BusinessException(ErrorCodes.NotFound) nếu khoản thanh toán không tồn tại.
+    Task LockPaymentAsync(Guid paymentId, CancellationToken ct = default);
 }

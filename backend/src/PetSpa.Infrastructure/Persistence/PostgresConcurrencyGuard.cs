@@ -1,4 +1,6 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using PetSpa.Application.Ports;
 using PetSpa.Domain.Enums;
@@ -22,6 +24,8 @@ public sealed class PostgresConcurrencyGuard(AppDbContext db) : IConcurrencyGuar
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
             var result = await work();
+            // Đảm bảo mọi thay đổi trong ChangeTracker được flush xuống CSDL trước khi commit (Unit of Work).
+            await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             return result;
         }
@@ -45,11 +49,36 @@ public sealed class PostgresConcurrencyGuard(AppDbContext db) : IConcurrencyGuar
     public Task LockHotelGroupAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
         LockAsync(HotelGroupLock, ((int)species << 8) | (int)sizeGroup, ct);
 
-    public async Task LockAppointmentAsync(Guid appointmentId, CancellationToken ct = default)
+    public Task LockAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
+        LockRowAsync("Appointment", "AppointmentId", appointmentId, ct);
+
+    public Task LockPaymentAsync(Guid paymentId, CancellationToken ct = default) =>
+        LockRowAsync("Payment", "PaymentId", paymentId, ct);
+
+    private async Task LockRowAsync(string table, string idColumn, Guid id, CancellationToken ct)
     {
         RequireTransaction();
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT 1 FROM \"Appointment\" WHERE \"AppointmentId\" = {appointmentId} FOR UPDATE", ct);
+
+        var connection = db.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(ct);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = db.Database.CurrentTransaction?.GetDbTransaction();
+        command.CommandText = $"SELECT 1 FROM \"{table}\" WHERE \"{idColumn}\" = @id FOR UPDATE";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "@id";
+        parameter.Value = id;
+        command.Parameters.Add(parameter);
+
+        var result = await command.ExecuteScalarAsync(ct);
+        if (result is null)
+        {
+            throw new BusinessException(ErrorCodes.NotFound);
+        }
     }
 
     private async Task LockAsync(int kind, int key, CancellationToken ct)
@@ -66,9 +95,9 @@ public sealed class PostgresConcurrencyGuard(AppDbContext db) : IConcurrencyGuar
     }
 
     // Tên ràng buộc do migration của ID 54 đặt. Ca làm (ex_shift_overlap) do WorkShiftRepository xử lý riêng.
-    private static string? ToBusinessCode(Exception ex)
+    internal static string? ToBusinessCode(Exception ex)
     {
-        var pg = ex as PostgresException ?? ex.InnerException as PostgresException;
+        var pg = FindPostgresException(ex);
         if (pg is not { SqlState: PostgresErrorCodes.ExclusionViolation })
             return null;
 
@@ -78,5 +107,31 @@ public sealed class PostgresConcurrencyGuard(AppDbContext db) : IConcurrencyGuar
             "ex_cage_night" => ErrorCodes.CageConflict,
             _ => null,
         };
+    }
+
+    private static PostgresException? FindPostgresException(Exception ex)
+    {
+        if (ex is PostgresException direct)
+            return direct;
+
+        if (ex.GetBaseException() is PostgresException basePg)
+            return basePg;
+
+        for (var current = ex.InnerException; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException innerPg)
+                return innerPg;
+        }
+
+        if (ex is AggregateException agg)
+        {
+            foreach (var inner in agg.InnerExceptions)
+            {
+                if (FindPostgresException(inner) is { } found)
+                    return found;
+            }
+        }
+
+        return null;
     }
 }
