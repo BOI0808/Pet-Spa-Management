@@ -75,6 +75,15 @@ public static class DependencyInjection
         services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
         services.AddScoped<IPaymentAmountRepository, PaymentAmountRepository>();
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
+            services.AddScoped<IIdentityTokenService, IdentityTokenService>();
+            services.AddScoped<IStaffRoleReader, StaffRoleReader>();
+            services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
+            services.AddScoped<IHotelCatalogRepository, HotelCatalogRepository>();
+            services.AddScoped<IPetRepository, PetRepository>();
+            services.AddScoped<IAccountRepository, AccountRepository>();
+            services.AddScoped<IStaffRepository, StaffRepository>();
+            services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+            services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
         return services;
     }
 }
