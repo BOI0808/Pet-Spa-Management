@@ -83,6 +83,19 @@ public class PricingServiceTests
         Assert.Equal(1, PricingService.CountNights(checkIn, checkOut, StoreTimeZone));
     }
 
+    [Theory]
+    [InlineData(10, 10, 10, 18)] // Same day
+    [InlineData(11, 10, 10, 10)] // CheckOut before CheckIn
+    public void CountNights_WhenCheckOutSameOrBeforeCheckIn_ThrowsInvalidOperationException(
+        int inDay, int inHour, int outDay, int outHour)
+    {
+        var checkIn = Local(inDay, inHour);
+        var checkOut = Local(outDay, outHour);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PricingService.CountNights(checkIn, checkOut, StoreTimeZone));
+    }
+
     [Fact]
     public void CalculateStayAmount_MultipliesNightsByPriceAndFood()
     {
@@ -96,6 +109,16 @@ public class PricingServiceTests
     {
         Assert.Throws<InvalidOperationException>(() =>
             PricingService.CalculateStayAmount(2, Species.Dog, SizeGroup.Large, HotelPrices));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-5)]
+    public void CalculateStayAmount_WhenNightsLessThanOrEqualToZero_ThrowsArgumentOutOfRangeException(int nights)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PricingService.CalculateStayAmount(nights, Species.Dog, SizeGroup.Small, HotelPrices));
     }
 
     [Theory]
@@ -141,5 +164,38 @@ public class PricingServiceTests
         var fee = PricingService.CalculateLateFee(plannedCheckOut, returnedAt, 15, 30, FeePerBlock);
 
         Assert.Equal(expectedBlocks * FeePerBlock, fee);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-60)]
+    public void CalculateLateFee_WhenBlockMinutesZeroOrNegative_ThrowsArgumentOutOfRangeException(int invalidBlockMinutes)
+    {
+        var plannedCheckOut = Local(12, 12);
+        var returnedAt = plannedCheckOut.AddMinutes(60);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PricingService.CalculateLateFee(plannedCheckOut, returnedAt, 30, invalidBlockMinutes, FeePerBlock));
+    }
+
+    [Fact]
+    public void CalculateLateFee_WhenGraceMinutesNegative_ThrowsArgumentOutOfRangeException()
+    {
+        var plannedCheckOut = Local(12, 12);
+        var returnedAt = plannedCheckOut.AddMinutes(60);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PricingService.CalculateLateFee(plannedCheckOut, returnedAt, -1, 60, FeePerBlock));
+    }
+
+    [Fact]
+    public void CalculateLateFee_WhenFeePerBlockNegative_ThrowsArgumentOutOfRangeException()
+    {
+        var plannedCheckOut = Local(12, 12);
+        var returnedAt = plannedCheckOut.AddMinutes(60);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PricingService.CalculateLateFee(plannedCheckOut, returnedAt, 30, 60, -50000m));
     }
 }

@@ -30,6 +30,11 @@ public static class PricingService
         var checkInDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(checkIn, storeTimeZone).DateTime);
         var checkOutDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(checkOut, storeTimeZone).DateTime);
 
+        if (checkOutDate <= checkInDate)
+        {
+            throw new InvalidOperationException("Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm.");
+        }
+
         return checkOutDate.DayNumber - checkInDate.DayNumber;
     }
 
@@ -39,6 +44,11 @@ public static class PricingService
         SizeGroup sizeGroup,
         IReadOnlyCollection<HotelPricing> pricing)
     {
+        if (nights <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(nights), "Số đêm lưu trú phải lớn hơn 0.");
+        }
+
         var row = pricing.FirstOrDefault(p => p.Species == species && p.SizeGroup == sizeGroup)
             ?? throw new InvalidOperationException(
                 $"Thiếu giá lưu trú của loài {species}, nhóm kích cỡ {sizeGroup}.");
@@ -53,6 +63,21 @@ public static class PricingService
         int blockMinutes,
         decimal feePerBlock)
     {
+        if (blockMinutes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(blockMinutes), "Block thời gian tính phí phạt phải lớn hơn 0.");
+        }
+
+        if (graceMinutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(graceMinutes), "Thời gian ân hạn không được âm.");
+        }
+
+        if (feePerBlock < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(feePerBlock), "Mức phí mỗi block không được âm.");
+        }
+
         var excess = returnedAt - plannedCheckOut - TimeSpan.FromMinutes(graceMinutes);
         if (excess <= TimeSpan.Zero) return 0m;
 

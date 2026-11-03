@@ -1,19 +1,18 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using PetSpa.Application.Ports;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 
 namespace PetSpa.Infrastructure.Persistence.Repositories;
 
-public sealed class PaymentAmountRepository(AppDbContext db, IConfiguration configuration) : IPaymentAmountRepository
+public sealed class PaymentAmountRepository(AppDbContext db) : IPaymentAmountRepository
 {
     public async Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default)
     {
         var appointment = await db.Set<SpaAppointment>().AsNoTracking()
             .Where(a => a.AppointmentId == appointmentId)
-            .Select(a => new { a.PetId, a.SizeGroup })
+            .Select(a => new { a.PetId, a.SizeGroup, a.Status })
             .FirstOrDefaultAsync(ct);
         if (appointment is null) return null;
 
@@ -30,14 +29,14 @@ public sealed class PaymentAmountRepository(AppDbContext db, IConfiguration conf
                 && p.SizeGroup == appointment.SizeGroup)
             .ToListAsync(ct);
 
-        return new SpaAmountSnapshot(species, appointment.SizeGroup, serviceIds, pricing);
+        return new SpaAmountSnapshot(species, appointment.SizeGroup, appointment.Status, serviceIds, pricing);
     }
 
     public async Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default)
     {
         var appointment = await db.Set<HotelAppointment>().AsNoTracking()
             .Where(a => a.AppointmentId == appointmentId)
-            .Select(a => new { a.PetId, a.SizeGroup, a.PlannedCheckIn, a.PlannedCheckOut })
+            .Select(a => new { a.PetId, a.SizeGroup, a.Status, a.PlannedCheckIn, a.PlannedCheckOut, a.ActualCheckOut })
             .FirstOrDefaultAsync(ct);
         if (appointment is null) return null;
 
@@ -46,31 +45,32 @@ public sealed class PaymentAmountRepository(AppDbContext db, IConfiguration conf
         return new StayAmountSnapshot(
             species,
             appointment.SizeGroup,
+            appointment.Status,
             appointment.PlannedCheckIn,
-            appointment.PlannedCheckOut);
+            appointment.PlannedCheckOut,
+            appointment.ActualCheckOut);
     }
 
-    public async Task<LateFeeRules> GetLateFeeRulesAsync(CancellationToken ct = default)
+    public async Task<LateFeeConfig> GetLateFeeConfigAsync(CancellationToken ct = default)
     {
-        var graceMinutes = await GetIntConfigAsync("Hotel.LateGraceMinutes", ct);
-        var blockMinutes = await GetIntConfigAsync("Hotel.LateBlockMinutes", ct);
+        var keys = new[] { "Hotel.LateGraceMinutes", "Hotel.LateBlockMinutes", "Hotel.LateFeePerBlock" };
+        var configs = await db.Set<SystemConfig>().AsNoTracking()
+            .Where(c => keys.Contains(c.ConfigKey))
+            .ToDictionaryAsync(c => c.ConfigKey, c => c.ConfigValue, ct);
 
-        return new LateFeeRules(graceMinutes, blockMinutes);
-    }
+        var graceMinutes = configs.TryGetValue("Hotel.LateGraceMinutes", out var graceStr)
+            ? int.Parse(graceStr, CultureInfo.InvariantCulture)
+            : throw new InvalidOperationException("Thiếu cấu hình Hotel.LateGraceMinutes.");
 
-    public TimeZoneInfo GetStoreTimeZone()
-    {
-        var id = configuration["App:TimeZone"]
-            ?? throw new InvalidOperationException("Thiếu cấu hình App__TimeZone.");
+        var blockMinutes = configs.TryGetValue("Hotel.LateBlockMinutes", out var blockStr)
+            ? int.Parse(blockStr, CultureInfo.InvariantCulture)
+            : throw new InvalidOperationException("Thiếu cấu hình Hotel.LateBlockMinutes.");
 
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(id);
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            throw new InvalidOperationException($"Không tìm thấy múi giờ {id} khai báo ở App__TimeZone.");
-        }
+        var feePerBlock = configs.TryGetValue("Hotel.LateFeePerBlock", out var feeStr)
+            ? decimal.Parse(feeStr, CultureInfo.InvariantCulture)
+            : 0m;
+
+        return new LateFeeConfig(graceMinutes, blockMinutes, feePerBlock);
     }
 
     private async Task<Species> GetSpeciesAsync(Guid petId, CancellationToken ct) =>
@@ -78,16 +78,4 @@ public sealed class PaymentAmountRepository(AppDbContext db, IConfiguration conf
             .Where(p => p.PetId == petId)
             .Select(p => p.Species)
             .FirstAsync(ct);
-
-    private async Task<int> GetIntConfigAsync(string key, CancellationToken ct)
-    {
-        var value = await db.Set<SystemConfig>().AsNoTracking()
-            .Where(c => c.ConfigKey == key)
-            .Select(c => c.ConfigValue)
-            .FirstOrDefaultAsync(ct);
-
-        if (value is null) throw new InvalidOperationException($"Thiếu cấu hình {key}.");
-
-        return int.Parse(value, CultureInfo.InvariantCulture);
-    }
 }

@@ -6,16 +6,19 @@ namespace PetSpa.Application.Ports;
 public sealed record SpaAmountSnapshot(
     Species Species,
     SizeGroup SizeGroup,
+    AppointmentStatus Status,
     IReadOnlyList<Guid> ServiceIds,
     IReadOnlyList<ServicePricing> Pricing);
 
 public sealed record StayAmountSnapshot(
     Species Species,
     SizeGroup SizeGroup,
+    AppointmentStatus Status,
     DateTimeOffset PlannedCheckIn,
-    DateTimeOffset PlannedCheckOut);
+    DateTimeOffset PlannedCheckOut,
+    DateTimeOffset? ActualCheckOut);
 
-public sealed record LateFeeRules(int GraceMinutes, int BlockMinutes);
+public sealed record LateFeeConfig(int GraceMinutes, int BlockMinutes, decimal FeePerBlock);
 
 public interface IPaymentAmountRepository
 {
@@ -23,7 +26,5 @@ public interface IPaymentAmountRepository
 
     Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default);
 
-    Task<LateFeeRules> GetLateFeeRulesAsync(CancellationToken ct = default);
-
-    TimeZoneInfo GetStoreTimeZone();
+    Task<LateFeeConfig> GetLateFeeConfigAsync(CancellationToken ct = default);
 }
