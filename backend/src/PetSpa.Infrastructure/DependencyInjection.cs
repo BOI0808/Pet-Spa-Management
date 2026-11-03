@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
 using PetSpa.Infrastructure.Identity;
 using PetSpa.Infrastructure.Persistence;
 using PetSpa.Infrastructure.Persistence.Repositories;
-using PetSpa.Application.Ports;
+using PetSpa.Infrastructure.Services;
+
 namespace PetSpa.Infrastructure;
 
 public static class DependencyInjection
@@ -63,14 +65,16 @@ public static class DependencyInjection
                     },
                 };
             });
-            services.AddScoped<IIdentityTokenService, IdentityTokenService>();
-            services.AddScoped<IStaffRoleReader, StaffRoleReader>();
-            services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
-            services.AddScoped<IHotelCatalogRepository, HotelCatalogRepository>();
-            services.AddScoped<IPetRepository, PetRepository>();
-            services.AddScoped<IAccountRepository, AccountRepository>();
-            services.AddScoped<IStaffRepository, StaffRepository>();
-            services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+        services.AddScoped<IIdentityTokenService, IdentityTokenService>();
+        services.AddScoped<IStaffRoleReader, StaffRoleReader>();
+        services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
+        services.AddScoped<IHotelCatalogRepository, HotelCatalogRepository>();
+        services.AddScoped<IPetRepository, PetRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IStaffRepository, StaffRepository>();
+        services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+        services.AddScoped<IPaymentAmountRepository, PaymentAmountRepository>();
+        services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         return services;
     }
 }
