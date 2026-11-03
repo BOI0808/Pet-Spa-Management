@@ -3,6 +3,7 @@ using PetSpa.Application.Services.Auth;
 using PetSpa.Application.Services.Pets;
 using PetSpa.Application.Services;
 using PetSpa.Application.Services.StaffManagement;
+using PetSpa.Application.Services.Payments;
 
 namespace PetSpa.Application;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<AuthService>();
         services.AddScoped<StaffService>();
         services.AddScoped<WorkShiftService>();
+        services.AddScoped<PaymentAmountService>();
         return services;
     }
 }
