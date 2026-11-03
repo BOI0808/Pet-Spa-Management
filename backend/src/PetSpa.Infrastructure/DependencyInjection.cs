@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
 using PetSpa.Infrastructure.Identity;
@@ -31,6 +32,17 @@ public static class DependencyInjection
         if (jwt.AccessTokenMinutes <= 0 || jwt.RefreshTokenDays <= 0)
             throw new InvalidOperationException("Jwt__AccessTokenMinutes và Jwt__RefreshTokenDays phải lớn hơn 0.");
         services.AddSingleton(jwt);
+
+        var timeZoneId = config["App:TimeZone"]
+            ?? throw new InvalidOperationException("Thiếu cấu hình App__TimeZone.");
+        try
+        {
+            services.AddSingleton(new ShopTimeZone(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId)));
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            throw new InvalidOperationException($"App__TimeZone không hợp lệ: {timeZoneId}.", ex);
+        }
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
