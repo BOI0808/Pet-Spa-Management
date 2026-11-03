@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PetSpa.Application.Services.Auth;
 using PetSpa.Application.Services.Pets;
 using PetSpa.Application.Services;
+using PetSpa.Application.Services.Booking;
 using PetSpa.Application.Services.StaffManagement;
 using PetSpa.Application.Services.Payments;
 
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<AuthService>();
         services.AddScoped<StaffService>();
         services.AddScoped<WorkShiftService>();
+        services.AddScoped<BookingService>();
         services.AddScoped<PaymentAmountService>();
         return services;
     }
