@@ -5,6 +5,13 @@ export function formatPhone(phone: string) {
   return /^\d{10}$/.test(phone) ? `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}` : phone;
 }
 
+const MONEY_FORMAT = new Intl.NumberFormat("vi-VN");
+
+/** 270000 → “270.000đ”: số nguyên VND, dấu chấm hàng nghìn, “đ” liền sau số. */
+export function formatMoney(amount: number) {
+  return `${MONEY_FORMAT.format(amount)}đ`;
+}
+
 // Tên người Việt: tên gọi nằm cuối, nên tên ngắn và chữ cái đầu lấy từ hai chữ cuối (“Trần Minh Anh” → “Minh Anh”, “MA”).
 function lastWords(fullName: string) {
   return fullName.trim().split(/\s+/).filter(Boolean).slice(-2);

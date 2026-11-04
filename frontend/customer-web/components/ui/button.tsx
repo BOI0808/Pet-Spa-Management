@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ComponentProps } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "danger-solid" | "ghost" | "quiet";
+type ButtonVariant = "primary" | "secondary" | "danger" | "danger-solid" | "ghost" | "quiet" | "hero" | "hero-ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonStyleProps = {
@@ -26,6 +26,9 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   "danger-solid": "border-transparent bg-danger text-white hover:bg-[#952C22]",
   ghost: "border-transparent bg-transparent text-ink hover:bg-line-soft",
   quiet: "border-line bg-mist text-ink hover:bg-white",
+  // Nút trên nền Lagoon (`.hero .btn-primary`, `.hero .btn-ghost` của ui-demo).
+  hero: "border-transparent bg-white text-lagoon-700 hover:bg-lagoon-50",
+  "hero-ghost": "border-white/40 bg-transparent text-white hover:bg-white/10",
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {

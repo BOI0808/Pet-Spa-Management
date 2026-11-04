@@ -81,6 +81,15 @@ const SIZE_CLASS = {
   xl: { box: "size-24 rounded-[28px]", svg: "size-20" },
 } as const;
 
+/** Chỉ hình minh họa, không có ô nền (nút chọn loài ở CW-03). */
+export function SpeciesIllustration({ species, className = "size-5" }: { species: Species; className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false" className={`shrink-0 ${className}`}>
+      {ILLUSTRATIONS[species]}
+    </svg>
+  );
+}
+
 type PetAvatarProps = {
   species: Species;
   size?: keyof typeof SIZE_CLASS;
@@ -95,9 +104,7 @@ export function PetAvatar({ species, size = "md", className = "" }: PetAvatarPro
       aria-hidden="true"
       className={`grid shrink-0 place-items-center overflow-hidden ${SPECIES_BG[species]} ${sizeClass.box} ${className}`}
     >
-      <svg viewBox="0 0 48 48" focusable="false" className={sizeClass.svg}>
-        {ILLUSTRATIONS[species]}
-      </svg>
+      <SpeciesIllustration species={species} className={sizeClass.svg} />
     </span>
   );
 }
