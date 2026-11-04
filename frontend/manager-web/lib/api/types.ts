@@ -1,4 +1,4 @@
-// Kiểu dữ liệu chép đúng backend/docs/api/openapi.yaml (phần phiên đăng nhập và danh mục dịch vụ).
+// Kiểu dữ liệu chép đúng backend/docs/api/openapi.yaml (phần phiên đăng nhập, danh mục dịch vụ, chuồng và giá lưu trú).
 
 export type Role = "Customer" | "Staff" | "Manager";
 type StaffRole = "Receptionist" | "SpaStaff";
@@ -71,3 +71,40 @@ export type ServiceCreated = { serviceId: string };
 
 /** Body của PATCH /services/{id}/status. */
 export type ActiveToggleRequest = { isActive: boolean };
+
+// ── Chuồng và giá lưu trú (FR-HTL-01 → 03) ──
+
+/** Giá lưu trú và giá thức ăn mỗi đêm của một loài và một nhóm kích cỡ (BR-22). Giá là số nguyên VND. */
+export type HotelPricingRow = {
+  species: Species;
+  sizeGroup: SizeGroup;
+  pricePerNight: number;
+  foodPerNight: number;
+};
+
+/** GET và PUT /hotel/pricing. `lateFeePerBlock` là phí phạt mỗi lần trả muộn, VND (BR-22). */
+export type HotelPricing = {
+  pricing: HotelPricingRow[];
+  lateFeePerBlock: number;
+};
+
+/** Chuồng. `occupant` (đang chứa) chỉ có ở GET /cages nên thêm vào khi làm thẻ 150. */
+export type Cage = {
+  cageId: string;
+  code: string;
+  species: Species;
+  sizeGroup: SizeGroup;
+  isActive: boolean;
+};
+
+/** Body của POST /cages. */
+export type CageCreateRequest = {
+  code: string;
+  species: Species;
+  sizeGroup: SizeGroup;
+};
+
+/** Body của PUT /cages/{id}: mọi trường tùy chọn, chỉ trường được gửi mới đổi. */
+export type CageUpdateRequest = Partial<CageCreateRequest>;
+
+export type CageCreated = { cageId: string };
