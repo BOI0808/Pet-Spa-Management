@@ -42,6 +42,7 @@ export function toHotelPricingFormValues(data: HotelPricing): HotelPricingFormVa
 
   // Backend trả phí = 0 cho cả hai trường hợp “chưa thiết lập” và “đã đặt 0”. Chưa có giá nào và phí = 0 thì coi là chưa thiết lập:
   // để trống ô phí để Quản lý phải nhập (validateLateFee báo thiếu), tránh lưu nhầm 0 và làm trả muộn không bị tính phí.
+  // Hệ quả: nếu cố ý lưu phí 0 khi chưa có giá nào thì ô phí hiện trống sau khi lưu. Về lâu dài backend nên trả `null` khi chưa có khóa.
   const isNeverConfigured = data.pricing.length === 0 && data.lateFeePerBlock === 0;
   return { pricing, lateFeePerBlock: isNeverConfigured ? "" : formatAmount(data.lateFeePerBlock) };
 }

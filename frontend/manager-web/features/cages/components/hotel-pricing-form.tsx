@@ -11,7 +11,8 @@ import { Field, Input } from "@/components/ui/field";
 import type { HotelPricing } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
 import { ROUTES } from "@/lib/routes";
-import { useUpdateHotelPricing } from "@/lib/queries/hotel-pricing";
+import { useQueryClient } from "@tanstack/react-query";
+import { hotelPricingKeys, useUpdateHotelPricing } from "@/lib/queries/hotel-pricing";
 import { SIZE_GROUPS_BY_SPECIES } from "@/lib/size-groups";
 import {
   LATE_BLOCK_MINUTES,
@@ -34,6 +35,7 @@ const cellClass = "border-b border-line-soft px-2.5 py-2";
 export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
   const { showSuccess } = useToast();
   const updatePricing = useUpdateHotelPricing();
+  const queryClient = useQueryClient();
   const [issue, setIssue] = useState<string | null>(null);
 
   // Form đi theo dữ liệu backend: mỗi lần `pricing` đổi (refetch khi quay lại tab, mở lại trang từ cache cũ) giá trị mới được nạp
@@ -73,8 +75,13 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
       const body = toHotelPricing(values);
       updatePricing.mutate(body, {
         onSuccess: () => {
-          // Đưa form về trạng thái “sạch”, khớp dữ liệu vừa lưu, để lần refetch sau lại cập nhật được mọi ô.
-          resetForm(toHotelPricingFormValues(body));
+          // Hook đã đợi tải lại xong rồi mới gọi hàm này, nên cache đang giữ dữ liệu mới nhất của backend
+          // (gồm cả dòng máy khác vừa thêm). Không reset từ `body` (thiếu dòng của máy khác),
+          // cũng không dùng `pricing` (đó là giá trị lúc bấm Lưu).
+          // Chỉ reset khi lần tải lại thành công: nếu nó lỗi, cache còn dữ liệu TRƯỚC khi lưu
+          // và reset sẽ kéo form về giá cũ dù backend đã lưu.
+          const latest = queryClient.getQueryState<HotelPricing>(hotelPricingKeys.all);
+          if (latest?.status === "success" && latest.data) resetForm(toHotelPricingFormValues(latest.data));
           showSuccess("Đã lưu bảng giá. Áp dụng cho lịch lưu trú tạo từ bây giờ.");
         },
       });
@@ -90,7 +97,10 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
       id={HOTEL_PRICING_FORM_ID}
       noValidate
       onSubmit={handleSave}
-      className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-6 max-[1180px]:grid-cols-1"
+    >
+      <fieldset
+        disabled={updatePricing.isPending}
+        className="grid min-w-0 grid-cols-[minmax(0,1fr)_340px] items-start gap-6 max-[1180px]:grid-cols-1"
     >
       <div className="flex min-w-0 flex-col gap-3">
         <ErrorAlert error={updatePricing.error} />
@@ -169,7 +179,7 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
                   suffix="đ"
                   inputMode="numeric"
                   autoComplete="off"
-                  className="tabular-nums"
+                  className="text-right tabular-nums"
                 />
               )}
             </Field>
@@ -188,6 +198,7 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
           trống cả hai ô (sẽ không được lưu); nhóm đã có giá không thể để trống.
         </Alert>
       </div>
+      </fieldset>
     </form>
   );
 }
