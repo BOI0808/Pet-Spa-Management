@@ -4,7 +4,8 @@ import type { UseFormRegister } from "react-hook-form";
 import { Input, Select } from "@/components/ui/field";
 import type { Species } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
-import { SIZE_GROUPS_BY_SPECIES, type ServiceFormValues } from "../forms";
+import { SIZE_GROUPS_BY_SPECIES } from "@/lib/size-groups";
+import type { ServiceFormValues } from "../forms";
 
 const headCellClass = "border-b border-line bg-mist px-2.5 py-2 text-left text-xs font-semibold text-muted";
 const cellClass = "border-b border-line-soft px-2.5 py-2";

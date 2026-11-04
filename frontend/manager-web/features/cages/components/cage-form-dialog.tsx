@@ -12,8 +12,8 @@ import type { ApiError } from "@/lib/api/errors";
 import type { Cage } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
 import { useCreateCage, useUpdateCage } from "@/lib/queries/cages";
+import { SIZE_GROUPS_BY_SPECIES } from "@/lib/size-groups";
 import {
-  SIZE_GROUPS_BY_SPECIES,
   isSizeGroupAllowed,
   toCageFormValues,
   toCageRequest,

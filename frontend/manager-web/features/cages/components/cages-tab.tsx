@@ -1,10 +1,10 @@
+import { Alert } from "@/components/feedback/alert";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Cage } from "@/lib/api/types";
 import { CageRow } from "./cage-row";
-import { InfoNote } from "./info-note";
 
 const headCellClass =
   "whitespace-nowrap border-b border-line bg-mist px-3.5 py-2.5 text-left text-xs font-semibold leading-4 text-muted";
@@ -25,10 +25,10 @@ type CagesTabProps = {
 export function CagesTab({ cages, onAdd, onEdit, onChanged }: CagesTabProps) {
   return (
     <div className="flex flex-col gap-4">
-      <InfoNote>
+      <Alert tone="info">
         Danh sách tạm thời chỉ hiện chuồng bạn thêm hoặc sửa trong lần mở trang này. Tình trạng trống / đang chứa của toàn bộ chuồng
         sẽ có ở bản cập nhật sau.
-      </InfoNote>
+      </Alert>
 
       <Card>
         {cages.length === 0 ? (

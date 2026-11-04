@@ -1,5 +1,7 @@
 import type { PricingRow, Service, ServiceRequest, SizeGroup, Species } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
+import { MAX_MONEY_AMOUNT, toWholeNumber } from "@/lib/number-input";
+import { SIZE_GROUPS_BY_SPECIES, createPricingGrid } from "@/lib/size-groups";
 
 // MW-06·D1 Thêm / sửa dịch vụ – UI-Screens.md (FR-SVC-01, FR-SVC-02; BR-11, BR-12, BR-19)
 
@@ -22,14 +24,6 @@ export const SLOT_TIME_OPTIONS: readonly string[] = [
   "19:00",
 ];
 
-/** Các nhóm kích cỡ của từng loài (BR-19): chuột lang chỉ có Nhỏ và Lớn. */
-export const SIZE_GROUPS_BY_SPECIES: Record<Species, readonly SizeGroup[]> = {
-  Dog: ["Small", "Medium", "Large"],
-  Cat: ["Small", "Medium", "Large"],
-  Rabbit: ["Small", "Medium", "Large"],
-  GuineaPig: ["Small", "Large"],
-};
-
 /** Giá, thời lượng, số nhân viên của một ô trong bảng; giữ dạng chuỗi như người dùng nhập. */
 type PricingCellValues = { price: string; durationMinutes: string; staffRequired: "1" | "2" };
 
@@ -48,18 +42,9 @@ function emptyCell(): PricingCellValues {
   return { price: "", durationMinutes: "", staffRequired: "1" };
 }
 
-function emptyPricing(): ServiceFormValues["pricing"] {
-  return {
-    Dog: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    Cat: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    Rabbit: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    GuineaPig: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-  };
-}
-
 /** Giá trị ban đầu của form: dịch vụ đang sửa, hoặc form trống khi thêm mới. */
 export function toServiceFormValues(service: Service | null): ServiceFormValues {
-  const pricing = emptyPricing();
+  const pricing = createPricingGrid(emptyCell);
   for (const row of service?.pricing ?? []) {
     pricing[row.species][row.sizeGroup] = {
       price: String(row.price),
@@ -78,18 +63,6 @@ export function toServiceFormValues(service: Service | null): ServiceFormValues 
   };
 }
 
-// Số nguyên không âm, có thể ngăn hàng nghìn bằng dấu chấm, phẩy hoặc khoảng trắng (“120.000”). “1.5” không hợp lệ.
-const WHOLE_NUMBER_PATTERN = /^(\d+|\d{1,3}([.,\s]\d{3})+)$/;
-
-/** Chuỗi nhập → số nguyên không âm; không hợp lệ → NaN. */
-function toWholeNumber(text: string) {
-  const value = text.trim();
-  return WHOLE_NUMBER_PATTERN.test(value) ? Number(value.replace(/[.,\s]/g, "")) : Number.NaN;
-}
-
-// Khớp PricingRowRequestValidator của backend.
-const MAX_PRICE = 999_999_999_999;
-
 /**
  * Lỗi đầu tiên trong bảng giá của các loài đã chọn, hoặc null nếu hợp lệ (SA 6.6: giá ≥ 0, thời lượng > 0, đủ mọi nhóm).
  * Số nhân viên là ô chọn 1 hoặc 2 nên không thể sai.
@@ -103,7 +76,7 @@ export function findPricingIssue({ species, pricing }: Pick<ServiceFormValues, "
       const duration = toWholeNumber(cell.durationMinutes);
 
       if (Number.isNaN(price) || Number.isNaN(duration)) return `Thiếu giá/thời lượng cho ${target}.`;
-      if (price > MAX_PRICE) return `Giá dịch vụ tối đa 999.999.999.999đ (${target}).`;
+      if (price > MAX_MONEY_AMOUNT) return `Giá dịch vụ tối đa 999.999.999.999đ (${target}).`;
       if (duration < 1) return `Thời lượng dự kiến phải lớn hơn 0 phút (${target}).`;
     }
   }

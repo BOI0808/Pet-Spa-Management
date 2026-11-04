@@ -24,9 +24,10 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
-| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
+| `components/feedback` | Hiển thị lỗi và ghi chú: `Alert` (tông danger, info), `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
 | `components/ui`, `components/domain` | Thành phần dùng chung: Button, Card, Skeleton, Field/Input/Select/Textarea, Tag, EmptyState, ConfirmDialog, Drawer, PetAvatar |
 | `lib/queries` | Hook TanStack Query theo từng nhóm endpoint (`useServices`, `useCreateService`, …) |
+| `lib/number-input.ts`, `lib/size-groups.ts` | Đọc số người dùng nhập (`toWholeNumber`), nhóm kích cỡ theo loài (BR-19) và khung bảng giá loài × nhóm; dùng chung cho form dịch vụ và giá lưu trú |
 | `lib/labels.ts`, `lib/format.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ) và định dạng tiền |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu dữ liệu và hàm gọi endpoint |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
@@ -78,5 +79,8 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 
 - Tab Giá: `GET/PUT /hotel/pricing`. Chỉ gửi nhóm đã nhập đủ cả hai ô; nhóm chưa có giá có thể để trống, nhóm đã có giá không được để trống (backend chỉ có `PUT`, không có thao tác xóa giá). Phí trả muộn (`lateFeePerBlock`) luôn bắt buộc.
 - Tab Chuồng: `POST /cages`, `PUT /cages/{id}`, `PATCH /cages/{id}/status`; mã trùng (409 `DUPLICATE_CAGE_CODE`) báo dưới ô Mã.
+- Chú thích phí trả muộn (miễn phí 30 phút đầu, mỗi 60 phút tính 1 lần) dùng `LATE_GRACE_MINUTES` / `LATE_BLOCK_MINUTES` trong `features/cages/forms.ts`: tạm là mặc định của `Hotel.LateGraceMinutes` / `Hotel.LateBlockMinutes` vì backend chưa có `GET /config` (chưa thẻ nào làm MW-13). Quản lý đổi được hai mốc này ở Cấu hình nên chú thích có thể lệch; khi có `GET /config` thì đọc từ `settings[...]`.
+- Phí trả muộn chưa thiết lập (chưa có giá nào và `lateFeePerBlock` = 0) thì ô phí để trống để Quản lý phải nhập; ô giá hiện dấu chấm hàng nghìn (`180.000`) khi nạp từ backend.
+- Form giá đi theo dữ liệu backend (`values` + `keepDirtyValues` của React Hook Form): refetch cập nhật các ô chưa sửa, giữ ô đang gõ dở.
 - Tạm thời: backend chưa có `GET /cages` (FR-HTL-08, thẻ 88) nên bảng chuồng chỉ liệt kê chuồng đã thêm/sửa trong lần mở trang (state trong `CagesScreen`, mất khi tải lại). Thẻ 150 nối `GET /cages`: thay danh sách này, thêm 4 thẻ số liệu, cột "Đang chứa", tổng số chuồng trên tab và tải lại danh sách sau khi ghi (`lib/queries/cages.ts`).
 - Cả hai tab luôn được dựng (tab không chọn bị ẩn bằng `hidden`) nên đổi tab không mất danh sách chuồng hay giá đang nhập. Chưa làm (Đề xuất trong UI-Screens): hỏi xác nhận khi rời trang hoặc tải lại lúc có giá chưa lưu.

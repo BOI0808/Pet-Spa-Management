@@ -1,30 +1,19 @@
 import type { Cage, CageCreateRequest, HotelPricing, HotelPricingRow, SizeGroup, Species } from "@/lib/api/types";
+import { formatAmount } from "@/lib/format";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
+import { MAX_MONEY_AMOUNT, toWholeNumber } from "@/lib/number-input";
+import { SIZE_GROUPS_BY_SPECIES, createPricingGrid } from "@/lib/size-groups";
 
 // MW-07 Chuồng và giá lưu trú – UI-Screens.md (FR-HTL-01 → 03; BR-19, BR-21, BR-22)
 
 /**
- * Các nhóm kích cỡ của từng loài (BR-19): chuột lang chỉ có Nhỏ và Lớn.
- * Chép từ `features/services/forms.ts` vì không import chéo giữa các feature (Frontend-Architecture 3.2).
+ * Mốc trả muộn mặc định: `Hotel.LateGraceMinutes` = 30 (miễn phí) và `Hotel.LateBlockMinutes` = 60 (mỗi khối tính 1 lần), BR-22.
+ * Tạm khai báo ở web vì `GET /config` chưa có trên backend (chưa thẻ nào làm API cấu hình, MW-13). Quản lý đổi được hai mốc này
+ * ở Cấu hình nên chú thích có thể lệch giá trị thật. Khi có `GET /config` thì đọc từ `settings["Hotel.LateGraceMinutes"]`
+ * và `settings["Hotel.LateBlockMinutes"]`.
  */
-export const SIZE_GROUPS_BY_SPECIES: Record<Species, readonly SizeGroup[]> = {
-  Dog: ["Small", "Medium", "Large"],
-  Cat: ["Small", "Medium", "Large"],
-  Rabbit: ["Small", "Medium", "Large"],
-  GuineaPig: ["Small", "Large"],
-};
-
-// Số nguyên không âm, có thể ngăn hàng nghìn bằng dấu chấm, phẩy hoặc khoảng trắng (“180.000”). “1.5” không hợp lệ.
-const WHOLE_NUMBER_PATTERN = /^(\d+|\d{1,3}([.,\s]\d{3})+)$/;
-
-/** Chuỗi nhập → số nguyên không âm; không hợp lệ → NaN. */
-function toWholeNumber(text: string) {
-  const value = text.trim();
-  return WHOLE_NUMBER_PATTERN.test(value) ? Number(value.replace(/[.,\s]/g, "")) : Number.NaN;
-}
-
-// Khớp HotelPricingRowRequestValidator và HotelPricingRequestValidator của backend.
-const MAX_AMOUNT = 999_999_999_999;
+export const LATE_GRACE_MINUTES = 30;
+export const LATE_BLOCK_MINUTES = 60;
 
 // ── Giá lưu trú, giá thức ăn, phí phạt trả muộn (FR-HTL-03) ──
 
@@ -41,25 +30,20 @@ function emptyCell(): PricingCellValues {
   return { pricePerNight: "", foodPerNight: "" };
 }
 
-function emptyPricing(): HotelPricingFormValues["pricing"] {
-  return {
-    Dog: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    Cat: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    Rabbit: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-    GuineaPig: { Small: emptyCell(), Medium: emptyCell(), Large: emptyCell() },
-  };
-}
-
 /** Giá trị ban đầu của form: giá đang lưu ở backend; ô chưa có giá để trống. */
 export function toHotelPricingFormValues(data: HotelPricing): HotelPricingFormValues {
-  const pricing = emptyPricing();
+  const pricing = createPricingGrid(emptyCell);
   for (const row of data.pricing) {
     pricing[row.species][row.sizeGroup] = {
-      pricePerNight: String(row.pricePerNight),
-      foodPerNight: String(row.foodPerNight),
+      pricePerNight: formatAmount(row.pricePerNight),
+      foodPerNight: formatAmount(row.foodPerNight),
     };
   }
-  return { pricing, lateFeePerBlock: String(data.lateFeePerBlock) };
+
+  // Backend trả phí = 0 cho cả hai trường hợp “chưa thiết lập” và “đã đặt 0”. Chưa có giá nào và phí = 0 thì coi là chưa thiết lập:
+  // để trống ô phí để Quản lý phải nhập (validateLateFee báo thiếu), tránh lưu nhầm 0 và làm trả muộn không bị tính phí.
+  const isNeverConfigured = data.pricing.length === 0 && data.lateFeePerBlock === 0;
+  return { pricing, lateFeePerBlock: isNeverConfigured ? "" : formatAmount(data.lateFeePerBlock) };
 }
 
 /**
@@ -88,7 +72,7 @@ export function findHotelPricingIssue(pricing: HotelPricingFormValues["pricing"]
       const food = toWholeNumber(cell.foodPerNight);
       if (Number.isNaN(price)) return `Giá lưu trú/đêm của ${target} phải là số nguyên không âm.`;
       if (Number.isNaN(food)) return `Giá thức ăn/đêm của ${target} phải là số nguyên không âm.`;
-      if (price > MAX_AMOUNT || food > MAX_AMOUNT) return `Giá tối đa 999.999.999.999đ (${target}).`;
+      if (price > MAX_MONEY_AMOUNT || food > MAX_MONEY_AMOUNT) return `Giá tối đa 999.999.999.999đ (${target}).`;
     }
   }
   return null;
@@ -118,7 +102,7 @@ export function validateLateFee(value: string) {
   if (value.trim() === "") return "Vui lòng nhập mức phí mỗi lần.";
   const amount = toWholeNumber(value);
   if (Number.isNaN(amount)) return "Mức phí phải là số nguyên không âm.";
-  if (amount > MAX_AMOUNT) return "Mức phí tối đa 999.999.999.999đ.";
+  if (amount > MAX_MONEY_AMOUNT) return "Mức phí tối đa 999.999.999.999đ.";
   return true;
 }
 

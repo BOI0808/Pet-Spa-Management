@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
@@ -12,15 +12,16 @@ import type { HotelPricing } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS, SPECIES_ORDER } from "@/lib/labels";
 import { ROUTES } from "@/lib/routes";
 import { useUpdateHotelPricing } from "@/lib/queries/hotel-pricing";
+import { SIZE_GROUPS_BY_SPECIES } from "@/lib/size-groups";
 import {
-  SIZE_GROUPS_BY_SPECIES,
+  LATE_BLOCK_MINUTES,
+  LATE_GRACE_MINUTES,
   findHotelPricingIssue,
   toHotelPricing,
   toHotelPricingFormValues,
   validateLateFee,
   type HotelPricingFormValues,
 } from "../forms";
-import { InfoNote } from "./info-note";
 
 /** Id của form; nút “Lưu bảng giá” trên đầu trang (CagesScreen) gửi form này bằng thuộc tính `form`. */
 export const HOTEL_PRICING_FORM_ID = "hotel-pricing-form";
@@ -34,26 +35,55 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
   const { showSuccess } = useToast();
   const updatePricing = useUpdateHotelPricing();
   const [issue, setIssue] = useState<string | null>(null);
+
+  // Form đi theo dữ liệu backend: mỗi lần `pricing` đổi (refetch khi quay lại tab, mở lại trang từ cache cũ) giá trị mới được nạp
+  // vào các ô CHƯA bị sửa; ô Quản lý đang sửa dở được giữ nguyên. `useMemo` giữ `values` ổn định giữa các lần render.
+  const serverValues = useMemo(() => toHotelPricingFormValues(pricing), [pricing]);
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    getValues,
+    reset: resetForm,
+    formState,
   } = useForm<HotelPricingFormValues>({
-    defaultValues: toHotelPricingFormValues(pricing),
+    values: serverValues,
+    resetOptions: { keepDirtyValues: true },
     mode: "onTouched",
     reValidateMode: "onChange",
     shouldFocusError: true,
   });
+  const { errors } = formState;
+  // `keepDirtyValues` chỉ biết ô nào đã sửa nếu `dirtyFields` được đọc (theo dõi) trong lúc render. Đừng xóa dòng này.
+  void formState.dirtyFields;
 
-  const handleSave = handleSubmit((values) => {
-    const pricingIssue = findHotelPricingIssue(values.pricing, pricing);
+  // Kiểm tra bảng giá: hiện lỗi đầu tiên hoặc xóa lỗi cũ. Trả về true nếu hợp lệ.
+  function checkPricing(values: HotelPricingFormValues["pricing"]) {
+    const pricingIssue = findHotelPricingIssue(values, pricing);
     setIssue(pricingIssue);
-    if (pricingIssue) return;
+    return pricingIssue === null;
+  }
 
-    updatePricing.mutate(toHotelPricing(values), {
-      onSuccess: () => showSuccess("Đã lưu bảng giá. Áp dụng cho lịch lưu trú tạo từ bây giờ."),
-    });
-  });
+  // Mỗi lần bấm Lưu đều bỏ lỗi server của lần trước và kiểm tra lại bảng giá, kể cả khi ô phí trả muộn sai
+  // (lúc đó RHF không gọi nhánh hợp lệ nên phải xử lý ở nhánh thứ hai của handleSubmit).
+  const handleSave = handleSubmit(
+    (values) => {
+      updatePricing.reset();
+      if (!checkPricing(values.pricing)) return;
+
+      const body = toHotelPricing(values);
+      updatePricing.mutate(body, {
+        onSuccess: () => {
+          // Đưa form về trạng thái “sạch”, khớp dữ liệu vừa lưu, để lần refetch sau lại cập nhật được mọi ô.
+          resetForm(toHotelPricingFormValues(body));
+          showSuccess("Đã lưu bảng giá. Áp dụng cho lịch lưu trú tạo từ bây giờ.");
+        },
+      });
+    },
+    () => {
+      updatePricing.reset();
+      checkPricing(getValues("pricing"));
+    },
+  );
 
   return (
     <form
@@ -78,17 +108,18 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
                   <th className={headCellClass}>Thức ăn / đêm</th>
                 </tr>
               </thead>
-              <tbody>
-                {SPECIES_ORDER.flatMap((species) =>
-                  SIZE_GROUPS_BY_SPECIES[species].map((sizeGroup, index) => {
+              {/* Mỗi loài một tbody để scope="rowgroup" của ô tên loài chỉ áp cho các nhóm của loài đó. */}
+              {SPECIES_ORDER.map((species) => (
+                <tbody key={species}>
+                  {SIZE_GROUPS_BY_SPECIES[species].map((sizeGroup, index) => {
                     const target = `nhóm ${SIZE_GROUP_LABELS[sizeGroup]} của ${SPECIES_LABELS[species]}`;
                     return (
-                      <tr key={`${species}-${sizeGroup}`}>
+                      <tr key={sizeGroup}>
                         {index === 0 && (
                           <th
                             scope="rowgroup"
                             rowSpan={SIZE_GROUPS_BY_SPECIES[species].length}
-                            className={`border-b border-line-soft py-2 pl-5 pr-2.5 text-left align-middle font-semibold whitespace-nowrap`}
+                            className="border-b border-line-soft py-2 pl-5 pr-2.5 text-left align-middle font-semibold whitespace-nowrap"
                           >
                             {SPECIES_LABELS[species]}
                           </th>
@@ -102,7 +133,7 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
                             inputMode="numeric"
                             autoComplete="off"
                             aria-label={`Giá chỗ ở mỗi đêm ${target}`}
-                            className="tabular-nums"
+                            className="text-right tabular-nums"
                           />
                         </td>
                         <td className={cellClass}>
@@ -113,14 +144,14 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
                             inputMode="numeric"
                             autoComplete="off"
                             aria-label={`Giá thức ăn mỗi đêm ${target}`}
-                            className="tabular-nums"
+                            className="text-right tabular-nums"
                           />
                         </td>
                       </tr>
                     );
-                  }),
-                )}
-              </tbody>
+                  })}
+                </tbody>
+              ))}
             </table>
           </div>
         </Card>
@@ -143,7 +174,8 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
               )}
             </Field>
             <p className="mt-3 text-xs text-muted">
-              Miễn phí 30 phút đầu sau giờ trả dự kiến. Từ phút thứ 31, mỗi 60 phút tính 1 lần. Hai mốc thời gian này đổi tại{" "}
+              Miễn phí {LATE_GRACE_MINUTES} phút đầu sau giờ trả dự kiến. Từ phút thứ {LATE_GRACE_MINUTES + 1}, mỗi {LATE_BLOCK_MINUTES}{" "}
+              phút tính 1 lần. Hai mốc thời gian này đổi tại{" "}
               <Link href={`${ROUTES.config}?group=hotel`} className="font-semibold text-lagoon-700 underline">
                 Cấu hình
               </Link>
@@ -151,10 +183,10 @@ export function HotelPricingForm({ pricing }: { pricing: HotelPricing }) {
             </p>
           </CardBody>
         </Card>
-        <InfoNote>
+        <Alert tone="info">
           Giá mới áp dụng cho lịch lưu trú tạo sau khi lưu. Tiền lưu trú = số đêm × (chỗ ở + thức ăn). Nhóm chưa có giá có thể để
           trống cả hai ô (sẽ không được lưu); nhóm đã có giá không thể để trống.
-        </InfoNote>
+        </Alert>
       </div>
     </form>
   );
