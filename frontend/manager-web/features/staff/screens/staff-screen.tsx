@@ -14,6 +14,7 @@ import { isForbiddenError } from "@/lib/api/errors";
 import type { StaffMember } from "@/lib/api/types";
 import { useStaff } from "@/lib/queries/staff";
 import { ROUTES } from "@/lib/routes";
+import { DeactivateStaffDialog } from "../components/deactivate-staff-dialog";
 import { StaffFormDrawer } from "../components/staff-form-drawer";
 import { StaffRow, cellClass } from "../components/staff-row";
 
@@ -66,6 +67,7 @@ export function StaffScreen() {
   const staffQuery = useStaff();
   const [filter, setFilter] = useState<StaffFilter>("all");
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [deactivating, setDeactivating] = useState<StaffMember | null>(null);
 
   const staff = staffQuery.data?.items;
   const activeSpaCount = staff?.filter((item) => item.isActive && item.staffRole === "SpaStaff").length ?? 0;
@@ -153,7 +155,12 @@ export function StaffScreen() {
                 <tbody className="[&>tr:last-child>td]:border-b-0">
                   {visibleStaff ? (
                     visibleStaff.map((item) => (
-                      <StaffRow key={item.staffId} staff={item} onEdit={() => setDrawer(item)} />
+                      <StaffRow
+                        key={item.staffId}
+                        staff={item}
+                        onEdit={() => setDrawer(item)}
+                        onDeactivate={() => setDeactivating(item)}
+                      />
                     ))
                   ) : (
                     <StaffTableSkeleton />
@@ -183,6 +190,7 @@ export function StaffScreen() {
       {drawer !== null && (
         <StaffFormDrawer staff={drawer === "new" ? null : drawer} onClose={() => setDrawer(null)} />
       )}
+      {deactivating && <DeactivateStaffDialog staff={deactivating} onClose={() => setDeactivating(null)} />}
     </>
   );
 }

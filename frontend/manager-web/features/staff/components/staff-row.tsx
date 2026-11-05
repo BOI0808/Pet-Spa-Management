@@ -11,10 +11,11 @@ export const cellClass = "border-b border-line-soft px-3.5 py-3 align-middle";
 type StaffRowProps = {
   staff: StaffMember;
   onEdit: () => void;
+  onDeactivate: () => void;
 };
 
 /** Một dòng của bảng MW-08 (vùng 3). Nhân viên đã vô hiệu hóa hiển thị mờ, avatar xám. */
-export function StaffRow({ staff, onEdit }: StaffRowProps) {
+export function StaffRow({ staff, onEdit, onDeactivate }: StaffRowProps) {
   const avatarTone = !staff.isActive ? "muted" : staff.staffRole === "SpaStaff" ? "teal" : "apricot";
 
   return (
@@ -36,6 +37,11 @@ export function StaffRow({ staff, onEdit }: StaffRowProps) {
           <Icon name="edit" />
           Sửa
         </Button>
+        {staff.isActive && (
+          <Button variant="ghost" size="sm" onClick={onDeactivate}>
+            Vô hiệu hóa
+          </Button>
+        )}
       </td>
     </tr>
   );
