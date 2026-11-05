@@ -58,6 +58,8 @@ type HeaderNavProps = {
   role: StaffRole | null;
   /** Tên hiển thị trong ô tài khoản; `null` khi chưa tải xong phiên. */
   userName?: string | null;
+  /** Chữ cái đầu trên avatar; `null` thì hiện biểu tượng người. */
+  initials?: string | null;
   onLogout?: () => void;
   isLoggingOut?: boolean;
 };
@@ -74,7 +76,14 @@ function NavSkeleton() {
 }
 
 /** Menu chính và góc phải của thanh trên. */
-export function HeaderNav({ pathname, role, userName = null, onLogout, isLoggingOut = false }: HeaderNavProps) {
+export function HeaderNav({
+  pathname,
+  role,
+  userName = null,
+  initials = null,
+  onLogout,
+  isLoggingOut = false,
+}: HeaderNavProps) {
   const notificationsActive = isUnder(pathname, ROUTES.notifications);
 
   return (
@@ -127,8 +136,12 @@ export function HeaderNav({ pathname, role, userName = null, onLogout, isLogging
           buttonClassName={`flex h-11 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border border-white/25 pl-1 pr-2.5 text-sm font-medium text-white hover:border-white/50 max-[860px]:gap-1 max-[860px]:pr-1.5 ${onDarkFocusClass}`}
           label={
             <>
-              <span className="grid size-8 place-items-center rounded-full bg-apricot-100 text-apricot-700">
-                <Icon name="user" />
+              {/* `.avatar` trong ui-demo: chữ cái đầu 12px đậm trên nền Apricot nhạt. */}
+              <span
+                aria-hidden="true"
+                className="grid size-8 shrink-0 place-items-center rounded-full bg-apricot-100 text-xs font-bold text-apricot-700"
+              >
+                {initials ?? <Icon name="user" />}
               </span>
               <span className="flex flex-col items-start text-left leading-[15px] max-[860px]:sr-only">
                 {userName ?? "Tài khoản"}
@@ -167,6 +180,19 @@ export function HeaderNav({ pathname, role, userName = null, onLogout, isLogging
 }
 
 /**
+ * Chữ cái đầu của hai từ cuối trong họ tên, như ui-demo ("Thu Hà" → "TH"): tên người Việt đứng cuối nên hai từ cuối
+ * phân biệt người tốt hơn họ.
+ */
+function getInitials(fullName: string) {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words
+    .slice(-2)
+    .map((word) => word[0])
+    .join("")
+    .toLocaleUpperCase("vi");
+}
+
+/**
  * Bản đọc trang hiện tại để tô mục đang chọn, và đọc phiên đăng nhập để biết vai trò, tên, đăng xuất.
  * Đặt trong Suspense vì đang bật cacheComponents.
  */
@@ -177,6 +203,7 @@ export function ActiveHeaderNav() {
       pathname={usePathname()}
       role={me?.staffRole ?? null}
       userName={me ? (me.fullName ?? me.userName) : null}
+      initials={me?.fullName ? getInitials(me.fullName) : null}
       onLogout={logout}
       isLoggingOut={isLoggingOut}
     />

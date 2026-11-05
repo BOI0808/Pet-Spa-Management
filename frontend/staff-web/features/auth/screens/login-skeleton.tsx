@@ -6,7 +6,7 @@ export function LoginSkeleton() {
       aria-label="Đang tải"
       className="grid min-h-screen grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] max-[980px]:grid-cols-1"
     >
-      <div className="bg-lagoon-800 max-[980px]:hidden" />
+      <div className="bg-lagoon-700 max-[980px]:hidden" />
       <div className="flex items-center justify-center bg-white px-8 py-12 max-[980px]:px-4">
         <div className="w-full max-w-[400px] animate-pulse space-y-4">
           <div className="h-[34px] w-56 rounded-lg bg-line-soft" />
