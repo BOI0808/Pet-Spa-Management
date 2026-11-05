@@ -36,13 +36,16 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 
 Chạy được khi backend đang chạy và đã có tài khoản nhân viên (quản lý tạo ở Web quản lý).
 
-- Refresh token nằm trong cookie httpOnly `ps_rt` do route handler `app/api/session/*` đặt; access token chỉ giữ trong bộ nhớ.
+- Refresh token nằm trong cookie httpOnly `ps_rt_staff` do route handler `app/api/session/*` đặt; access token chỉ giữ trong bộ nhớ.
   Không lưu token vào `localStorage` / `sessionStorage`.
 - `apiClient` tự gắn `Authorization: Bearer`, gặp 401 thì làm mới token một lần rồi gửi lại; làm mới bị từ chối thì về `/dang-nhap`.
 - `proxy.ts` chuyển hướng theo cookie; `SessionGate` (trong `app/(main)/layout.tsx`) kiểm tra phiên và vai trò thật qua `GET /me`.
 - Chỉ tài khoản `role = Staff` có `staffRole` (`Receptionist` hoặc `SpaStaff`) được dùng web này (`isStaffAccount` trong `lib/auth/config.ts`).
   Đăng nhập đúng mật khẩu nhưng sai vai trò thì thu hồi token, không đặt cookie và báo "Tài khoản không có quyền truy cập web này".
-- Khi chạy cả 3 web trên `localhost`, cookie `ps_rt` dùng chung (cookie không tách theo cổng): thử từng web một.
+- Cookie không tách theo cổng, nên mỗi web cần tên cookie riêng để chạy cả 3 web trên `localhost` cùng lúc. Nếu trùng tên,
+  mở web này sẽ thấy cookie của web kia sai vai trò và thu hồi phiên của web kia; khóa `navigator.locks` cũng tách theo cổng,
+  nên hai web làm mới cùng một refresh token có thể khiến backend thu hồi mọi phiên của tài khoản.
+  Web nhân viên dùng `ps_rt_staff`; Web khách hàng và Web quản lý hiện cùng dùng `ps_rt`.
 - Route handler chuyển tiếp `X-Forwarded-For` lên backend để giới hạn tốc độ theo từng người dùng. Khi triển khai, web phải nằm sau proxy đặt header này (Vercel đã làm); chạy local thì mọi người dùng chung một IP.
 - Việc làm mới token được xếp hàng giữa các tab bằng `navigator.locks`: hai tab dùng chung một refresh token thì backend sẽ thu hồi cả phiên.
 - Các màn trong `app/(main)` đặt `export const instant = false` (xem ghi chú trong `app/(main)/layout.tsx`).

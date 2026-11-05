@@ -3,8 +3,12 @@ import type { Me, Role } from "@/lib/api/types";
 /** Vai trò duy nhất được dùng web này (BR-05). Hai web còn lại có hằng số riêng của mình. */
 export const ALLOWED_ROLE: Role = "Staff";
 
-/** Cookie httpOnly giữ refresh token; chỉ route handler `app/api/session/*` và `proxy.ts` đọc được. */
-export const REFRESH_COOKIE = "ps_rt";
+/**
+ * Cookie httpOnly giữ refresh token; chỉ route handler `app/api/session/*` và `proxy.ts` đọc được.
+ * Tên riêng của web nhân viên: cookie không tách theo cổng, nên khi chạy 3 web trên cùng `localhost` mà dùng chung tên
+ * `ps_rt`, mở web này sẽ đọc cookie của web kia, thấy sai vai trò rồi thu hồi luôn phiên của web kia.
+ */
+export const REFRESH_COOKIE = "ps_rt_staff";
 
 /** 7 ngày, bằng `Jwt__RefreshTokenDays` trong backend/.env.example. */
 export const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
