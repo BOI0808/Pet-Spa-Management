@@ -89,6 +89,10 @@ public sealed class BookingService(
                 throw new BusinessException(ErrorCodes.ValidationError, "Thú cưng không thuộc khách hàng này.");
         }
 
+        // Khách tự đặt khi đang bị khóa quyền tự đặt lịch thì từ chối; lễ tân đặt thay không áp dụng.
+        if (user.Role == UserRole.Customer && await bookings.IsBookingLockedAsync(pet.CustomerId, ct))
+            throw new BusinessException(ErrorCodes.BookingLocked);
+
         // Kiểm tra dịch vụ, thời lượng, số nhân viên cần và mốc muộn nhất.
         var plan = await PlanSpaAsync(pet, serviceIds, ct);
 

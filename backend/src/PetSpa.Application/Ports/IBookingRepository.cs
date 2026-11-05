@@ -30,5 +30,8 @@ public interface IBookingRepository
 
     // Thêm lịch spa và các dòng dịch vụ vào DbContext, chưa ghi xuống CSDL.
     void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds);
+
+    // Kiểm tra cờ khóa đặt lịch của khách hàng.
+    Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default);
 }
 
