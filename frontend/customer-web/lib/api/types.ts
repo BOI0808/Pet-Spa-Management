@@ -104,3 +104,50 @@ export type HotelPricing = {
   /** Phí phạt mỗi lần trả muộn, VND (BR-22). */
   lateFeePerBlock: number;
 };
+
+// ── Đặt lịch spa ──
+export type SlotGroup = "Morning" | "Afternoon" | "Evening";
+export type SlotStatus = "Available" | "Full" | "NotAccepted";
+export type AppointmentType = "Spa" | "Hotel";
+export type AppointmentStatus =
+  | "Pending"
+  | "Confirmed"
+  | "Received"
+  | "InProgress"
+  | "InStay"
+  | "Completed"
+  | "Cancelled";
+
+export type SlotInfo = {
+  /** “HH:mm”. */
+  time: string;
+  group: SlotGroup;
+  status: SlotStatus;
+};
+
+export type SpaSlots = {
+  durationMinutes: number;
+  staffRequired: number;
+  bufferMinutes: number;
+  slots: SlotInfo[];
+};
+
+/** Không có nhân viên (BR-10), tiền, nhóm kích cỡ, trạng thái; khách hàng không gửi `customerId`. */
+export type SpaBookingRequest = {
+  petId: string;
+  serviceIds: string[];
+  /** ISO 8601 có độ lệch, ví dụ “2026-10-06T09:00:00+07:00”. */
+  slotStart: string;
+};
+
+export type SpaBookingCreated = {
+  appointmentId: string;
+  type?: AppointmentType;
+  status: AppointmentStatus;
+  sizeGroup?: SizeGroup;
+  slotStart?: string;
+  slotEnd: string;
+  staffRequired: number;
+  /** VND. */
+  estimatedAmount: number;
+};

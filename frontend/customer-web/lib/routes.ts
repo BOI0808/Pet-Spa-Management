@@ -1,15 +1,22 @@
 // Đường dẫn các màn hình web khách hàng (sitemap – System Analysis mục 6.2).
+/** Giá trị cố định của `?returnTo=` ở CW-05, không nhận đường dẫn tùy ý từ URL. */
+export const PET_RETURN_TO_BOOKING = "dat-lich-spa";
+
 export const ROUTES = {
   home: "/", // CW-03 Trang chủ: danh mục dịch vụ & giá lưu trú
   pets: "/thu-cung", // CW-04
   petNew: "/thu-cung/them", // CW-05 thêm
+  // Thêm thú cưng rồi quay lại đặt lịch với bé vừa tạo được chọn (UI-Screens CW-05).
+  petNewForBooking: `/thu-cung/them?returnTo=${PET_RETURN_TO_BOOKING}`,
   petEdit: (petId: string) => `/thu-cung/${encodeURIComponent(petId)}/sua`, // CW-05 sửa
   spaBooking: "/dat-lich/spa", // CW-06
   // Đặt lịch, xem lịch sử cho một bé chọn sẵn (UI-Screens CW-04 vùng 2).
   spaBookingForPet: (petId: string) => `/dat-lich/spa?petId=${encodeURIComponent(petId)}`,
+  spaBookingStep: (step: number, petId: string) => `/dat-lich/spa?petId=${encodeURIComponent(petId)}&step=${step}`,
   historyForPet: (petId: string) => `/lich-su?petId=${encodeURIComponent(petId)}`,
   hotelBooking: "/dat-lich/luu-tru", // CW-07
-  appointments: "/lich-hen", // CW-08, CW-09, CW-10
+  appointments: "/lich-hen", // CW-08, CW-10
+  appointmentDetail: (appointmentId: string) => `/lich-hen/${encodeURIComponent(appointmentId)}`, // CW-09
   history: "/lich-su", // CW-11
   notifications: "/thong-bao", // CW-12
   profile: "/ho-so", // CW-13
