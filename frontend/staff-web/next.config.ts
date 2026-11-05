@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   },
   // Màn đầu tiên của cả lễ tân và nhân viên spa là SW-02 Lịch hẹn. Chuyển hướng ở đây (xét trước khi tìm trang)
   // thay vì gọi redirect() trong page.tsx – cách đó làm Next 16 báo lỗi khi kiểm tra trước trang "/" (cacheComponents).
-  // permanent: false (307) vì thẻ 121 có thể đổi đích theo trạng thái đăng nhập.
+  // permanent: false (307) để trình duyệt không nhớ đích; chưa đăng nhập thì proxy.ts chuyển tiếp từ SW-02 sang /dang-nhap.
   redirects() {
     return [{ source: "/", destination: ROUTES.appointments, permanent: false }];
   },

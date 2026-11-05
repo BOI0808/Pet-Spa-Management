@@ -32,8 +32,7 @@ export function SiteHeader() {
           </span>
         </Link>
         <Suspense fallback={<HeaderNav pathname={null} role={null} />}>
-          {/* Thẻ 121 (đăng nhập nhân viên) truyền vai trò lấy từ phiên đăng nhập. */}
-          <ActiveHeaderNav role={null} />
+          <ActiveHeaderNav />
         </Suspense>
       </div>
     </header>
