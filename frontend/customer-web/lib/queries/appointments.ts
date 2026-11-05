@@ -10,8 +10,16 @@ export const spaSlotKeys = {
   list: (params: SpaSlotParams) => ["spa-slots", params] as const,
 };
 
+// Khách có thể ở màn chọn giờ lâu: tải lại định kỳ để mốc vừa kín, vừa trôi qua không còn hiện là chọn được.
+const SPA_SLOT_REFETCH_MS = 60_000;
+
 export function useSpaSlots(params: SpaSlotParams, { enabled = true }: { enabled?: boolean } = {}) {
-  return useQuery({ queryKey: spaSlotKeys.list(params), queryFn: () => getSpaSlots(params), enabled });
+  return useQuery({
+    queryKey: spaSlotKeys.list(params),
+    queryFn: () => getSpaSlots(params),
+    enabled,
+    refetchInterval: SPA_SLOT_REFETCH_MS,
+  });
 }
 
 export function useCreateSpaAppointment() {

@@ -51,6 +51,7 @@ function SlotOption({ name, slot, value, endTime, isPast, onChange }: SlotOption
         checked={isAvailable && selected}
         disabled={!isAvailable}
         onChange={() => onChange(time)}
+        aria-label={`${time}, ${note}`}
         className="peer sr-only"
       />
       <b className={`text-[15px] leading-5 tabular-nums ${boxClass === SLOT_FULL ? "line-through decoration-1" : ""}`}>
@@ -66,7 +67,7 @@ function SlotOption({ name, slot, value, endTime, isPast, onChange }: SlotOption
 const LEGEND = [
   { label: "Còn chỗ", className: "border-line bg-white" },
   { label: "Đang chọn", className: "border-lagoon bg-lagoon" },
-  { label: "Đã kín", className: "border-dashed border-line bg-[#F7FAFA]" },
+  { label: "Đã kín / Đã qua", className: "border-dashed border-line bg-[#F7FAFA]" },
   { label: "Không nhận dịch vụ đã chọn", className: "border-[#F0D9A6] bg-[#FFF6E0]" },
 ];
 

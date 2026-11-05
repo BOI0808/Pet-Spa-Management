@@ -40,7 +40,12 @@ const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
 const NO_SERVICE_MESSAGE = "Vui lòng chọn ít nhất một dịch vụ.";
 const NO_SLOT_MESSAGE = "Vui lòng chọn khung giờ.";
 const SLOT_FULL_MESSAGE = "Mốc giờ vừa kín, vui lòng chọn mốc khác.";
+const SLOT_PAST_MESSAGE = "Mốc giờ này đã qua, vui lòng chọn mốc khác.";
 const LOCKED_REASON = "Tài khoản tạm thời không thể tự đặt lịch, vui lòng liên hệ cửa hàng qua hotline.";
+
+function isPastSlot(date: string, time: string, now: number) {
+  return Date.parse(toStoreDateTime(date, time)) <= now;
+}
 
 /** Vùng 1 → 9 khi đã có danh sách thú cưng. */
 function SpaBookingFlow({ pets }: { pets: Pet[] }) {
@@ -68,9 +73,11 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
     () => (pet && services.data ? toPricedServices(services.data, pet) : []),
     [pet, services.data],
   );
-  // Suy ra từ danh sách của bé đang chọn nên dịch vụ không áp dụng tự bị bỏ khi đổi thú cưng (UI-Screens CW-06).
   const selectedServices = pricedServices.filter((service) => serviceIds.includes(service.serviceId));
   const selectedIds = selectedServices.map((service) => service.serviceId);
+  // Đổi thú cưng chỉ bỏ dịch vụ không áp dụng (UI-Screens CW-06), nên phải chờ danh sách của bé mới rồi mới lọc được.
+  // Xóa hẳn khỏi state để đổi lại bé cũ không tự chọn lại.
+  if (pet && services.isSuccess && selectedIds.length !== serviceIds.length) setServiceIds(selectedIds);
   const estimate = estimateBooking(selectedServices, pet);
 
   // Bước trên URL để nút Quay lại của trình duyệt hoạt động. Chỉ tới được bước đã đi qua bằng nút Tiếp tục, và lùi về
@@ -90,8 +97,9 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
   const staffRequired = slots.data?.staffRequired ?? estimate.staffRequired;
   const endTime = slotTime ? addMinutes(slotTime, durationMinutes) : undefined;
 
-  // API chưa loại mốc đã trôi qua trong hôm nay nên web tự khóa; `dataUpdatedAt` giữ hàm thuần khi render.
-  const isPast = (time: string) => Date.parse(toStoreDateTime(date, time)) <= slots.dataUpdatedAt;
+  // API chưa loại mốc đã trôi qua trong hôm nay nên web tự khóa. `dataUpdatedAt` giữ hàm thuần khi render và mới lại
+  // theo chu kỳ tải mốc giờ; lúc khách bấm nút thì so với giờ thật (`rejectIfPast`).
+  const isPast = (time: string) => isPastSlot(date, time, slots.dataUpdatedAt);
   const isOpen = ({ time, status }: SlotInfo) => status === "Available" && !isPast(time);
   const openSlots = slots.data?.slots.filter(isOpen) ?? [];
 
@@ -138,13 +146,27 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
     else goToStep(2);
   }
 
+  /** Mốc đang chọn vừa trôi qua: bỏ chọn, báo lý do và tải lại mốc giờ. */
+  function rejectIfPast(time: string) {
+    if (!isPastSlot(date, time, Date.now())) return false;
+    setSlotTime(null);
+    setValidationMessage(SLOT_PAST_MESSAGE);
+    void slots.refetch();
+    return true;
+  }
+
   function continueFromSlots() {
+    if (slotTime && rejectIfPast(slotTime)) return;
     if (openSlots.some((slot) => slot.time === slotTime)) goToStep(3);
     else setValidationMessage(NO_SLOT_MESSAGE);
   }
 
   function submit() {
     if (!pet || !slotTime) return;
+    if (rejectIfPast(slotTime)) {
+      router.replace(ROUTES.spaBookingStep(2, pet.petId));
+      return;
+    }
     createBooking.mutate(
       { petId: pet.petId, serviceIds: selectedIds, slotStart: toStoreDateTime(date, slotTime) },
       {
@@ -289,7 +311,7 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
   );
 }
 
-function BookingSkeleton() {
+export function BookingSkeleton() {
   return (
     <div
       aria-busy="true"

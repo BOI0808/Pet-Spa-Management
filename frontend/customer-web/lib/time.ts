@@ -18,12 +18,12 @@ export function addDays(date: string, days: number) {
   return next.toISOString().slice(0, 10);
 }
 
-/** “14:00” + 90 → “15:30”. */
+/** “14:00” + 90 → “15:30”; qua nửa đêm thì quay về đầu ngày: “23:30” + 60 → “00:30”. */
 export function addMinutes(time: string, minutes: number) {
   const [hours, mins] = time.split(":").map(Number);
   const total = hours * 60 + mins + minutes;
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+  return `${pad(Math.floor(total / 60) % 24)}:${pad(total % 60)}`;
 }
 
 /** Ngày + mốc giờ → ISO 8601 có độ lệch, ví dụ “2026-10-06T09:00:00+07:00” (SA 5.1.4). */
