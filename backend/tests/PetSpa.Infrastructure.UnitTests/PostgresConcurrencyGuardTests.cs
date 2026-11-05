@@ -161,7 +161,8 @@ public class PostgresConcurrencyGuardTests
             ["ConnectionStrings:Default"] = "Host=localhost;Database=dummy",
             ["Jwt:SigningKey"] = "12345678901234567890123456789012",
             ["Jwt:AccessTokenMinutes"] = "15",
-            ["Jwt:RefreshTokenDays"] = "7"
+            ["Jwt:RefreshTokenDays"] = "7",
+            ["App:TimeZone"] = "Asia/Ho_Chi_Minh"
         }).Build();
 
         services.AddInfrastructure(config);
