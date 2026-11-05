@@ -2,6 +2,7 @@
 
 // MW-08 Nhân viên – UI-Screens.md (UC-26, FR-STF-01 → 03, BR-27)
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
@@ -34,6 +35,16 @@ const FILTERS: readonly { key: StaffFilter; label: string; matches: (staff: Staf
   { key: "inactive", label: "Đã vô hiệu hóa", matches: (staff) => !staff.isActive },
 ];
 
+/** `?filter=` thiếu hoặc sai giá trị thì mở chip "Tất cả". */
+function parseFilter(value: string | null): StaffFilter {
+  return FILTERS.find((item) => item.key === value)?.key ?? "all";
+}
+
+/** Chip "Tất cả" không cần tham số, giống tab Chuồng của MW-07. */
+function filterHref(filter: StaffFilter) {
+  return filter === "all" ? ROUTES.staff : `${ROUTES.staff}?filter=${filter}`;
+}
+
 function StaffTableSkeleton() {
   return (
     <>
@@ -65,7 +76,8 @@ function StaffTableSkeleton() {
 
 export function StaffScreen() {
   const staffQuery = useStaff();
-  const [filter, setFilter] = useState<StaffFilter>("all");
+  const router = useRouter();
+  const filter = parseFilter(useSearchParams().get("filter"));
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [deactivating, setDeactivating] = useState<StaffMember | null>(null);
 
@@ -125,7 +137,7 @@ export function StaffScreen() {
                     key={item.key}
                     type="button"
                     aria-pressed={isActive}
-                    onClick={() => setFilter(item.key)}
+                    onClick={() => router.replace(filterHref(item.key), { scroll: false })}
                     className={`inline-flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-medium focus-visible:outline-[3px] focus-visible:outline-lagoon/40 ${
                       isActive ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:border-[#A9C6CB]"
                     }`}
