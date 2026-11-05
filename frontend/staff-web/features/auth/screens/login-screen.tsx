@@ -13,7 +13,9 @@ import { ApiError, isForbiddenError } from "@/lib/api/errors";
 import { getSafeNext } from "@/lib/auth/login-url";
 import { setAccessToken } from "@/lib/auth/session";
 import { meKeys } from "@/lib/auth/use-session";
+import { canAccessPath } from "@/lib/route-access";
 import { ROUTES } from "@/lib/routes";
+import type { StaffRole } from "@/lib/staff-role";
 import { LOGIN_DEFAULT_VALUES, LOGIN_RULES, toLoginRequest, type LoginFormValues } from "../forms";
 
 // Hai câu này do web đặt, không đến từ backend; đóng gói thành ApiError để `ErrorAlert` hiển thị (`detail`).
@@ -38,6 +40,17 @@ const inputClass =
   "h-[42px] w-full rounded-[10px] border bg-white pl-[38px] pr-3 text-ink hover:border-[#B7CDD1] focus:border-lagoon focus:outline-none focus:ring-[3px] focus:ring-lagoon/20";
 const submitClass =
   "min-h-12 w-full rounded-[10px] bg-lagoon px-[22px] text-[15px] font-semibold text-white hover:bg-lagoon-700 disabled:cursor-not-allowed disabled:bg-[#E5ECEE] disabled:text-[#869AA0]";
+
+/**
+ * Trang đích sau đăng nhập (User-Flows 4.1): `?next=` chỉ khi vai trò được vào màn đó, nếu không thì SW-02.
+ * Nhờ vậy nhân viên spa đăng nhập với `?next=/tiep-nhan` (màn của lễ tân) về Lịch hẹn thay vì gặp trang 403.
+ */
+function getLoginTarget(next: string | null, staffRole: StaffRole | null | undefined) {
+  const safeNext = getSafeNext(next);
+  if (!safeNext || !staffRole) return ROUTES.appointments;
+  const nextPath = safeNext.split(/[?#]/, 1)[0]; // bỏ tham số truy vấn, ví dụ /tiep-nhan?appointmentId=…
+  return canAccessPath(nextPath, staffRole) ? safeNext : ROUTES.appointments;
+}
 
 export function LoginScreen() {
   const router = useRouter();
@@ -68,7 +81,7 @@ export function LoginScreen() {
       queryClient.clear(); // bỏ dữ liệu còn lại của phiên trước (nếu có)
       setAccessToken(accessToken);
       queryClient.setQueryData(meKeys.all, me);
-      router.replace(getSafeNext(searchParams.get("next")) ?? ROUTES.appointments);
+      router.replace(getLoginTarget(searchParams.get("next"), me.staffRole));
     },
   });
 
@@ -80,7 +93,8 @@ export function LoginScreen() {
 
   return (
     <div className="grid min-h-screen grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] max-[980px]:grid-cols-1">
-      <div className="relative flex flex-col overflow-hidden bg-lagoon-800 px-14 py-12 text-white max-[980px]:hidden">
+      {/* Nền Lagoon 700 riêng của web nhân viên (`.auth-art.staff` trong ui-demo; Design-System 3). */}
+      <div className="relative flex flex-col overflow-hidden bg-lagoon-700 px-14 py-12 text-white max-[980px]:hidden">
         <span aria-hidden="true" className="absolute -right-20 -top-20 size-[360px] rounded-full bg-white/[.06]" />
         <span aria-hidden="true" className="absolute right-[60px] top-[120px] size-40 rounded-full bg-apricot/[.18]" />
         <div className="relative flex items-center gap-2.5 text-base font-bold">
