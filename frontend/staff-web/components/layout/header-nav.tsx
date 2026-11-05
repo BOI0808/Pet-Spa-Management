@@ -181,10 +181,13 @@ export function HeaderNav({
 
 /**
  * Chữ cái đầu của hai từ cuối trong họ tên, như ui-demo ("Thu Hà" → "TH"): tên người Việt đứng cuối nên hai từ cuối
- * phân biệt người tốt hơn họ.
+ * phân biệt người tốt hơn họ. Chỉ lấy từ là chữ (`\p{L}`), bỏ số và dấu ngoặc: tên tài khoản thử như
+ * "Lễ tân thử (thẻ 121)" ra "TT" thay vì "(1". Không còn từ nào là chữ thì trả `null` để hiện biểu tượng người.
  */
 function getInitials(fullName: string) {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  // `\p{M}`: giữ dấu tiếng Việt viết dạng tổ hợp (NFD) trong cùng một từ.
+  const words = fullName.match(/\p{L}[\p{L}\p{M}]*/gu) ?? [];
+  if (words.length === 0) return null;
   return words
     .slice(-2)
     .map((word) => word[0])
