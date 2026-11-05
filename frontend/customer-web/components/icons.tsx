@@ -142,6 +142,13 @@ const ICON_PATHS = {
       <path d="M12 6v6l4 2" />
     </>
   ),
+  check: <path d="M20 6 9 17l-5-5" />,
+  lock: (
+    <>
+      <rect width="18" height="11" x="3" y="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICON_PATHS;

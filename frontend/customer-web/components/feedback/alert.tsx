@@ -15,16 +15,18 @@ const TONE: Record<AlertTone, { box: string; icon: string; iconName: IconName }>
 type AlertProps = {
   tone?: AlertTone;
   title?: string;
+  /** Biểu tượng riêng thay cho biểu tượng mặc định theo loại, ví dụ ổ khóa ở CW-06 vùng 9. */
+  icon?: IconName;
   className?: string;
   children: ReactNode;
 };
 
 /** Cảnh báo, gợi ý nghiệp vụ nội tuyến (SA 6.1). Lỗi từ API dùng ErrorAlert. */
-export function Alert({ tone = "info", title, className = "", children }: AlertProps) {
+export function Alert({ tone = "info", title, icon, className = "", children }: AlertProps) {
   const style = TONE[tone];
   return (
     <div className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 leading-5 ${style.box} ${className}`}>
-      <Icon name={style.iconName} className={`mt-px size-[18px] ${style.icon}`} />
+      <Icon name={icon ?? style.iconName} className={`mt-px size-[18px] ${style.icon}`} />
       <div>
         {title && <div className="font-semibold">{title}</div>}
         {children}
