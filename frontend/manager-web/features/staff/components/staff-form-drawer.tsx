@@ -25,6 +25,7 @@ import {
 } from "../forms";
 
 const FORM_ID = "staff-form";
+const ROLE_ERROR_ID = "staff-role-error";
 const DUPLICATE_CONTACT = "DUPLICATE_CONTACT";
 
 type StaffFormDrawerProps = {
@@ -138,7 +139,7 @@ export function StaffFormDrawer({ staff, onCreated, onClose }: StaffFormDrawerPr
           }
         </Field>
 
-        <fieldset className="min-w-0">
+        <fieldset className="min-w-0" aria-describedby={errors.staffRole ? ROLE_ERROR_ID : undefined}>
           <legend className="mb-1.5 text-[13px] font-semibold leading-[18px]">
             Vai trò<span className="ml-0.5 text-danger">*</span>
           </legend>
@@ -148,6 +149,7 @@ export function StaffFormDrawer({ staff, onCreated, onClose }: StaffFormDrawerPr
                 key={option.value}
                 value={option.value}
                 showDot
+                aria-invalid={errors.staffRole ? true : undefined}
                 {...register("staffRole", { validate: validateStaffRole })}
               >
                 <span className="min-w-0">
@@ -157,7 +159,7 @@ export function StaffFormDrawer({ staff, onCreated, onClose }: StaffFormDrawerPr
               </ChoiceCard>
             ))}
           </div>
-          <FieldError message={errors.staffRole?.message} />
+          <FieldError id={ROLE_ERROR_ID} message={errors.staffRole?.message} />
         </fieldset>
 
         {!staff && (

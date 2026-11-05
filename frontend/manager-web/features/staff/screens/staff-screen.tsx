@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { Icon } from "@/components/icons";
@@ -201,6 +202,12 @@ export function StaffScreen() {
             )}
           </Card>
         </>
+      )}
+
+      {staffQuery.data && staffQuery.data.total > staffQuery.data.items.length && (
+        <Alert tone="info" className="mt-3">
+          Đang hiển thị {staffQuery.data.items.length} trong {staffQuery.data.total} nhân viên; số đếm ở trên chỉ tính trong phần đang hiển thị.
+        </Alert>
       )}
 
       <p className="mt-3 text-xs text-muted">
