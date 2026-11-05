@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createStaff, deactivateStaff, listStaff, updateStaff } from "@/lib/api/endpoints/staff";
+import type { ApiError } from "@/lib/api/errors";
 
 export const staffKeys = {
   all: ["staff"] as const,
@@ -9,23 +10,27 @@ export function useStaff() {
   return useQuery({ queryKey: staffKeys.all, queryFn: listStaff });
 }
 
-// Sau mỗi thao tác ghi tải lại danh sách (Frontend-Architecture 5.1).
-function useInvalidateStaff() {
+// Sau mỗi thao tác ghi tải lại danh sách (Frontend-Architecture 5.1); lỗi 409 (vd. trùng số điện thoại,
+// dữ liệu đã đổi) cũng tải lại để thấy dữ liệu mới nhất.
+function useStaffMutationOptions() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: staffKeys.all });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: staffKeys.all });
+  return {
+    onSuccess: invalidate,
+    onError: (error: ApiError) => {
+      if (error.status === 409) return invalidate();
+    },
+  };
 }
 
 export function useCreateStaff() {
-  const invalidate = useInvalidateStaff();
-  return useMutation({ mutationFn: createStaff, onSuccess: invalidate });
+  return useMutation({ mutationFn: createStaff, ...useStaffMutationOptions() });
 }
 
 export function useUpdateStaff() {
-  const invalidate = useInvalidateStaff();
-  return useMutation({ mutationFn: updateStaff, onSuccess: invalidate });
+  return useMutation({ mutationFn: updateStaff, ...useStaffMutationOptions() });
 }
 
 export function useDeactivateStaff() {
-  const invalidate = useInvalidateStaff();
-  return useMutation({ mutationFn: deactivateStaff, onSuccess: invalidate });
+  return useMutation({ mutationFn: deactivateStaff, ...useStaffMutationOptions() });
 }

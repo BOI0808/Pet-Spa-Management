@@ -33,7 +33,7 @@ export function StaffRow({ staff, onEdit, onDeactivate }: StaffRowProps) {
         <Tag tone={staff.isActive ? "ok" : "default"}>{staff.isActive ? "Đang hoạt động" : "Đã vô hiệu hóa"}</Tag>
       </td>
       <td className={`${cellClass} whitespace-nowrap text-right`}>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
+        <Button id={`staff-edit-${staff.staffId}`} variant="ghost" size="sm" onClick={onEdit}>
           <Icon name="edit" />
           Sửa
         </Button>

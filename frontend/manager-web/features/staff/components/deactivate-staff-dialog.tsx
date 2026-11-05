@@ -11,7 +11,15 @@ import { ROUTES } from "@/lib/routes";
  * MW-08·D2 Vô hiệu hóa tài khoản <tên>? – UI-Screens.md (FR-STF-03, BR-27). Hành động nguy hiểm nên bắt buộc qua hộp thoại xác nhận (SA 6.6).
  * Hai gạch đầu dòng cuối nói về lịch spa và lịch làm việc nên chỉ hiện với nhân viên spa (BR-27 chỉ áp dụng cho nhân viên spa).
  */
-export function DeactivateStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () => void }) {
+export function DeactivateStaffDialog({
+  staff,
+  onDeactivated,
+  onClose,
+}: {
+  staff: StaffMember;
+  onDeactivated?: () => void;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const { showSuccess } = useToast();
   const deactivate = useDeactivateStaff();
@@ -19,6 +27,7 @@ export function DeactivateStaffDialog({ staff, onClose }: { staff: StaffMember; 
   function handleConfirm() {
     deactivate.mutate(staff.staffId, {
       onSuccess: ({ returnedToPending }) => {
+        onDeactivated?.();
         onClose();
         if (returnedToPending > 0) {
           showSuccess(`Đã vô hiệu hóa ${staff.fullName}. ${returnedToPending} lịch đã về Chờ xác nhận.`);

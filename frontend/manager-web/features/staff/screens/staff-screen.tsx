@@ -3,7 +3,7 @@
 // MW-08 Nhân viên – UI-Screens.md (UC-26, FR-STF-01 → 03, BR-27)
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { Icon } from "@/components/icons";
@@ -81,6 +81,18 @@ export function StaffScreen() {
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [deactivating, setDeactivating] = useState<StaffMember | null>(null);
 
+  // Phần tử cần nhận focus sau khi đóng ngăn kéo/hộp thoại. Nút đã mở có thể bị gỡ khỏi DOM sau khi lưu
+  // (nút "Vô hiệu hóa" của dòng, nút "Thêm nhân viên" trong EmptyState) nên Overlay không trả focus được.
+  const focusAfterCloseRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (drawer !== null || deactivating !== null) return;
+    const targetId = focusAfterCloseRef.current;
+    if (!targetId) return;
+    focusAfterCloseRef.current = null;
+    document.getElementById(targetId)?.focus();
+  }, [drawer, deactivating]);
+
   const staff = staffQuery.data?.items;
   const activeSpaCount = staff?.filter((item) => item.isActive && item.staffRole === "SpaStaff").length ?? 0;
   const activeReceptionistCount = staff?.filter((item) => item.isActive && item.staffRole === "Receptionist").length ?? 0;
@@ -88,7 +100,7 @@ export function StaffScreen() {
   const visibleStaff = staff?.filter(activeFilter.matches);
 
   const addButton = (
-    <Button variant="primary" onClick={() => setDrawer("new")}>
+    <Button id="staff-add-button" variant="primary" onClick={() => setDrawer("new")}>
       <Icon name="user-plus" />
       Thêm nhân viên
     </Button>
@@ -200,9 +212,19 @@ export function StaffScreen() {
       </p>
 
       {drawer !== null && (
-        <StaffFormDrawer staff={drawer === "new" ? null : drawer} onClose={() => setDrawer(null)} />
+        <StaffFormDrawer
+          staff={drawer === "new" ? null : drawer}
+          onCreated={() => { focusAfterCloseRef.current = "staff-add-button"; }}
+          onClose={() => setDrawer(null)}
+        />
       )}
-      {deactivating && <DeactivateStaffDialog staff={deactivating} onClose={() => setDeactivating(null)} />}
+      {deactivating && (
+        <DeactivateStaffDialog
+          staff={deactivating}
+          onDeactivated={() => { focusAfterCloseRef.current = `staff-edit-${deactivating.staffId}`; }}
+          onClose={() => setDeactivating(null)}
+        />
+      )}
     </>
   );
 }

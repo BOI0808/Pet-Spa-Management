@@ -30,11 +30,12 @@ const DUPLICATE_CONTACT = "DUPLICATE_CONTACT";
 type StaffFormDrawerProps = {
   /** Nhân viên đang sửa; `null` khi thêm mới. */
   staff: StaffMember | null;
+  onCreated?: () => void;
   onClose: () => void;
 };
 
 /** MW-08·D1 Thêm / sửa nhân viên (ngăn kéo phải 520px) – UI-Screens.md. Chỉ render khi đang mở nên form luôn bắt đầu từ giá trị mới. */
-export function StaffFormDrawer({ staff, onClose }: StaffFormDrawerProps) {
+export function StaffFormDrawer({ staff, onCreated, onClose }: StaffFormDrawerProps) {
   const { showSuccess } = useToast();
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
@@ -55,7 +56,9 @@ export function StaffFormDrawer({ staff, onClose }: StaffFormDrawerProps) {
 
   // Trùng số điện thoại (409) báo ngay dưới ô Số điện thoại; mọi lỗi khác hiện ở alert đầu form.
   function handleError(error: ApiError) {
-    if (error.code === DUPLICATE_CONTACT) setError("userName", { message: DUPLICATE_PHONE_MESSAGE });
+    if (error.code === DUPLICATE_CONTACT) {
+      setError("userName", { message: DUPLICATE_PHONE_MESSAGE }, { shouldFocus: true });
+    }
   }
 
   const handleSave = handleSubmit((values) => {
@@ -79,6 +82,7 @@ export function StaffFormDrawer({ staff, onClose }: StaffFormDrawerProps) {
     createStaff.mutate(body, {
       onSuccess: () => {
         showSuccess(`Đã tạo tài khoản cho ${body.fullName}`);
+        onCreated?.();
         onClose();
       },
       onError: handleError,
