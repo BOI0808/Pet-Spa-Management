@@ -15,6 +15,7 @@ public sealed record NotificationListResult(PagedResult<Notification> Notificati
 public sealed class NotificationService(INotificationRepository notifications)
 {
     // Lưu thông báo. Các luồng nghiệp vụ gọi sau khi commit (ID 97 gắn vào từng sự kiện).
+    // message tối đa 500 ký tự (cột Notification.Message); người gọi soạn nội dung trong giới hạn này.
     public Task<Guid> CreateAsync(
         Guid recipientUserId, NotificationType type, Guid? appointmentId, string message,
         CancellationToken ct = default) =>

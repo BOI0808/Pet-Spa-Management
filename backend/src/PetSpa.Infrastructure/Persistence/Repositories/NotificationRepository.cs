@@ -51,8 +51,8 @@ public sealed class NotificationRepository(AppDbContext db) : INotificationRepos
             .Select(n => (Guid?)n.RecipientUserId)
             .FirstOrDefaultAsync(ct);
 
-    public Task MarkReadAsync(Guid notificationId, CancellationToken ct = default) =>
+        public Task MarkReadAsync(Guid notificationId, CancellationToken ct = default) =>
         db.Set<Notification>()
-            .Where(n => n.NotificationId == notificationId)
+            .Where(n => n.NotificationId == notificationId && !n.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
 }
