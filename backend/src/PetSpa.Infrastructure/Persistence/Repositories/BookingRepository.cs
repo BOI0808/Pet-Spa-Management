@@ -68,4 +68,24 @@ public sealed class BookingRepository(AppDbContext db) : IBookingRepository
 
         return rows.Select(r => new HeldBooking(r.SlotStart, r.BusyUntil, r.StaffRequired)).ToList();
     }
+
+    public async Task<IReadOnlyList<ServicePricing>> ListPricingAsync(
+        IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default)
+    {
+        var ids = serviceIds.ToList();
+
+        return await db.Set<ServicePricing>().AsNoTracking()
+            .Where(p => ids.Contains(p.ServiceId) && p.Species == species && p.SizeGroup == sizeGroup)
+            .ToListAsync(ct);
+    }
+
+    public void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds)
+    {
+        db.Set<SpaAppointment>().Add(appointment);
+        db.Set<AppointmentService>().AddRange(serviceIds.Select(serviceId => new AppointmentService
+        {
+            AppointmentId = appointment.AppointmentId,
+            ServiceId = serviceId,
+        }));
+    }
 }
