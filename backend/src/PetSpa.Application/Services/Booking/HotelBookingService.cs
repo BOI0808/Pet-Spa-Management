@@ -28,6 +28,9 @@ public sealed class HotelBookingService(
         var checkInUtc = checkIn.ToUniversalTime();
         var checkOutUtc = checkOut.ToUniversalTime();
 
+        if (checkInUtc <= DateTimeOffset.UtcNow)
+            throw new BusinessException(ErrorCodes.ValidationError, "Thời điểm nhận phòng phải ở tương lai.");
+
         var actor = await ResolveActorAsync(user, ct);
         var pet = await FindPetAsync(user, actor, petId, ct);
 
@@ -43,6 +46,9 @@ public sealed class HotelBookingService(
     {
         var checkInUtc = input.PlannedCheckIn.ToUniversalTime();
         var checkOutUtc = input.PlannedCheckOut.ToUniversalTime();
+
+        if (checkInUtc <= DateTimeOffset.UtcNow)
+            throw new BusinessException(ErrorCodes.ValidationError, "Thời điểm nhận phòng phải ở tương lai.");
 
         var actor = await ResolveActorAsync(user, ct);
         if (actor == BookingActor.Manager)
@@ -124,6 +130,11 @@ public sealed class HotelBookingService(
 
     private int CountNights(DateTimeOffset checkIn, DateTimeOffset checkOut)
     {
+        if (checkOut <= checkIn)
+        {
+            throw new BusinessException(ErrorCodes.ValidationError, "Ngày trả phải sau ngày nhận.");
+        }
+
         try
         {
             return PricingService.CountNights(checkIn, checkOut, timeZoneProvider.GetStoreTimeZone());

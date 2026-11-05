@@ -101,4 +101,16 @@ public class HotelCapacityServiceTests
 
         Assert.Equal(0, available);
     }
+
+    [Theory]
+    [InlineData(10, 14, 10, 18)] // Same day
+    [InlineData(12, 14, 10, 12)] // CheckOut before CheckIn
+    public void AvailableCages_WhenCheckOutSameOrBeforeCheckIn_ReturnsZero(
+        int inDay, int inHour, int outDay, int outHour)
+    {
+        var available = HotelCapacityService.AvailableCages(
+            3, Array.Empty<HotelAppointment>(), Local(inDay, inHour), Local(outDay, outHour), StoreTimeZone);
+
+        Assert.Equal(0, available);
+    }
 }

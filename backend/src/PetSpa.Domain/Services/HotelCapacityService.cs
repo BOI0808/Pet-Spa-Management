@@ -14,6 +14,11 @@ public static class HotelCapacityService
         var firstNight = ToStoreDate(checkIn, storeTimeZone);
         var checkOutDate = ToStoreDate(checkOut, storeTimeZone);
 
+        if (checkOutDate <= firstNight)
+        {
+            return 0;
+        }
+
         var stays = holdingStays
             .Select(s => (
                 CheckInDate: ToStoreDate(s.PlannedCheckIn, storeTimeZone),
