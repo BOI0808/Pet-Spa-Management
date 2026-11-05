@@ -1,3 +1,4 @@
+using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Services;
 
@@ -22,5 +23,15 @@ public interface IBookingRepository
     // Lịch spa đang giữ chỗ (Pending, Confirmed, Received, InProgress), có khoảng bận giao với [from, to).
     Task<IReadOnlyList<HeldBooking>> ListHeldBookingsAsync(
         DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default);
+
+    // Dòng giá theo (loài, nhóm kích cỡ) của các dịch vụ, để tính tiền tạm tính.
+    Task<IReadOnlyList<ServicePricing>> ListPricingAsync(
+        IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default);
+
+    // Thêm lịch spa và các dòng dịch vụ vào DbContext, chưa ghi xuống CSDL.
+    void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds);
+
+    // Kiểm tra cờ khóa đặt lịch của khách hàng.
+    Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default);
 }
 
