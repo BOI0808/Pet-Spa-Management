@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,12 +14,16 @@ import { isForbiddenError } from "@/lib/api/errors";
 import type { StaffMember } from "@/lib/api/types";
 import { useStaff } from "@/lib/queries/staff";
 import { ROUTES } from "@/lib/routes";
+import { StaffFormDrawer } from "../components/staff-form-drawer";
 import { StaffRow, cellClass } from "../components/staff-row";
 
 const headCellClass =
   "whitespace-nowrap border-b border-line bg-mist px-3.5 py-2.5 text-left text-xs font-semibold leading-4 text-muted";
 
 type StaffFilter = "all" | "spa" | "receptionist" | "inactive";
+
+/** Đang mở ngăn kéo thêm (`"new"`) hoặc sửa một nhân viên; `null` là đóng. */
+type DrawerState = "new" | StaffMember | null;
 
 // Thứ tự chip theo UI-Screens MW-08 vùng 2. Lọc ở web: backend trả cả người đã vô hiệu hóa.
 const FILTERS: readonly { key: StaffFilter; label: string; matches: (staff: StaffMember) => boolean }[] = [
@@ -48,6 +53,9 @@ function StaffTableSkeleton() {
           <td className={cellClass}>
             <Skeleton className="h-6 w-28" />
           </td>
+          <td className={cellClass}>
+            <Skeleton className="ml-auto h-8 w-16" />
+          </td>
         </tr>
       ))}
     </>
@@ -57,12 +65,20 @@ function StaffTableSkeleton() {
 export function StaffScreen() {
   const staffQuery = useStaff();
   const [filter, setFilter] = useState<StaffFilter>("all");
+  const [drawer, setDrawer] = useState<DrawerState>(null);
 
   const staff = staffQuery.data?.items;
   const activeSpaCount = staff?.filter((item) => item.isActive && item.staffRole === "SpaStaff").length ?? 0;
   const activeReceptionistCount = staff?.filter((item) => item.isActive && item.staffRole === "Receptionist").length ?? 0;
   const activeFilter = FILTERS.find((item) => item.key === filter) ?? FILTERS[0];
   const visibleStaff = staff?.filter(activeFilter.matches);
+
+  const addButton = (
+    <Button variant="primary" onClick={() => setDrawer("new")}>
+      <Icon name="user-plus" />
+      Thêm nhân viên
+    </Button>
+  );
 
   // Vùng 1 – Tiêu đề; vùng 2 – Lọc nhanh; vùng 3 – Bảng; vùng 4 – Ghi chú.
   return (
@@ -74,6 +90,7 @@ export function StaffScreen() {
             {staff && `${activeSpaCount} nhân viên spa và ${activeReceptionistCount} lễ tân đang hoạt động.`}
           </p>
         </div>
+        {addButton}
       </div>
 
       {staff === undefined && staffQuery.isError ? (
@@ -90,7 +107,8 @@ export function StaffScreen() {
           <EmptyState
             icon="users"
             title="Chưa có nhân viên nào"
-            description="Tài khoản lễ tân và nhân viên spa sẽ hiện ở đây."
+            description="Thêm tài khoản lễ tân hoặc nhân viên spa đầu tiên."
+            action={<Button onClick={() => setDrawer("new")}>Thêm nhân viên</Button>}
           />
         </Card>
       ) : (
@@ -129,11 +147,14 @@ export function StaffScreen() {
                     <th className={headCellClass}>Số điện thoại (đăng nhập)</th>
                     <th className={headCellClass}>Vai trò</th>
                     <th className={headCellClass}>Trạng thái</th>
+                    <th className={`${headCellClass} text-right`}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="[&>tr:last-child>td]:border-b-0">
                   {visibleStaff ? (
-                    visibleStaff.map((item) => <StaffRow key={item.staffId} staff={item} />)
+                    visibleStaff.map((item) => (
+                      <StaffRow key={item.staffId} staff={item} onEdit={() => setDrawer(item)} />
+                    ))
                   ) : (
                     <StaffTableSkeleton />
                   )}
@@ -158,6 +179,10 @@ export function StaffScreen() {
         </Link>
         .
       </p>
+
+      {drawer !== null && (
+        <StaffFormDrawer staff={drawer === "new" ? null : drawer} onClose={() => setDrawer(null)} />
+      )}
     </>
   );
 }
