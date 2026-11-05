@@ -1,5 +1,5 @@
 // Nhãn hiển thị cho giá trị enum của API (UI-Screens 2.4). Chỉ khai báo enum web quản lý đang dùng.
-import type { SizeGroup, Species } from "@/lib/api/types";
+import type { SizeGroup, Species, StaffRole } from "@/lib/api/types";
 
 /** Thứ tự hiển thị các loài: Chó, Mèo, Thỏ, Chuột lang (UI demo). */
 export const SPECIES_ORDER: readonly Species[] = ["Dog", "Cat", "Rabbit", "GuineaPig"];
@@ -15,4 +15,9 @@ export const SIZE_GROUP_LABELS: Record<SizeGroup, string> = {
   Small: "Nhỏ",
   Medium: "Vừa",
   Large: "Lớn",
+};
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  Receptionist: "Lễ tân",
+  SpaStaff: "Nhân viên spa",
 };
