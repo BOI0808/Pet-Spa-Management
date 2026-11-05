@@ -16,6 +16,10 @@ export const SIZE_GROUP_LABELS: Record<SizeGroup, string> = {
   Large: "Lớn",
 };
 
+/** Thứ tự hiển thị trong các bảng giá, theo khai báo nhãn ở trên. */
+export const SPECIES_ORDER = Object.keys(SPECIES_LABELS) as Species[];
+export const SIZE_GROUP_ORDER = Object.keys(SIZE_GROUP_LABELS) as SizeGroup[];
+
 export const TEMPERAMENT_LABELS: Record<Temperament, string> = {
   Calm: "Hiền",
   Normal: "Bình thường",

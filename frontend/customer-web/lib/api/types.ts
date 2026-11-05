@@ -69,3 +69,38 @@ export type PetSizeResult = {
   petId?: string;
   sizeGroup: SizeGroup;
 };
+
+// ── Danh mục dịch vụ ──
+/** Giá là số nguyên VND. */
+export type PricingRow = {
+  species: Species;
+  sizeGroup: SizeGroup;
+  price: number;
+  durationMinutes: number;
+  staffRequired: number;
+};
+
+export type Service = {
+  serviceId: string;
+  name: string;
+  description?: string | null;
+  /** “HH:mm”. */
+  latestStartTime: string;
+  isActive: boolean;
+  pricing: PricingRow[];
+};
+
+// ── Giá lưu trú ──
+/** Giá lưu trú và giá thức ăn mỗi đêm của một loài và một nhóm kích cỡ (BR-22). Giá là số nguyên VND. */
+export type HotelPricingRow = {
+  species: Species;
+  sizeGroup: SizeGroup;
+  pricePerNight: number;
+  foodPerNight: number;
+};
+
+export type HotelPricing = {
+  pricing: HotelPricingRow[];
+  /** Phí phạt mỗi lần trả muộn, VND (BR-22). */
+  lateFeePerBlock: number;
+};
