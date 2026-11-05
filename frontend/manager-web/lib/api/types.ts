@@ -1,7 +1,7 @@
-// Kiểu dữ liệu chép đúng backend/docs/api/openapi.yaml (phần phiên đăng nhập, danh mục dịch vụ, chuồng và giá lưu trú).
+// Kiểu dữ liệu chép đúng backend/docs/api/openapi.yaml (phần phiên đăng nhập, danh mục dịch vụ, chuồng, giá lưu trú và nhân viên).
 
 export type Role = "Customer" | "Staff" | "Manager";
-type StaffRole = "Receptionist" | "SpaStaff";
+export type StaffRole = "Receptionist" | "SpaStaff";
 export type Species = "Dog" | "Cat" | "Rabbit" | "GuineaPig";
 export type SizeGroup = "Small" | "Medium" | "Large";
 
@@ -108,3 +108,42 @@ export type CageCreateRequest = {
 export type CageUpdateRequest = Partial<CageCreateRequest>;
 
 export type CageCreated = { cageId: string };
+
+// ── Nhân viên (FR-STF-01 → 03) ──
+
+/** Một nhân viên trong `items` của GET /staff (gồm cả người đã vô hiệu hóa). Chưa có ngày tạo, ngày vô hiệu hóa (UI-Screens G-09). */
+export type StaffMember = {
+  staffId: string;
+  /** Số điện thoại, dùng làm tên đăng nhập. */
+  userName: string;
+  fullName: string;
+  staffRole: StaffRole;
+  isActive: boolean;
+};
+
+/** Phản hồi của GET /staff: thông tin trang (PageInfo) kèm `items`. */
+export type StaffPage = {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: StaffMember[];
+};
+
+/** Body của POST /staff. Không có `role`: backend luôn đặt Role = Staff (API-Notes 3). */
+export type StaffCreateRequest = {
+  userName: string;
+  fullName: string;
+  staffRole: StaffRole;
+  password: string;
+};
+
+export type StaffCreated = { staffId: string };
+
+/** Body của PUT /staff/{id}. Số điện thoại không đổi ở endpoint này. */
+export type StaffUpdateRequest = {
+  fullName: string;
+  staffRole: StaffRole;
+};
+
+/** Phản hồi của POST /staff/{id}/deactivate: số lịch spa “Đã xác nhận” đã về “Chờ xác nhận” (BR-27). */
+export type DeactivateResult = { returnedToPending: number };
