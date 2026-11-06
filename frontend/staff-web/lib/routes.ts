@@ -14,3 +14,10 @@ export const ROUTES = {
   profile: "/ho-so", // SW-15 Hồ sơ cá nhân
   login: "/dang-nhap", // SW-01 Đăng nhập
 } as const;
+
+// Đường dẫn có tham số (User-Flows 2.2). Để riêng khỏi ROUTES vì `ROUTE_ROLES` khai báo vai trò theo từng khóa của ROUTES;
+// các đường dẫn con dưới `/khach-hang` tự theo vai trò của SW-04 (lễ tân) nhờ `canAccessPath` so tiền tố.
+export const customerSearchRoute = (search: string) =>
+  search ? `${ROUTES.customers}?search=${encodeURIComponent(search)}` : ROUTES.customers;
+export const petCreateRoute = (customerId: string) => `${ROUTES.customers}/${customerId}/thu-cung/them`;
+export const petEditRoute = (customerId: string, petId: string) => `${ROUTES.customers}/${customerId}/thu-cung/${petId}`;
