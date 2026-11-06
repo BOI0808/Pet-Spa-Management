@@ -22,12 +22,18 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `app/api/session` | Route handler phiên đăng nhập: `login`, `refresh`, `logout` (cookie httpOnly) |
 | `proxy.ts` | Chuyển hướng theo cookie phiên: chưa đăng nhập → `/dang-nhap` |
 | `features/auth` | Màn SW-01 và quy tắc kiểm tra form đăng nhập |
+| `features/customers` | SW-04 Khách hàng: tìm khách, ghi nhận khách vãng lai |
+| `features/pets` | SW-05 Hồ sơ thú cưng (form, nhóm kích cỡ dự kiến) – phần form chép từ customer-web |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
-| `components/layout` | Thanh trên của web nhân viên, menu thả xuống |
-| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
-| `lib/api` | `apiClient` (Axios) và chuẩn hóa error envelope thành `ApiError` |
+| `components/layout` | Thanh trên của web nhân viên, menu thả xuống, `PageHeader` |
+| `components/ui`, `components/domain` | Thành phần dùng chung chép từ customer-web: `Button`, `Card`, `Field`, `ChoiceCard`, `Tag`, `PetAvatar`… |
+| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
+| `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, hàm gọi API theo tài nguyên (`endpoints/`) |
+| `lib/queries` | Khóa query và hook TanStack Query theo tài nguyên |
+| `lib/format.ts`, `lib/labels.ts`, `lib/validation.ts` | Định dạng hiển thị, nhãn enum, luật kiểm tra form (giống customer-web) |
+| `lib/serving-customer.ts` | Khách đang phục vụ (SW-04 → SW-05, SW-06) |
 | `lib/routes.ts` | Đường dẫn các màn hình SW-01 → SW-15 |
 | `lib/staff-role.ts` | Vai trò nhân viên: lễ tân, nhân viên spa |
 | `lib/route-access.ts` | Vai trò được vào từng màn hình (`ROUTE_ROLES`) |
@@ -71,3 +77,10 @@ Phần này giống Web khách hàng để 3 web dùng chung một cách:
 - Kết quả tức thời: `useToast().showSuccess(...)` (tự ẩn) hoặc `useToast().showError(error)` (giữ đến khi đóng).
 - Lỗi của ô nhập (React Hook Form): `<FieldError id="..." message={errors.field?.message} />`.
 - TanStack Query không thử lại lỗi 4xx.
+
+## Khách đang phục vụ
+
+- API chưa có `GET /customers/{id}` (UI-Screens G-14), nên khách lễ tân chọn ở SW-04 được giữ trong `sessionStorage`
+  (khóa `ps.servingCustomer`, chỉ thông tin hiển thị) để SW-05 và SW-06 dùng tiếp. Tải lại trang vẫn còn, đóng tab thì mất.
+- Đăng xuất hoặc hết phiên thì xóa (`clearServingCustomer` trong `useSession`).
+- Đường dẫn SW-05 chứa `customerId`; khác khách đang phục vụ thì màn hiện "Chưa chọn khách hàng" và nút về SW-04.
