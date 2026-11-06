@@ -1,7 +1,7 @@
 "use client";
 
 // CW-05 Tạo / sửa hồ sơ thú cưng – UI-Screens.md
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { PetAvatar } from "@/components/domain/pet-avatar";
 import { ErrorAlert } from "@/components/feedback/error-alert";
@@ -15,10 +15,10 @@ import { ChoiceCard } from "@/components/ui/choice-card";
 import { Field, FieldSet, Input, Textarea } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
-import type { Pet } from "@/lib/api/types";
+import type { Pet, PetSizeResult } from "@/lib/api/types";
 import { SPECIES_LABELS, TEMPERAMENT_LABELS } from "@/lib/labels";
 import { useCreatePet, usePet, useUpdatePet } from "@/lib/queries/pets";
-import { ROUTES } from "@/lib/routes";
+import { PET_RETURN_TO_BOOKING, ROUTES } from "@/lib/routes";
 import { validateBreed, validateHeightCm, validatePetName, validateWeightKg } from "@/lib/validation";
 import { SizePreview } from "../components/size-preview";
 import {
@@ -52,6 +52,8 @@ const splitClass = "grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-[
 /** Vùng 2 → 7. `pet` có giá trị khi sửa hồ sơ. */
 function PetForm({ pet }: { pet?: Pet }) {
   const router = useRouter();
+  // Đến từ CW-06: lưu xong quay lại đặt lịch với bé vừa tạo được chọn (UI-Screens CW-05).
+  const returnToBooking = useSearchParams().get("returnTo") === PET_RETURN_TO_BOOKING;
   const { showSuccess } = useToast();
   const createPet = useCreatePet();
   const updatePet = useUpdatePet();
@@ -79,9 +81,9 @@ function PetForm({ pet }: { pet?: Pet }) {
     const form = event?.target instanceof HTMLFormElement ? event.target : null;
     const body = toPetRequest(values);
     const options = {
-      onSuccess: () => {
+      onSuccess: ({ petId }: PetSizeResult) => {
         showSuccess("Đã lưu hồ sơ thú cưng");
-        router.push(ROUTES.pets);
+        router.push(returnToBooking && petId ? ROUTES.spaBookingForPet(petId) : ROUTES.pets);
       },
       // Lỗi hiện ở đầu form; form dài nên cuộn lên để khách thấy (nhất là trên điện thoại).
       onError: () => form?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -205,7 +207,7 @@ function PetForm({ pet }: { pet?: Pet }) {
 
           {/* Vùng 6 – Nút */}
           <CardFooter>
-            <ButtonLink href={ROUTES.pets} variant="ghost">
+            <ButtonLink href={returnToBooking ? ROUTES.spaBooking : ROUTES.pets} variant="ghost">
               Hủy bỏ
             </ButtonLink>
             <Button type="submit" variant="primary" className="ml-auto" loading={mutation.isPending}>
