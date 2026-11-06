@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/auth/use-session";
+import { getInitials } from "@/lib/format";
 import { ROUTE_ROLES } from "@/lib/route-access";
 import { ROUTES } from "@/lib/routes";
 import { STAFF_ROLE_LABELS, type StaffRole } from "@/lib/staff-role";
@@ -180,22 +181,6 @@ export function HeaderNav({
 }
 
 /**
- * Chữ cái đầu của hai từ cuối trong họ tên, như ui-demo ("Thu Hà" → "TH"): tên người Việt đứng cuối nên hai từ cuối
- * phân biệt người tốt hơn họ. Chỉ lấy từ là chữ (`\p{L}`), bỏ số và dấu ngoặc: tên tài khoản thử như
- * "Lễ tân thử (thẻ 121)" ra "TT" thay vì "(1". Không còn từ nào là chữ thì trả `null` để hiện biểu tượng người.
- */
-function getInitials(fullName: string) {
-  // `\p{M}`: giữ dấu tiếng Việt viết dạng tổ hợp (NFD) trong cùng một từ.
-  const words = fullName.match(/\p{L}[\p{L}\p{M}]*/gu) ?? [];
-  if (words.length === 0) return null;
-  return words
-    .slice(-2)
-    .map((word) => word[0])
-    .join("")
-    .toLocaleUpperCase("vi");
-}
-
-/**
  * Bản đọc trang hiện tại để tô mục đang chọn, và đọc phiên đăng nhập để biết vai trò, tên, đăng xuất.
  * Đặt trong Suspense vì đang bật cacheComponents.
  */
@@ -206,7 +191,8 @@ export function ActiveHeaderNav() {
       pathname={usePathname()}
       role={me?.staffRole ?? null}
       userName={me ? (me.fullName ?? me.userName) : null}
-      initials={me?.fullName ? getInitials(me.fullName) : null}
+      // Tên không có chữ nào (vd. chỉ có số) thì getInitials trả chuỗi rỗng: hiện biểu tượng người.
+      initials={me?.fullName ? getInitials(me.fullName) || null : null}
       onLogout={logout}
       isLoggingOut={isLoggingOut}
     />
