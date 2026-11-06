@@ -6,11 +6,21 @@ import { Icon, type IconName } from "@/components/icons";
 import { Button } from "./button";
 import { Overlay } from "./overlay";
 
+type DialogTone = "warn" | "danger";
+
+// `.mh-icon.warn`, `.mh-icon.danger` của ui-demo: `danger` cho hành động khó hoàn tác như vô hiệu hóa tài khoản.
+const ICON_TONE_CLASS: Record<DialogTone, string> = {
+  warn: "bg-apricot-50 text-[#B87400]",
+  danger: "bg-danger-50 text-danger",
+};
+
 type ConfirmDialogProps = {
   title: string;
   /** Dòng phụ dưới tiêu đề. */
   subtitle?: string;
   icon: IconName;
+  /** Tông ô biểu tượng; mặc định `warn`. */
+  tone?: DialogTone;
   confirmLabel: string;
   /** Đang gửi lệnh: nút xác nhận hiện spinner, không đóng được. */
   loading?: boolean;
@@ -27,6 +37,7 @@ export function ConfirmDialog({
   title,
   subtitle,
   icon,
+  tone = "warn",
   confirmLabel,
   loading = false,
   error,
@@ -40,8 +51,7 @@ export function ConfirmDialog({
     <Overlay labelledBy={titleId} onClose={onClose} locked={loading}>
       <div className="max-h-[calc(100vh-40px)] w-full max-w-[480px] animate-pop-in overflow-auto rounded-2xl bg-white shadow-pop">
         <div className="flex items-start gap-3.5 px-5 pt-5">
-          {/* Ô biểu tượng tông cảnh báo: `.mh-icon.warn` của ui-demo. */}
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-apricot-50 text-[#B87400]">
+          <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${ICON_TONE_CLASS[tone]}`}>
             <Icon name={icon} className="size-[22px]" />
           </span>
           <div>
