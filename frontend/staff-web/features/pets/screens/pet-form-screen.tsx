@@ -244,12 +244,12 @@ function PetForm({ customer, pet }: { customer: ServingCustomer; pet?: Pet }) {
             </div>
           </div>
 
-          {/* Vùng 6 – Nút; web nhân viên vùng chạm tối thiểu 44px (SA 6.1). */}
+          {/* Vùng 6 – Nút */}
           <CardFooter>
-            <ButtonLink href={backToCustomer(customer)} variant="ghost" className="min-h-11">
+            <ButtonLink href={backToCustomer(customer)} variant="ghost">
               Hủy bỏ
             </ButtonLink>
-            <Button type="submit" variant="primary" className="ml-auto min-h-11" loading={mutation.isPending}>
+            <Button type="submit" variant="primary" className="ml-auto" loading={mutation.isPending}>
               Lưu hồ sơ
             </Button>
           </CardFooter>

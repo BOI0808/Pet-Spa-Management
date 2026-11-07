@@ -33,7 +33,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
   sm: "min-h-[34px] px-3 text-[13px]",
-  md: "min-h-10 px-4 text-sm",
+  // Web nhân viên: vùng chạm tối thiểu 44px (SA 6.1, Design-System 3); customer-web giữ 40px.
+  md: "min-h-11 px-4 text-sm",
   lg: "min-h-12 px-[22px] text-[15px]",
 };
 

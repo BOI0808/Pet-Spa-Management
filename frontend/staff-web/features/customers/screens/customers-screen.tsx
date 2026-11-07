@@ -116,7 +116,7 @@ function SearchResults({ search }: { search: string }) {
       )}
       {canCreateWalkIn && walkInDismissed && (
         <div>
-          <Button onClick={() => setWalkInDismissed(false)} className="min-h-11">
+          <Button onClick={() => setWalkInDismissed(false)}>
             Ghi nhận khách vãng lai
           </Button>
         </div>
@@ -124,7 +124,7 @@ function SearchResults({ search }: { search: string }) {
       {/* Tìm số khác thì xóa ô tìm và về trạng thái ban đầu. */}
       {items.length === 0 && !canCreateWalkIn && (
         <div>
-          <Button variant="ghost" onClick={() => router.replace(ROUTES.customers)} className="min-h-11">
+          <Button variant="ghost" onClick={() => router.replace(ROUTES.customers)}>
             Xóa tìm kiếm
           </Button>
         </div>

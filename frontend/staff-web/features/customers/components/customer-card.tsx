@@ -117,8 +117,8 @@ export function CustomerCard({ customer }: { customer: Customer }) {
               )}
             </div>
           </div>
-          {/* Web nhân viên: vùng chạm tối thiểu 44px (SA 6.1). Màn hẹp: nút xuống dòng riêng để tên khách không bị bóp. */}
-          <Button onClick={addPet} className="min-h-11 max-[640px]:w-full">
+          {/* Màn hẹp: nút xuống dòng riêng để tên khách không bị bóp. */}
+          <Button onClick={addPet} className="max-[640px]:w-full">
             <Icon name="plus" />
             Thêm thú cưng
           </Button>

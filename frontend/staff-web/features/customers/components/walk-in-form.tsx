@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -9,9 +10,10 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toApiError } from "@/lib/api/errors";
 import { formatPhone, getInitials } from "@/lib/format";
-import { useCreateWalkInCustomer, useCustomerSearch } from "@/lib/queries/customers";
+import { customerKeys, useCreateWalkInCustomer, useCustomerSearch } from "@/lib/queries/customers";
 import { customerSearchRoute, petCreateRoute } from "@/lib/routes";
 import { setServingCustomer } from "@/lib/serving-customer";
 import { normalizePhone, validateFullName, validatePhone } from "@/lib/validation";
@@ -22,9 +24,22 @@ const DUPLICATE_MESSAGE = "Thông tin liên hệ đã có, vui lòng chọn khá
 /** Khách đã có số này (409 DUPLICATE_CONTACT): tìm lại theo số để lễ tân chọn khách hiện có (UI-Screens SW-04). */
 function DuplicateCustomer({ phone }: { phone: string }) {
   const router = useRouter();
-  const search = useCustomerSearch({ search: phone, page: 1, pageSize: 1 });
+  const queryClient = useQueryClient();
+  // Backend tìm theo một phần số và xếp theo họ tên: lấy 20 khách rồi lọc đúng số, không trông vào khách đứng đầu.
+  const search = useCustomerSearch({ search: phone, page: 1, pageSize: 20 });
   const customer = search.data?.items.find((item) => item.phone === phone);
+
+  if (search.isPending) {
+    return <Skeleton className="col-span-2 h-[68px] rounded-xl max-[640px]:col-span-1" />;
+  }
   if (!customer) return null;
+
+  // Số trùng có thể chính là số đang tìm (khách vừa được người khác ghi nhận): cùng đường dẫn thì router.replace không
+  // tải lại kết quả cũ (đang rỗng), nên làm mới bộ đệm tìm khách trước khi chuyển.
+  const chooseCustomer = () => {
+    void queryClient.invalidateQueries({ queryKey: customerKeys.all });
+    router.replace(customerSearchRoute(customer.phone));
+  };
 
   return (
     <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl bg-mist p-3.5 max-[640px]:col-span-1">
@@ -33,9 +48,7 @@ function DuplicateCustomer({ phone }: { phone: string }) {
         <div className="break-words font-semibold">{customer.fullName}</div>
         <div className="text-xs text-muted tabular-nums">{formatPhone(customer.phone)}</div>
       </div>
-      <Button size="sm" className="min-h-11" onClick={() => router.replace(customerSearchRoute(customer.phone))}>
-        Chọn khách này
-      </Button>
+      <Button onClick={chooseCustomer}>Chọn khách này</Button>
     </div>
   );
 }
@@ -49,7 +62,7 @@ type WalkInFormProps = {
 /** SW-04 vùng 4 – Ghi nhận khách vãng lai (FR-ACC-04): khách không có tài khoản, không nhận thông báo trên web. */
 export function WalkInForm({ initialPhone, onCancel }: WalkInFormProps) {
   const router = useRouter();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const createWalkIn = useCreateWalkInCustomer();
   // Số bị backend báo trùng; còn giữ nguyên số đó thì khóa nút lưu, sửa số thì mở lại.
   const [duplicatePhone, setDuplicatePhone] = useState<string | null>(null);
@@ -81,6 +94,9 @@ export function WalkInForm({ initialPhone, onCancel }: WalkInFormProps) {
         if (toApiError(error).code === "DUPLICATE_CONTACT") {
           setDuplicatePhone(body.phone);
           setError("phone", { message: DUPLICATE_MESSAGE }, { shouldFocus: true });
+          // Trùng đúng số đang tìm (vừa có người ghi nhận khách này): kết quả tìm làm mới sẽ hiện khách đó và ẩn form này,
+          // nên báo bằng toast để lễ tân biết vì sao form biến mất.
+          if (body.phone === initialPhone) showError(DUPLICATE_MESSAGE);
         }
       },
     });
@@ -125,13 +141,13 @@ export function WalkInForm({ initialPhone, onCancel }: WalkInFormProps) {
           {isDuplicate && duplicatePhone && <DuplicateCustomer phone={duplicatePhone} />}
         </div>
         <CardFooter>
-          <Button variant="ghost" className="min-h-11" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel}>
             Hủy bỏ
           </Button>
           <Button
             type="submit"
             variant="primary"
-            className="ml-auto min-h-11"
+            className="ml-auto"
             loading={createWalkIn.isPending}
             disabled={isDuplicate}
           >
