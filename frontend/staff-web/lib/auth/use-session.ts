@@ -7,6 +7,7 @@ import { useToast } from "@/components/feedback/toast";
 import { getMe } from "@/lib/api/endpoints/me";
 import { logoutSession } from "@/lib/api/endpoints/session";
 import { ApiError } from "@/lib/api/errors";
+import { clearServingCustomer } from "@/lib/serving-customer";
 import { isStaffAccount } from "./config";
 import { buildLoginUrl, type LoginReason } from "./login-url";
 import { clearAccessToken, getAccessToken, markSignedOut, notifySessionEnded, refreshAccessToken } from "./session";
@@ -40,6 +41,8 @@ export function useSession() {
       // Không xóa bộ đệm ở đây: router.replace chưa gỡ xong Sidebar và SessionGate, xóa `me` lúc này làm chúng tải lại
       // ngay (refresh 401 rồi báo "hết hạn" sai).
       clearAccessToken();
+      // Đăng xuất hoặc hết phiên thì bỏ khách đang phục vụ (Frontend-Architecture 6.3): người đăng nhập sau không thấy khách cũ.
+      clearServingCustomer();
       router.replace(buildLoginUrl(options));
     },
     [router],

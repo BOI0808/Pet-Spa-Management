@@ -117,6 +117,27 @@ const ICON_PATHS = {
       <path d="m15 9-6 6M9 9l6 6" />
     </>
   ),
+  // SW-04, SW-05 và các thành phần chép từ customer-web (PageHeader, NotFoundState, SizePreview).
+  "chev-r": <path d="m9 18 6-6-6-6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7.5" />
+      <path d="m21 21-4.3-4.3" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-10 6L2 7" />
+    </>
+  ),
   "check-circle": (
     <>
       <circle cx="12" cy="12" r="10" />
