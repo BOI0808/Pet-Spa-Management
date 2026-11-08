@@ -44,4 +44,19 @@ public sealed class HotelAssignmentService(
             return found.Appointment.Status;
         }, ct);
     }
+
+    public async Task<HotelRejectResult> RejectAsync(Guid appointmentId, CancellationToken ct = default)
+    {
+        return await concurrencyGuard.RunAsync(async () =>
+        {
+            await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
+
+            var found = await assignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+
+            found.Appointment.Reject();
+
+            return new HotelRejectResult(found.Appointment.Status, found.Appointment.CancelReason!.Value);
+        }, ct);
+    }
 }

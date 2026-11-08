@@ -207,4 +207,36 @@ public class HotelAssignmentServiceTests
 
         await AssertCodeAsync(ErrorCodes.InvalidTransition, () => service.ConfirmAsync(AppointmentId, Guid.NewGuid()));
     }
+
+    [Fact]
+    public async Task Reject_WhenPending_CancelsWithStoreUnableAndLocksAppointment()
+    {
+        var (service, repository, guard) = CreateService();
+
+        var result = await service.RejectAsync(AppointmentId);
+
+        Assert.Equal(AppointmentStatus.Cancelled, result.Status);
+        Assert.Equal(CancelReason.StoreUnable, result.Reason);
+        Assert.Equal(AppointmentStatus.Cancelled, repository.Found!.Appointment.Status);
+        Assert.Equal(AppointmentId, guard.LockedAppointmentId);
+    }
+
+    [Fact]
+    public async Task Reject_WhenAppointmentNotFound_ThrowsNotFound()
+    {
+        var (service, repository, _) = CreateService();
+        repository.Found = null;
+
+        await AssertCodeAsync(ErrorCodes.NotFound, () => service.RejectAsync(AppointmentId));
+    }
+
+    [Fact]
+    public async Task Reject_WhenConfirmed_ThrowsInvalidTransition()
+    {
+        var (service, repository, _) = CreateService(Stay(AppointmentStatus.Confirmed));
+
+        await AssertCodeAsync(ErrorCodes.InvalidTransition, () => service.RejectAsync(AppointmentId));
+
+        Assert.Equal(AppointmentStatus.Confirmed, repository.Found!.Appointment.Status);
+    }
 }

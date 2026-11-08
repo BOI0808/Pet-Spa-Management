@@ -49,4 +49,14 @@ public sealed class AppointmentsController(BookingService bookingService, HotelA
         var status = await hotelAssignment.ConfirmAsync(id, request.CageId!.Value, ct);
         return Ok(new AppointmentStatusResponse(status));
     }
+
+    [HttpPost("{id}/reject")]
+    [Authorize(Policy = AuthorizationPolicies.Manager)]
+    [EndpointSummary("Từ chối lịch lưu trú khi cửa hàng không thể đáp ứng")]
+    [EndpointDescription("Chỉ quản lý, không có body. Lịch Chờ xác nhận chuyển sang Đã hủy với lý do StoreUnable. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch lưu trú trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> Reject(Guid id, CancellationToken ct)
+    {
+        var result = await hotelAssignment.RejectAsync(id, ct);
+        return Ok(AppointmentRejectedResponse.From(result));
+    }
 }
