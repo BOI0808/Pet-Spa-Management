@@ -88,6 +88,7 @@ public static class DependencyInjection
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IPaymentAmountRepository, PaymentAmountRepository>();
         services.AddScoped<IHotelBookingRepository, HotelBookingRepository>();
+        services.AddScoped<IHotelAssignmentRepository, HotelAssignmentRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
