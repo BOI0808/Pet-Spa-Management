@@ -145,6 +145,12 @@ public sealed class BookingService(
         }, ct);
     }
 
+    // Danh sách lịch hẹn toàn cửa hàng; status = Pending cho danh sách Chờ xác nhận.
+    // Hiện chỉ Quản lý gọi được (policy Manager ở AppointmentsController) và có toàn quyền, nên không nhận CurrentUser.
+    public Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
+        AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
+        bookings.ListAppointmentsAsync(type, status, page, pageSize, ct);
+
     // Phần tính chung của một lịch spa, dùng cho cả xem mốc giờ và tạo lịch.
     private sealed record SpaPlan(
         IReadOnlyList<Guid> ServiceIds, int DurationMinutes, int StaffRequired, TimeOnly LatestStartTime, int BufferMinutes);

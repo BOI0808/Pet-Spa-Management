@@ -13,6 +13,16 @@ namespace PetSpa.Api.Controllers;
 [Route("api/v1/appointments")]
 public sealed class AppointmentsController(BookingService bookingService, HotelAssignmentService hotelAssignment) : ControllerBase
 {
+    [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.Manager)]
+    [EndpointSummary("Quản lý xem danh sách lịch hẹn toàn cửa hàng")]
+    [EndpointDescription("Hiện chỉ quản lý gọi được; phạm vi của khách hàng, lễ tân, nhân viên spa do các việc xem lịch theo vai trò bổ sung. Lọc tùy chọn theo type (Spa | Hotel) và status; status=Pending cho danh sách Chờ xác nhận. Lịch tạo sớm nhất trước. Mặc định page = 1, pageSize = 20 (tối đa 100). type hoặc status sai giá trị trả 400 VALIDATION_ERROR.")]
+    public async Task<IActionResult> List([FromQuery] AppointmentListQuery query, CancellationToken ct)
+    {
+        var result = await bookingService.ListAppointmentsAsync(query.Type, query.Status, query.Page, query.PageSize, ct);
+        return Ok(result);
+    }
+
     [HttpPost("spa")]
     [Authorize(Policy = AuthorizationPolicies.CustomerOrReceptionist)]
     [EnableRateLimiting(RateLimitPolicies.Booking)]
