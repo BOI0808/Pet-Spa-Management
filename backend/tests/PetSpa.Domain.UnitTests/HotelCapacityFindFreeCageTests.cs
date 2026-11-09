@@ -119,4 +119,28 @@ public class HotelCapacityFindFreeCageTests
 
         Assert.Null(result);
     }
+
+    [Fact]
+    public void IsCageOccupied_WhenStayOverlapsNights_ReturnsTrue()
+    {
+        var a1 = CageOf("A1");
+        var stays = new[] { StayIn(a1, 10, 12) };
+
+        var occupied = HotelCapacityService.IsCageOccupied(
+            a1.CageId, stays, Local(11, 14), Local(13, 12), StoreTimeZone);
+
+        Assert.True(occupied);
+    }
+
+    [Fact]
+    public void IsCageOccupied_WhenStayDoesNotOverlapNights_ReturnsFalse()
+    {
+        var a1 = CageOf("A1");
+        var stays = new[] { StayIn(a1, 8, 10) };
+
+        var occupied = HotelCapacityService.IsCageOccupied(
+            a1.CageId, stays, Local(10, 14), Local(12, 12), StoreTimeZone);
+
+        Assert.False(occupied);
+    }
 }

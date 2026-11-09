@@ -5,6 +5,9 @@ namespace PetSpa.Api.Dtos;
 
 public sealed record AppointmentRejectedResponse(AppointmentStatus Status, CancelReason Reason)
 {
+    public static AppointmentRejectedResponse From(AppointmentRejectResult result) =>
+        new(result.Status, result.Reason);
+
     public static AppointmentRejectedResponse From(HotelRejectResult result) =>
         new(result.Status, result.Reason);
 }

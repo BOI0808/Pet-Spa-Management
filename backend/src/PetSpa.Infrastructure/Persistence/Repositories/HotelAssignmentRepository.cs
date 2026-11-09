@@ -7,6 +7,13 @@ namespace PetSpa.Infrastructure.Persistence.Repositories;
 
 public sealed class HotelAssignmentRepository(AppDbContext db) : IHotelAssignmentRepository
 {
+    public async Task<Appointment?> FindAppointmentAsync(
+        Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default)
+    {
+        var query = asNoTracking ? db.Set<Appointment>().AsNoTracking() : db.Set<Appointment>();
+        return await query.FirstOrDefaultAsync(a => a.AppointmentId == appointmentId, ct);
+    }
+
     public async Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(
         Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default)
     {

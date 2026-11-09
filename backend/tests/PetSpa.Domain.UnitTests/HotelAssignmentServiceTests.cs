@@ -39,10 +39,15 @@ public class HotelAssignmentServiceTests
 
     private sealed class FakeHotelAssignmentRepository : IHotelAssignmentRepository
     {
+        public Appointment? AppointmentResult { get; set; }
         public HotelAppointmentWithSpecies? Found { get; set; }
         public Cage? CageResult { get; set; }
         public List<Cage> ActiveCages { get; set; } = [];
         public List<HotelAppointment> AssignedStays { get; set; } = [];
+
+        public Task<Appointment?> FindAppointmentAsync(
+            Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult(AppointmentResult ?? Found?.Appointment);
 
         public Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(
             Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
@@ -68,11 +73,16 @@ public class HotelAssignmentServiceTests
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard
     {
         public Guid? LockedAppointmentId { get; private set; }
+        public (Species Species, SizeGroup SizeGroup)? LockedHotelGroup { get; private set; }
 
         public Task<T> RunAsync<T>(Func<Task<T>> work, CancellationToken ct = default) => work();
         public Task RunAsync(Func<Task> work, CancellationToken ct = default) => work();
         public Task LockSpaDayAsync(DateOnly day, CancellationToken ct = default) => Task.CompletedTask;
-        public Task LockHotelGroupAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => Task.CompletedTask;
+        public Task LockHotelGroupAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default)
+        {
+            LockedHotelGroup = (species, sizeGroup);
+            return Task.CompletedTask;
+        }
         public Task LockAppointmentAsync(Guid appointmentId, CancellationToken ct = default)
         {
             LockedAppointmentId = appointmentId;
@@ -167,6 +177,31 @@ public class HotelAssignmentServiceTests
         Assert.Equal(AppointmentStatus.Confirmed, status);
         Assert.Equal(cage.CageId, repository.Found!.Appointment.CageId);
         Assert.Equal(AppointmentId, guard.LockedAppointmentId);
+        Assert.Equal((Species.Dog, SizeGroup.Small), guard.LockedHotelGroup);
+    }
+
+    [Fact]
+    public async Task Confirm_WhenCageOccupiedInSameNights_ThrowsCageConflict()
+    {
+        var (service, repository, _) = CreateService();
+        var cage = CageOf("A1");
+        repository.CageResult = cage;
+        repository.AssignedStays =
+        [
+            new HotelAppointment
+            {
+                AppointmentId = Guid.NewGuid(),
+                CageId = cage.CageId,
+                PlannedCheckIn = Local(10, 14),
+                PlannedCheckOut = Local(11, 12),
+                Status = AppointmentStatus.Confirmed
+            }
+        ];
+
+        await AssertCodeAsync(ErrorCodes.CageConflict, () => service.ConfirmAsync(AppointmentId, cage.CageId));
+
+        Assert.Equal(AppointmentStatus.Pending, repository.Found!.Appointment.Status);
+        Assert.Null(repository.Found.Appointment.CageId);
     }
 
     [Fact]
@@ -219,6 +254,29 @@ public class HotelAssignmentServiceTests
         Assert.Equal(CancelReason.StoreUnable, result.Reason);
         Assert.Equal(AppointmentStatus.Cancelled, repository.Found!.Appointment.Status);
         Assert.Equal(AppointmentId, guard.LockedAppointmentId);
+    }
+
+    [Fact]
+    public async Task Reject_WhenSpaAppointment_CancelsWithStoreUnable()
+    {
+        var spaAppointment = new SpaAppointment
+        {
+            AppointmentId = Guid.NewGuid(),
+            Status = AppointmentStatus.Pending
+        };
+        var repository = new FakeHotelAssignmentRepository
+        {
+            AppointmentResult = spaAppointment
+        };
+        var guard = new FakeConcurrencyGuard();
+        var service = new HotelAssignmentService(repository, new FakeTimeZoneProvider(StoreTimeZone), guard);
+
+        var result = await service.RejectAsync(spaAppointment.AppointmentId);
+
+        Assert.Equal(AppointmentStatus.Cancelled, result.Status);
+        Assert.Equal(CancelReason.StoreUnable, result.Reason);
+        Assert.Equal(AppointmentStatus.Cancelled, spaAppointment.Status);
+        Assert.Equal(spaAppointment.AppointmentId, guard.LockedAppointmentId);
     }
 
     [Fact]

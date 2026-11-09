@@ -39,21 +39,27 @@ public sealed class AppointmentsController(BookingService bookingService, HotelA
 
     [HttpPost("{id}/confirm")]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
-    [EndpointSummary("Xác nhận lịch lưu trú kèm chuồng")]
-    [EndpointDescription("Chỉ quản lý. Gán cageId và chuyển lịch Chờ xác nhận sang Đã xác nhận. Chuồng không tồn tại hoặc không tìm thấy lịch trả 404 NOT_FOUND. Chuồng ngừng sử dụng, khác loài, khác nhóm kích cỡ hoặc đã gán cho lịch lưu trú khác trùng đêm trả 409 CAGE_CONFLICT. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION.")]
+    [EndpointSummary("Xác nhận lịch hẹn kèm nhân viên hoặc chuồng")]
+    [EndpointDescription("Chỉ quản lý. Spa: staffIds. Lưu trú: cageId. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND. Trùng chuồng/nhân viên trả 409 CAGE_CONFLICT / STAFF_CONFLICT.")]
     public async Task<IActionResult> Confirm(Guid id, [FromBody] ConfirmAppointmentRequest request, CancellationToken ct)
     {
         if (request is null)
             throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
 
-        var status = await hotelAssignment.ConfirmAsync(id, request.CageId!.Value, ct);
-        return Ok(new AppointmentStatusResponse(status));
+        if (request.CageId.HasValue)
+        {
+            var status = await hotelAssignment.ConfirmAsync(id, request.CageId.Value, ct);
+            return Ok(new AppointmentStatusResponse(status));
+        }
+
+        // Module xác nhận phân công nhân viên Spa (FR-ASG-02, FR-ASG-03) chưa được tích hợp
+        throw new BusinessException(ErrorCodes.ValidationError, "Xác nhận lịch Spa chưa được hỗ trợ.");
     }
 
     [HttpPost("{id}/reject")]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
-    [EndpointSummary("Từ chối lịch lưu trú khi cửa hàng không thể đáp ứng")]
-    [EndpointDescription("Chỉ quản lý, không có body. Lịch Chờ xác nhận chuyển sang Đã hủy với lý do StoreUnable. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch lưu trú trả 404 NOT_FOUND.")]
+    [EndpointSummary("Từ chối lịch hẹn khi cửa hàng không thể đáp ứng")]
+    [EndpointDescription("Chỉ quản lý, không có body. Lịch Chờ xác nhận chuyển sang Đã hủy với lý do StoreUnable. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch hẹn trả 404 NOT_FOUND.")]
     public async Task<IActionResult> Reject(Guid id, CancellationToken ct)
     {
         var result = await hotelAssignment.RejectAsync(id, ct);

@@ -35,6 +35,36 @@ public static class HotelCapacityService
         return Math.Max(available, 0);
     }
 
+    public static HashSet<Guid> GetOccupiedCageIds(
+        IEnumerable<HotelAppointment> assignedStays,
+        DateTimeOffset checkIn,
+        DateTimeOffset checkOut,
+        TimeZoneInfo storeTimeZone)
+    {
+        var firstNight = ToStoreDate(checkIn, storeTimeZone);
+        var checkOutDate = ToStoreDate(checkOut, storeTimeZone);
+
+        if (checkOutDate <= firstNight)
+        {
+            return [];
+        }
+
+        return assignedStays
+            .Where(s => s.CageId is not null
+                && ToStoreDate(s.PlannedCheckIn, storeTimeZone) < checkOutDate
+                && firstNight < ToStoreDate(s.PlannedCheckOut, storeTimeZone))
+            .Select(s => s.CageId!.Value)
+            .ToHashSet();
+    }
+
+    public static bool IsCageOccupied(
+        Guid cageId,
+        IEnumerable<HotelAppointment> assignedStays,
+        DateTimeOffset checkIn,
+        DateTimeOffset checkOut,
+        TimeZoneInfo storeTimeZone) =>
+        GetOccupiedCageIds(assignedStays, checkIn, checkOut, storeTimeZone).Contains(cageId);
+
     public static Cage? FindFreeCage(
         IEnumerable<Cage> candidateCages,
         IEnumerable<HotelAppointment> assignedStays,
@@ -50,12 +80,7 @@ public static class HotelCapacityService
             return null;
         }
 
-        var occupiedCageIds = assignedStays
-            .Where(s => s.CageId is not null
-                && ToStoreDate(s.PlannedCheckIn, storeTimeZone) < checkOutDate
-                && firstNight < ToStoreDate(s.PlannedCheckOut, storeTimeZone))
-            .Select(s => s.CageId!.Value)
-            .ToHashSet();
+        var occupiedCageIds = GetOccupiedCageIds(assignedStays, checkIn, checkOut, storeTimeZone);
 
         return candidateCages
             .Where(c => c.IsActive && !occupiedCageIds.Contains(c.CageId))

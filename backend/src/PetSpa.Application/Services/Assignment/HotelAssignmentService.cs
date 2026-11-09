@@ -32,6 +32,10 @@ public sealed class HotelAssignmentService(
     {
         return await concurrencyGuard.RunAsync(async () =>
         {
+            var meta = await assignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: true, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+
+            await concurrencyGuard.LockHotelGroupAsync(meta.Species, meta.Appointment.SizeGroup, ct);
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
             var found = await assignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
@@ -39,24 +43,43 @@ public sealed class HotelAssignmentService(
             var cage = await assignments.FindCageAsync(cageId, ct)
                 ?? throw new BusinessException(ErrorCodes.NotFound);
 
+            if (found.Appointment.Status != AppointmentStatus.Pending)
+                throw new BusinessException(ErrorCodes.InvalidTransition);
+
+            if (!cage.IsActive || cage.Species != found.Species || cage.SizeGroup != found.Appointment.SizeGroup)
+                throw new BusinessException(ErrorCodes.CageConflict);
+
+            var assignedStays = await assignments.ListAssignedStaysAsync(
+                found.Species, found.Appointment.SizeGroup, found.Appointment.PlannedCheckIn, found.Appointment.PlannedCheckOut, ct);
+
+            if (HotelCapacityService.IsCageOccupied(
+                cageId,
+                assignedStays.Where(s => s.AppointmentId != appointmentId),
+                found.Appointment.PlannedCheckIn,
+                found.Appointment.PlannedCheckOut,
+                timeZoneProvider.GetStoreTimeZone()))
+            {
+                throw new BusinessException(ErrorCodes.CageConflict);
+            }
+
             found.Appointment.AssignCage(cage, found.Species);
 
             return found.Appointment.Status;
         }, ct);
     }
 
-    public async Task<HotelRejectResult> RejectAsync(Guid appointmentId, CancellationToken ct = default)
+    public async Task<AppointmentRejectResult> RejectAsync(Guid appointmentId, CancellationToken ct = default)
     {
         return await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
-            var found = await assignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
+            var appointment = await assignments.FindAppointmentAsync(appointmentId, asNoTracking: false, ct)
                 ?? throw new BusinessException(ErrorCodes.NotFound);
 
-            found.Appointment.Reject();
+            appointment.Reject();
 
-            return new HotelRejectResult(found.Appointment.Status, found.Appointment.CancelReason!.Value);
+            return new AppointmentRejectResult(appointment.Status, appointment.CancelReason!.Value);
         }, ct);
     }
 }

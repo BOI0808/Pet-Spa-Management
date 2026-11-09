@@ -7,6 +7,9 @@ public sealed record HotelAppointmentWithSpecies(HotelAppointment Appointment, S
 
 public interface IHotelAssignmentRepository
 {
+    Task<Appointment?> FindAppointmentAsync(
+        Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default);
+
     Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(
         Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default);
 
