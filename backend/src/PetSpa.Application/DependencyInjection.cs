@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<StaffService>();
         services.AddScoped<WorkShiftService>();
         services.AddScoped<BookingService>();
+        services.AddScoped<AssignmentService>();
         services.AddScoped<PaymentAmountService>();
         services.AddScoped<HotelBookingService>();
         services.AddScoped<HotelAssignmentService>();

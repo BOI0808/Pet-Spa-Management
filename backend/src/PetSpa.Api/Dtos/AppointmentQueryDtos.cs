@@ -4,23 +4,29 @@ using PetSpa.Domain.Enums;
 
 namespace PetSpa.Api.Dtos;
 
-// GET /appointments?type=&status=&petId=&page=&pageSize=
-public sealed class ListAppointmentsQuery
-{
-    public AppointmentType? Type { get; init; }
-    public AppointmentStatus? Status { get; init; }
-    public Guid? PetId { get; init; }
-    public int Page { get; init; } = 1;
-    public int PageSize { get; init; } = 20;
-}
+public sealed record CostConfirmationResponse(
+    decimal ActualWeightKg,
+    SizeGroup NewSizeGroup,
+    long OldAmount,
+    long NewAmount,
+    ConfirmationStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? RespondedAt);
 
-// Một lịch hẹn trong danh sách (khớp schema Appointment trong openapi).
-// Trường chỉ có ở lịch spa hoặc chỉ có ở lịch lưu trú là null khi không áp dụng.
-public record AppointmentResponse(
+public sealed record AppointmentServiceItemResponse(
+    Guid ServiceId, string Name, bool IsDone, DateTimeOffset? DoneAt, string? Note);
+
+public sealed record AppointmentStaffItemResponse(
+    Guid StaffId, string FullName, bool IsHolding, DateTimeOffset AssignedAt);
+
+// Chi tiết lịch hẹn (khớp schema AppointmentDetail trong openapi): các trường của lịch hẹn, thêm services, staff, pendingCostConfirmation.
+public sealed record AppointmentDetailResponse(
     Guid AppointmentId,
     AppointmentType Type,
     Guid CustomerId,
     Guid PetId,
+    string CustomerName,
     string PetName,
     AppointmentStatus Status,
     CancelReason? CancelReason,
@@ -35,59 +41,49 @@ public record AppointmentResponse(
     DateTimeOffset? ActualCheckOut,
     Guid? CageId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<AppointmentServiceItemResponse> Services,
+    IReadOnlyList<AppointmentStaffItemResponse> Staff,
+    CostConfirmationResponse? PendingCostConfirmation)
 {
-    public static AppointmentResponse From(Appointment appointment, string petName)
+    public static AppointmentDetailResponse From(AppointmentDetailData data)
     {
-        var spa = appointment as SpaAppointment;
-        var hotel = appointment as HotelAppointment;
+        var a = data.Appointment;
+        var pendingCost = data.PendingCostConfirmation is not null
+            ? new CostConfirmationResponse(
+                data.PendingCostConfirmation.ActualWeightKg,
+                data.PendingCostConfirmation.NewSizeGroup,
+                (long)data.PendingCostConfirmation.OldAmount,
+                (long)data.PendingCostConfirmation.NewAmount,
+                data.PendingCostConfirmation.Status,
+                data.PendingCostConfirmation.CreatedAt,
+                data.PendingCostConfirmation.ExpiresAt,
+                data.PendingCostConfirmation.RespondedAt)
+            : null;
 
-        return new AppointmentResponse(
-            appointment.AppointmentId,
-            spa is not null ? AppointmentType.Spa : AppointmentType.Hotel,
-            appointment.CustomerId,
-            appointment.PetId,
-            petName,
-            appointment.Status,
-            appointment.CancelReason,
-            appointment.CancelledAt,
-            appointment.SizeGroup,
-            appointment.ActualWeightKg,
-            spa?.SlotStart,
-            spa?.SlotEnd,
-            spa?.StaffRequired,
-            hotel?.PlannedCheckIn,
-            hotel?.PlannedCheckOut,
-            hotel?.ActualCheckOut,
-            hotel?.CageId,
-            appointment.CreatedAt,
-            appointment.UpdatedAt);
+        return new AppointmentDetailResponse(
+            a.AppointmentId,
+            a.Type,
+            a.CustomerId,
+            a.PetId,
+            a.CustomerName,
+            a.PetName,
+            a.Status,
+            a.CancelReason,
+            a.CancelledAt,
+            a.SizeGroup,
+            a.ActualWeightKg,
+            a.SlotStart,
+            a.SlotEnd,
+            a.StaffRequired,
+            a.PlannedCheckIn,
+            a.PlannedCheckOut,
+            a.ActualCheckOut,
+            a.CageId,
+            a.CreatedAt,
+            a.UpdatedAt,
+            data.Services.Select(s => new AppointmentServiceItemResponse(s.ServiceId, s.Name, s.IsDone, s.DoneAt, s.Note)).ToList(),
+            data.Staff.Select(s => new AppointmentStaffItemResponse(s.StaffId, s.FullName, s.IsHolding, s.AssignedAt)).ToList(),
+            pendingCost);
     }
-}
-
-public sealed record AppointmentServiceItemResponse(
-    Guid ServiceId, string Name, bool IsDone, DateTimeOffset? DoneAt, string? Note);
-
-public sealed record AppointmentStaffItemResponse(
-    Guid StaffId, string FullName, bool IsHolding, DateTimeOffset AssignedAt);
-
-// Chi tiết lịch hẹn (khớp schema AppointmentDetail trong openapi): các trường của lịch hẹn, thêm services và staff.
-public sealed record AppointmentDetailResponse : AppointmentResponse
-{
-    public AppointmentDetailResponse(
-        AppointmentResponse appointment,
-        IReadOnlyList<AppointmentServiceItemResponse> services,
-        IReadOnlyList<AppointmentStaffItemResponse> staff) : base(appointment)
-    {
-        Services = services;
-        Staff = staff;
-    }
-
-    public IReadOnlyList<AppointmentServiceItemResponse> Services { get; init; }
-    public IReadOnlyList<AppointmentStaffItemResponse> Staff { get; init; }
-
-    public static AppointmentDetailResponse From(AppointmentDetailData data) => new(
-        AppointmentResponse.From(data.Appointment, data.PetName),
-        data.Services.Select(s => new AppointmentServiceItemResponse(s.ServiceId, s.Name, s.IsDone, s.DoneAt, s.Note)).ToList(),
-        data.Staff.Select(s => new AppointmentStaffItemResponse(s.StaffId, s.FullName, s.IsHolding, s.AssignedAt)).ToList());
 }

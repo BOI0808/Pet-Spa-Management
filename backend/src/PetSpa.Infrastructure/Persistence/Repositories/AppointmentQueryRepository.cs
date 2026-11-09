@@ -25,10 +25,10 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
         // Phạm vi theo token (BR-16): chỉ lịch của khách có Customer.UserId trùng người gọi.
         var query =
             from a in appointments
-            join c in db.Set<Customer>() on a.CustomerId equals c.CustomerId
-            join p in db.Set<Pet>() on a.PetId equals p.PetId
+            join c in db.Set<Customer>().AsNoTracking() on a.CustomerId equals c.CustomerId
+            join p in db.Set<Pet>().AsNoTracking() on a.PetId equals p.PetId
             where c.UserId == customerUserId
-            select new { Appointment = a, PetName = p.Name };
+            select new { Appointment = a, CustomerName = c.FullName, PetName = p.Name };
 
         var total = await query.CountAsync(ct);
         var rows = await query
@@ -38,7 +38,7 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
             .Take(pageSize)
             .ToListAsync(ct);
 
-        var items = rows.Select(r => new AppointmentListItem(r.Appointment, r.PetName)).ToList();
+        var items = rows.Select(r => ToListItem(r.Appointment, r.CustomerName, r.PetName)).ToList();
         return new PagedResult<AppointmentListItem>(items, page, pageSize, total);
     }
 
@@ -46,21 +46,28 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
     {
         var row = await (
             from a in db.Set<Appointment>().AsNoTracking()
-            join c in db.Set<Customer>() on a.CustomerId equals c.CustomerId
-            join p in db.Set<Pet>() on a.PetId equals p.PetId
+            join c in db.Set<Customer>().AsNoTracking() on a.CustomerId equals c.CustomerId
+            join p in db.Set<Pet>().AsNoTracking() on a.PetId equals p.PetId
             where a.AppointmentId == appointmentId
-            select new { Appointment = a, OwnerUserId = c.UserId, PetName = p.Name })
+            select new { Appointment = a, OwnerUserId = c.UserId, CustomerName = c.FullName, PetName = p.Name })
             .FirstOrDefaultAsync(ct);
 
         if (row is null) return null;
 
+        var appointmentItem = ToListItem(row.Appointment, row.CustomerName, row.PetName);
+
+        var pendingCost = await db.Set<CostConfirmation>().AsNoTracking()
+            .Where(c => c.AppointmentId == appointmentId && c.Status == ConfirmationStatus.Pending)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
         // Dịch vụ và nhân viên chỉ có ở lịch spa.
         if (row.Appointment is not SpaAppointment)
-            return new AppointmentDetailData(row.Appointment, row.OwnerUserId, row.PetName, [], []);
+            return new AppointmentDetailData(appointmentItem, row.OwnerUserId, [], [], pendingCost);
 
         var serviceRows = await (
             from s in db.Set<AppointmentService>().AsNoTracking()
-            join sv in db.Set<Service>() on s.ServiceId equals sv.ServiceId
+            join sv in db.Set<Service>().AsNoTracking() on s.ServiceId equals sv.ServiceId
             where s.AppointmentId == appointmentId
             orderby sv.Name, sv.ServiceId
             select new { s.ServiceId, sv.Name, s.IsDone, s.DoneAt, s.Note })
@@ -68,17 +75,31 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
 
         var staffRows = await (
             from s in db.Set<AppointmentStaff>().AsNoTracking()
-            join st in db.Set<Staff>() on s.StaffId equals st.StaffId
+            join st in db.Set<Staff>().AsNoTracking() on s.StaffId equals st.StaffId
             where s.AppointmentId == appointmentId
             orderby s.AssignedAt, s.StaffId
             select new { s.StaffId, st.FullName, s.IsHolding, s.AssignedAt })
             .ToListAsync(ct);
 
         return new AppointmentDetailData(
-            row.Appointment,
+            appointmentItem,
             row.OwnerUserId,
-            row.PetName,
             serviceRows.Select(r => new AppointmentServiceLine(r.ServiceId, r.Name, r.IsDone, r.DoneAt, r.Note)).ToList(),
-            staffRows.Select(r => new AppointmentStaffLine(r.StaffId, r.FullName, r.IsHolding, r.AssignedAt)).ToList());
+            staffRows.Select(r => new AppointmentStaffLine(r.StaffId, r.FullName, r.IsHolding, r.AssignedAt)).ToList(),
+            pendingCost);
+    }
+
+    private static AppointmentListItem ToListItem(Appointment a, string customerName, string petName)
+    {
+        var spa = a as SpaAppointment;
+        var hotel = a as HotelAppointment;
+
+        return new AppointmentListItem(
+            a.AppointmentId, spa is not null ? AppointmentType.Spa : AppointmentType.Hotel,
+            a.CustomerId, a.PetId, customerName, petName,
+            a.Status, a.CancelReason, a.CancelledAt, a.SizeGroup, a.ActualWeightKg,
+            spa?.SlotStart, spa?.SlotEnd, spa?.StaffRequired,
+            hotel?.PlannedCheckIn, hotel?.PlannedCheckOut, hotel?.ActualCheckOut, hotel?.CageId,
+            a.CreatedAt, a.UpdatedAt);
     }
 }

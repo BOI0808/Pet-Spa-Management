@@ -3,10 +3,16 @@ using PetSpa.Api.Dtos;
 
 namespace PetSpa.Api.Validators;
 
-public sealed class ListAppointmentsQueryValidator : AbstractValidator<ListAppointmentsQuery>
+public sealed class AppointmentListQueryValidator : AbstractValidator<AppointmentListQuery>
 {
-    public ListAppointmentsQueryValidator()
+    public AppointmentListQueryValidator()
     {
+        RuleFor(x => x.Type)
+            .IsInEnum().WithMessage("type phải là Spa hoặc Hotel.");
+
+        RuleFor(x => x.Status)
+            .IsInEnum().WithMessage("status không hợp lệ.");
+
         RuleFor(x => x.Page)
             .InclusiveBetween(1, 1_000_000).WithMessage("page phải từ 1 đến 1.000.000.");
 
@@ -14,3 +20,4 @@ public sealed class ListAppointmentsQueryValidator : AbstractValidator<ListAppoi
             .InclusiveBetween(1, 100).WithMessage("pageSize phải từ 1 đến 100.");
     }
 }
+
