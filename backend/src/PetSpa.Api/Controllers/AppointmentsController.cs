@@ -44,6 +44,16 @@ public sealed class AppointmentsController(
         return Ok(new PagedResult<AppointmentResponse>(items, result.Page, result.PageSize, result.Total));
     }
 
+    [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.Customer)]
+    [EndpointSummary("Khách hàng xem chi tiết lịch hẹn của mình")]
+    [EndpointDescription("Kiểm tra quyền sở hữu theo id: lịch của khách khác trả 403 FORBIDDEN và không trả thông tin; không tìm thấy trả 404. Lịch spa kèm danh sách dịch vụ và nhân viên được phân công (rỗng khi chưa xác nhận); lịch lưu trú trả hai danh sách rỗng.")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var detail = await appointmentQueryService.GetAsync(User.ToCurrentUser(), id, ct);
+        return Ok(AppointmentDetailResponse.From(detail));
+    }
+
     [HttpGet("{id}/suggestions")]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
     [EndpointSummary("Đề xuất chuồng cho lịch lưu trú Chờ xác nhận")]
