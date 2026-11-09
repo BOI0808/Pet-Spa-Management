@@ -11,7 +11,10 @@ namespace PetSpa.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/appointments")]
-public sealed class AppointmentsController(BookingService bookingService, HotelAssignmentService hotelAssignment) : ControllerBase
+public sealed class AppointmentsController(
+    BookingService bookingService,
+    AssignmentService assignmentService,
+    HotelAssignmentService hotelAssignment) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
@@ -39,12 +42,20 @@ public sealed class AppointmentsController(BookingService bookingService, HotelA
 
     [HttpGet("{id}/suggestions")]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
-    [EndpointSummary("Đề xuất chuồng cho lịch lưu trú Chờ xác nhận")]
-    [EndpointDescription("Chỉ quản lý. Đề xuất một chuồng đang sử dụng, cùng loài và nhóm kích cỡ với thú cưng, không trùng đêm với lịch lưu trú Đã xác nhận hoặc Đang lưu trú khác; nhiều chuồng phù hợp thì chọn mã chuồng nhỏ nhất. Không còn chuồng phù hợp trả 200 với cage = null (quản lý từ chối lịch bằng /reject). Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch lưu trú trả 404 NOT_FOUND.")]
+    [EndpointSummary("Quản lý xem đề xuất nhân viên spa hoặc chuồng lưu trú cho lịch Chờ xác nhận")]
+    [EndpointDescription("Chỉ quản lý. Lịch spa trả đề xuất nhân viên ({ staffRequired, suggested, alternatives }). Lịch lưu trú trả đề xuất chuồng ({ cage }). Không tìm thấy lịch trả 404 NOT_FOUND; lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION.")]
     public async Task<IActionResult> GetSuggestions(Guid id, CancellationToken ct)
     {
-        var cage = await hotelAssignment.SuggestCageAsync(id, ct);
-        return Ok(HotelCageSuggestionResponse.From(cage));
+        try
+        {
+            var result = await assignmentService.GetSuggestionsAsync(id, ct);
+            return Ok(SpaSuggestionsResponse.From(result));
+        }
+        catch (BusinessException ex) when (ex.Code == ErrorCodes.NotFound)
+        {
+            var cage = await hotelAssignment.SuggestCageAsync(id, ct);
+            return Ok(HotelCageSuggestionResponse.From(cage));
+        }
     }
 
     [HttpPost("{id}/confirm")]
