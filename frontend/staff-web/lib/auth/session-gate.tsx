@@ -9,7 +9,7 @@ import { canAccessPath } from "@/lib/route-access";
 import { onSessionEnded } from "./session";
 import { useSession } from "./use-session";
 
-function SessionSkeleton() {
+export function SessionSkeleton() {
   return (
     <div aria-busy="true" aria-label="Đang tải" className="animate-pulse space-y-4">
       <div className="h-8 w-64 rounded-lg bg-line-soft" />
