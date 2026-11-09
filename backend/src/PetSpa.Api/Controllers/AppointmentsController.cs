@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using PetSpa.Api.Dtos;
 using PetSpa.Api.Security;
+using PetSpa.Application.Common;
 using PetSpa.Application.Services.Booking;
 using PetSpa.Application.Services.Assignment;
+using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
 
 namespace PetSpa.Api.Controllers;
@@ -14,16 +16,35 @@ namespace PetSpa.Api.Controllers;
 public sealed class AppointmentsController(
     BookingService bookingService,
     AssignmentService assignmentService,
-    HotelAssignmentService hotelAssignment) : ControllerBase
+    HotelAssignmentService hotelAssignment,
+    AppointmentQueryService appointmentQueryService) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Policy = AuthorizationPolicies.Manager)]
-    [EndpointSummary("Quản lý xem danh sách lịch hẹn toàn cửa hàng")]
-    [EndpointDescription("Hiện chỉ quản lý gọi được; phạm vi của khách hàng, lễ tân, nhân viên spa do các việc xem lịch theo vai trò bổ sung. Lọc tùy chọn theo type (Spa | Hotel) và status; status=Pending cho danh sách Chờ xác nhận. Lịch tạo sớm nhất trước. Mặc định page = 1, pageSize = 20 (tối đa 100). type hoặc status sai giá trị trả 400 VALIDATION_ERROR.")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
+    [EndpointSummary("Danh sách lịch hẹn, lịch sử, tổng quan tiến độ")]
+    [EndpointDescription("Lọc theo phạm vi vai trò ở backend: Khách hàng chỉ thấy lịch của mình; Quản lý thấy toàn cửa hàng. Lọc tùy chọn theo type, status, petId. Mặc định page = 1, pageSize = 20 (tối đa 100).")]
     public async Task<IActionResult> List([FromQuery] AppointmentListQuery query, CancellationToken ct)
     {
-        var result = await bookingService.ListAppointmentsAsync(query.Type, query.Status, query.Page, query.PageSize, ct);
-        return Ok(result);
+        var currentUser = User.ToCurrentUser();
+        if (currentUser.Role == UserRole.Manager)
+        {
+            var result = await bookingService.ListAppointmentsAsync(query.Type, query.Status, query.Page, query.PageSize, ct);
+            return Ok(result);
+        }
+
+        var customerResult = await appointmentQueryService.ListAsync(
+            currentUser, query.Type, query.Status, query.PetId, query.Page, query.PageSize, ct);
+        return Ok(customerResult);
+    }
+
+    [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.Customer)]
+    [EndpointSummary("Khách hàng xem chi tiết lịch hẹn của mình")]
+    [EndpointDescription("Kiểm tra quyền sở hữu theo id: lịch của khách khác trả 403 FORBIDDEN và không trả thông tin; không tìm thấy trả 404. Lịch spa kèm danh sách dịch vụ và nhân viên được phân công (rỗng khi chưa xác nhận); lịch lưu trú trả hai danh sách rỗng.")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var detail = await appointmentQueryService.GetAsync(User.ToCurrentUser(), id, ct);
+        return Ok(AppointmentDetailResponse.From(detail));
     }
 
     [HttpPost("spa")]

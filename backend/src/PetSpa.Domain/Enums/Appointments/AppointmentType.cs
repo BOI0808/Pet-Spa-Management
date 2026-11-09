@@ -5,4 +5,3 @@ public enum AppointmentType
     Spa,
     Hotel
 }
-
