@@ -1,3 +1,4 @@
+using PetSpa.Application.Common;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Services;
@@ -6,6 +7,15 @@ namespace PetSpa.Application.Ports;
 
 // Dịch vụ đang cung cấp, có dòng giá cho đúng loài và nhóm kích cỡ của thú cưng.
 public sealed record BookableService(Guid ServiceId, TimeOnly LatestStartTime, int DurationMinutes, int StaffRequired);
+
+// Một dòng trong danh sách lịch hẹn. Thời điểm ở UTC.
+// Lịch spa: SlotStart, SlotEnd, StaffRequired; lịch lưu trú: PlannedCheckIn, PlannedCheckOut, ActualCheckOut, CageId; trường của loại kia là null.
+public sealed record AppointmentListItem(
+    Guid AppointmentId, AppointmentType Type, Guid CustomerId, Guid PetId, string CustomerName, string PetName,
+    AppointmentStatus Status, CancelReason? CancelReason, DateTimeOffset? CancelledAt, SizeGroup SizeGroup, decimal? ActualWeightKg,
+    DateTimeOffset? SlotStart, DateTimeOffset? SlotEnd, int? StaffRequired,
+    DateTimeOffset? PlannedCheckIn, DateTimeOffset? PlannedCheckOut, DateTimeOffset? ActualCheckOut, Guid? CageId,
+    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
 // Port truy vấn dữ liệu đặt lịch. Các thời điểm truyền vào đã ở UTC.
 public interface IBookingRepository
@@ -33,5 +43,9 @@ public interface IBookingRepository
 
     // Kiểm tra cờ khóa đặt lịch của khách hàng.
     Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default);
+
+    // Danh sách lịch hẹn toàn cửa hàng, lọc tùy chọn theo loại và trạng thái; lịch tạo sớm nhất trước (rồi theo AppointmentId).
+    Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
+        AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default);
 }
 
