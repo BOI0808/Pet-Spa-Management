@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/auth/use-session";
+import { usePendingCount } from "@/lib/queries/appointments";
 import { ROUTES } from "@/lib/routes";
 import { onDarkFocusClass } from "./sidebar-styles";
 
@@ -120,7 +121,15 @@ export function SidebarNav({ pathname, pendingCount }: SidebarNavProps) {
   );
 }
 
-/** Bản đọc trang hiện tại để tô mục đang chọn; đặt trong Suspense vì đang bật cacheComponents. */
-export function ActiveSidebarNav({ pendingCount }: { pendingCount: number | null }) {
-  return <SidebarNav pathname={usePathname()} pendingCount={pendingCount} />;
+/**
+ * Bản đọc trang hiện tại để tô mục đang chọn; đặt trong Suspense vì đang bật cacheComponents.
+ * Số lịch chờ chỉ được hỏi sau khi `GET /me` thành công (đã có phiên Quản lý); lỗi hoặc chưa có số thì ẩn huy hiệu.
+ */
+export function ActiveSidebarNav() {
+  const { me } = useSession();
+  const pendingCount = usePendingCount({ enabled: me !== undefined });
+  // Lần làm mới thất bại thì TanStack Query vẫn giữ `data` cũ cùng trạng thái lỗi;
+  // chủ ý ẩn huy hiệu vì số đó không còn kiểm chứng được.
+  const badgeCount = pendingCount.isError ? null : (pendingCount.data ?? null);
+  return <SidebarNav pathname={usePathname()} pendingCount={badgeCount} />;
 }

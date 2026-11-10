@@ -38,7 +38,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 
 - Thứ tự, nhãn, biểu tượng theo `.side-nav` của ui-demo (`NAV_ITEMS` trong `components/layout/sidebar-nav.tsx`).
 - Lịch spa và lưu trú chung một màn MW-03 `/lich-hen` (lọc bằng `?type=`); tình trạng chuồng nằm trong MW-07.
-- Số lịch chờ xác nhận (`pendingCount`) đang để `null` nên chưa hiện; thẻ 1.7.4.1 lấy số này từ API.
+- Số lịch chờ xác nhận: `ActiveSidebarNav` gọi `GET /appointments?status=Pending&page=1&pageSize=1` lấy `total` (làm mới 60 giây/lần, chỉ sau khi có phiên); chưa có số hoặc lỗi thì ẩn huy hiệu.
 - Khối tài khoản hiện `userName` của `GET /me`; nút đăng xuất gọi `POST /api/session/logout`.
 - Dưới 980px thanh bên thành thanh ngang cuộn được.
 
