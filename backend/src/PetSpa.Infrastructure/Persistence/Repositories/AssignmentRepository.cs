@@ -69,5 +69,25 @@ public sealed class AssignmentRepository(AppDbContext db) : IAssignmentRepositor
 
         return rows.Select(r => new StaffAssignment(r.StaffId, r.BusyFrom, r.BusyUntil)).ToList();
     }
+
+    public Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
+        db.Set<SpaAppointment>().FirstOrDefaultAsync(a => a.AppointmentId == appointmentId, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string>> ListActiveSpaStaffNamesAsync(
+        IReadOnlyCollection<Guid> staffIds, CancellationToken ct = default)
+    {
+        var ids = staffIds.ToList();
+
+        // Vai trò nằm ở Staff, trạng thái hoạt động nằm ở AppUser.
+        return await (
+            from s in db.Set<Staff>().AsNoTracking()
+            join u in db.Users.AsNoTracking() on s.UserId equals u.Id
+            where ids.Contains(s.StaffId) && s.StaffRole == StaffRole.SpaStaff && u.IsActive
+            select new { s.StaffId, s.FullName })
+            .ToDictionaryAsync(x => x.StaffId, x => x.FullName, ct);
+    }
+
+    public void AddStaffAssignments(IReadOnlyList<AppointmentStaff> assignments) =>
+        db.Set<AppointmentStaff>().AddRange(assignments);
 }
 
