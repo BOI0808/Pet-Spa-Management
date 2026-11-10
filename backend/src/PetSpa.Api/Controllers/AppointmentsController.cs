@@ -82,7 +82,7 @@ public sealed class AppointmentsController(
     [HttpPost("{id}/confirm")]
     [Authorize(Policy = AuthorizationPolicies.Manager)]
     [EndpointSummary("Xác nhận lịch hẹn kèm nhân viên hoặc chuồng")]
-    [EndpointDescription("Chỉ quản lý. Spa: staffIds. Lưu trú: cageId. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND. Trùng chuồng/nhân viên trả 409 CAGE_CONFLICT / STAFF_CONFLICT.")]
+    [EndpointDescription("Chỉ quản lý. Spa: staffIds đủ số nhân viên cần của lịch, tùy chọn confirmOutOfShift. Lưu trú: cageId. Lịch không ở Chờ xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND. Spa: số nhân viên không khớp trả 409 STAFF_COUNT_MISMATCH; nhân viên không phải nhân viên spa đang hoạt động trả 400 VALIDATION_ERROR; trùng khung giờ trả 409 STAFF_CONFLICT; chọn nhân viên ngoài ca mà chưa gửi confirmOutOfShift = true trả 409 STAFF_OUT_OF_SHIFT. Lưu trú: trùng chuồng trả 409 CAGE_CONFLICT.")]
     public async Task<IActionResult> Confirm(Guid id, [FromBody] ConfirmAppointmentRequest request, CancellationToken ct)
     {
         if (request is null)
@@ -94,8 +94,9 @@ public sealed class AppointmentsController(
             return Ok(new AppointmentStatusResponse(status));
         }
 
-        // Module xác nhận phân công nhân viên Spa (FR-ASG-02, FR-ASG-03) chưa được tích hợp
-        throw new BusinessException(ErrorCodes.ValidationError, "Xác nhận lịch Spa chưa được hỗ trợ.");
+        // Validator đã bảo đảm có staffIds khi không có cageId.
+        var spa = await assignmentService.ConfirmSpaAsync(id, request.StaffIds!, request.ConfirmOutOfShift, ct);
+        return Ok(new AppointmentStatusResponse(spa.Status));
     }
 
     [HttpPost("{id}/reject")]
