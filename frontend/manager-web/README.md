@@ -28,7 +28,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `components/ui`, `components/domain` | Thành phần dùng chung: Button, Card, Skeleton, Field/Input/Select/Textarea, Tag, EmptyState, ConfirmDialog, Drawer, PetAvatar |
 | `lib/queries` | Hook TanStack Query theo từng nhóm endpoint (`useServices`, `useCreateService`, …) |
 | `lib/number-input.ts`, `lib/size-groups.ts` | Đọc số người dùng nhập (`toWholeNumber`), nhóm kích cỡ theo loài (BR-19) và khung bảng giá loài × nhóm; dùng chung cho form dịch vụ và giá lưu trú |
-| `lib/labels.ts`, `lib/format.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ) và định dạng tiền |
+| `lib/labels.ts`, `lib/format.ts`, `lib/time.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ, tính cách, loại và trạng thái lịch hẹn), định dạng hiển thị và ngày giờ theo múi giờ cửa hàng |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu dữ liệu và hàm gọi endpoint |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `proxy.ts` | Chuyển hướng theo cookie phiên: chưa đăng nhập → `/dang-nhap` |
