@@ -1,3 +1,4 @@
+using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Services;
 
@@ -22,5 +23,15 @@ public interface IAssignmentRepository
     // Các lượt giữ chỗ nhân viên (IsHolding) có khoảng bận giao với [windowStart, windowEnd).
     Task<IReadOnlyList<StaffAssignment>> ListHoldingAssignmentsAsync(
         DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken ct = default);
+
+    // Lịch spa để xác nhận, đang được theo dõi (tracked) để cập nhật trạng thái; null nếu không có lịch hoặc không phải lịch spa.
+    Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default);
+
+    // Trong số staffIds, các nhân viên spa đang hoạt động: StaffId → họ tên. Nhân viên khác vai trò hoặc đã vô hiệu hóa không có trong kết quả.
+    Task<IReadOnlyDictionary<Guid, string>> ListActiveSpaStaffNamesAsync(
+        IReadOnlyCollection<Guid> staffIds, CancellationToken ct = default);
+
+    // Thêm các dòng phân công vào DbContext, chưa ghi xuống CSDL (cùng kiểu IBookingRepository.AddSpaAppointment).
+    void AddStaffAssignments(IReadOnlyList<AppointmentStaff> assignments);
 }
 
