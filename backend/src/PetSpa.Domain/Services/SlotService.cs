@@ -64,6 +64,18 @@ public static class SlotService
         return new StaffSuggestionResult(ranked.Take(staffRequired).ToList(), ranked.Skip(staffRequired).ToList());
     }
 
+    // Các nhân viên trong staffIds KHÔNG có ca làm phủ trọn khoảng giữ chỗ [holdStart, holdEnd).
+    // Cùng điều kiện ca với SuggestStaff; dùng khi quản lý chọn tay nhân viên (UC-12: ngoài ca → cảnh báo).
+    public static IReadOnlyList<Guid> FindStaffOutOfShift(
+        IReadOnlyCollection<Guid> staffIds,
+        IReadOnlyList<StaffShift> shifts,
+        DateTimeOffset holdStart,
+        DateTimeOffset holdEnd) =>
+        staffIds
+            .Distinct()
+            .Where(id => !shifts.Any(w => w.StaffId == id && w.Start <= holdStart && w.End >= holdEnd))
+            .ToList();
+
     public static IReadOnlyList<SlotResult> AvailableSlots(
         IReadOnlyList<SlotCandidate> candidates,
         TimeOnly latestStart,
