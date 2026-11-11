@@ -46,4 +46,19 @@ public class SpaAppointment : Appointment
     public void Start() => MoveTo(AppointmentStatus.InProgress);
 
     public void Complete() => MoveTo(AppointmentStatus.Completed);
+
+    // Khách tự đổi lịch spa (BR-26): cập nhật thú cưng, nhóm kích cỡ và khoảng giữ chỗ mới, lịch về Chờ xác nhận.
+    public void ChangeByCustomer(
+        Guid petId, SizeGroup sizeGroup, DateTimeOffset slotStart, DateTimeOffset slotEnd,
+        DateTimeOffset busyUntil, short staffRequired)
+    {
+        MarkChangedByCustomer();
+
+        PetId = petId;
+        SizeGroup = sizeGroup;
+        SlotStart = slotStart;
+        SlotEnd = slotEnd;
+        BusyUntil = busyUntil;
+        StaffRequired = staffRequired;
+    }
 }

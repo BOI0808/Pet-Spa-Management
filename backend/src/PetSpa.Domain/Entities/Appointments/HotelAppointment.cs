@@ -37,4 +37,17 @@ public class HotelAppointment : Appointment
         MoveTo(AppointmentStatus.Completed);
         ActualCheckOut = actualCheckOut ?? DateTimeOffset.UtcNow;
     }
+
+    // Khách tự đổi lịch lưu trú (BR-26): cập nhật thú cưng, nhóm kích cỡ, thời điểm nhận/trả; lịch về Chờ xác nhận
+    // và bỏ gán chuồng (ReturnToPending).
+    public void ChangeByCustomer(
+        Guid petId, SizeGroup sizeGroup, DateTimeOffset plannedCheckIn, DateTimeOffset plannedCheckOut)
+    {
+        MarkChangedByCustomer();
+
+        PetId = petId;
+        SizeGroup = sizeGroup;
+        PlannedCheckIn = plannedCheckIn;
+        PlannedCheckOut = plannedCheckOut;
+    }
 }
