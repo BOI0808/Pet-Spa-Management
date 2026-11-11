@@ -6788,6 +6788,408 @@
               "name": "06.H.0 Chuẩn bị dữ liệu lưu trú (task 166)",
               "item": [
                 {
+                  "name": "POST /auth/login – quản lý (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"managerToken\", body.accessToken);",
+                          "        pm.variables.set(\"managerToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (!pm.variables.get(\"managerUserName\") && pm.variables.get(\"managerPhone\")) {",
+                          "    pm.variables.set(\"managerUserName\", pm.variables.get(\"managerPhone\"));",
+                          "}",
+                          "if (!pm.variables.get(\"managerPhone\") && pm.variables.get(\"managerUserName\")) {",
+                          "    pm.variables.set(\"managerPhone\", pm.variables.get(\"managerUserName\"));",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{managerUserName}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – khách hàng thử 1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"customerToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000101\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – khách hàng thử 2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"customer2Token\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000102\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – lễ tân thử (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"receptionistToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000201\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – nhân viên spa thử (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"spaStaffToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000202\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /customers – lễ tân tìm khách thử 1, lấy customerId (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    if (body && Array.isArray(body.items)) {",
+                          "        const customer = body.items.find((c) => c.phone === \"0900000101\");",
+                          "        pm.test(\"Tìm thấy khách hàng thử 1\", function () {",
+                          "            pm.expect(customer).to.be.an(\"object\");",
+                          "        });",
+                          "        if (customer && customer.customerId) {",
+                          "            pm.environment.set(\"customerId\", customer.customerId);",
+                          "        }",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/customers?search=0900000101",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "customers"
+                      ],
+                      "query": [
+                        {
+                          "key": "search",
+                          "value": "0900000101"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /customers – lễ tân tìm khách thử 2, lấy customerId2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    if (body && Array.isArray(body.items)) {",
+                          "        const customer = body.items.find((c) => c.phone === \"0900000102\");",
+                          "        pm.test(\"Tìm thấy khách hàng thử 2\", function () {",
+                          "            pm.expect(customer).to.be.an(\"object\");",
+                          "        });",
+                          "        if (customer && customer.customerId) {",
+                          "            pm.environment.set(\"customerId2\", customer.customerId);",
+                          "        }",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/customers?search=0900000102",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "customers"
+                      ],
+                      "query": [
+                        {
+                          "key": "search",
+                          "value": "0900000102"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "PUT /hotel/pricing – thiết lập giá Dog/Small và GuineaPig/Small cho kiểm thử lưu trú (200)",
                   "event": [
                     {
@@ -7236,67 +7638,6 @@
                         "api",
                         "v1",
                         "pets"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "GET /customers – lễ tân tìm khách thử 2, lấy customerId2 (200)",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trả 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "if (pm.response.code === 200) {\r",
-                          "    const body = pm.response.json();\r",
-                          "    const customer = body.items.find((c) => c.phone === \"0900000102\");\r",
-                          "    pm.test(\"Tìm thấy khách hàng thử 2\", function () {\r",
-                          "        pm.expect(customer !== undefined).to.eql(true);\r",
-                          "    });\r",
-                          "    if (customer !== undefined) {\r",
-                          "        pm.environment.set(\"customerId2\", customer.customerId);\r",
-                          "    }\r",
-                          "}"
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{receptionistToken}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{baseUrl}}/api/v1/customers?search=0900000102",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "customers"
-                      ],
-                      "query": [
-                        {
-                          "key": "search",
-                          "value": "0900000102"
-                        }
                       ]
                     }
                   },
