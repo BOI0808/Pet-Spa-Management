@@ -23,6 +23,25 @@ public abstract class Appointment
 
     public virtual void ReturnToPending() => MoveTo(AppointmentStatus.Pending);
 
+    // Khách tự đổi hoặc hủy chỉ áp dụng cho lịch Chờ xác nhận hoặc Đã xác nhận (BR-08, BR-14).
+    public void EnsureCustomerCanChange()
+    {
+        if (Status is not (AppointmentStatus.Pending or AppointmentStatus.Confirmed))
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+    }
+
+    // Khách tự đổi lịch (BR-26): lịch Đã xác nhận quay về Chờ xác nhận để quản lý duyệt lại;
+    // lịch đang Chờ xác nhận giữ nguyên trạng thái.
+    protected void MarkChangedByCustomer()
+    {
+        EnsureCustomerCanChange();
+
+        if (Status == AppointmentStatus.Confirmed)
+            ReturnToPending();
+        else
+            UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void Reject()
     {
         if (Status != AppointmentStatus.Pending)
