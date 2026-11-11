@@ -20,16 +20,16 @@ Kiểm tra trước khi tạo PR: `npm run lint` và `npm run build`.
 | `app/(main)` | Các màn hình có thanh trên (CW-03 → CW-13), bọc trong `SessionGate` |
 | `app/api/session` | Route handler phiên đăng nhập: `login`, `refresh`, `logout` |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
-| `components/ui` | Thành phần cơ bản: `Button`, `ButtonLink`, `Field` + `Input`/`Textarea`, `FieldSet`, `ChoiceCard`, `SegmentedControl`, `Card`, `Tag`, `Modal`/`ConfirmDialog`, `EmptyState`, `Avatar`, `Skeleton` |
-| `components/domain` | Thành phần nghiệp vụ: `PetAvatar`, `PetLine`, `Stepper`, `DateStrip`, `SlotPicker`, `ServiceOption`, `SumLine`/`SumFact`/`SumTotal` |
+| `components/ui` | Thành phần cơ bản: `Button`, `ButtonLink`, `Field` + `Input`/`Textarea`, `FieldSet`, `ChoiceCard`, `SegmentedControl`, `Card`, `Tag`, `Modal`/`ConfirmDialog`, `EmptyState`, `Avatar`, `Skeleton`, `Badge`, `Tabs`, `FilterChip`, `Pager`, `KeyValue`/`DescriptionList` |
+| `components/domain` | Thành phần nghiệp vụ: `PetAvatar`, `PetLine`, `Stepper`, `DateStrip`, `SlotPicker`, `ServiceOption`, `SumLine`/`SumFact`/`SumTotal`, `StatusBadge`/`PaymentBadge`, `AppointmentTypeLabel`, `AppointmentTicket`, `Lifecycle`, `ServiceTask` |
 | `components/layout` | Thanh trên của web khách hàng, `PageHeader` (đường dẫn + tiêu đề), `AuthLayout` của màn đăng nhập/đăng ký |
-| `components/feedback` | `Alert`, hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
-| `features/<tính năng>` | Màn hình theo tính năng (`auth`, `booking`, `home`, `pets`, `profile`) và luật form (`forms.ts`) |
+| `components/feedback` | `Alert`, `Countdown` (đếm ngược tới `expiresAt`), hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
+| `features/<tính năng>` | Màn hình theo tính năng (`appointments`, `auth`, `booking`, `home`, `pets`, `profile`) và luật form (`forms.ts`) |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu (`types.ts`), hàm gọi API (`endpoints/`) |
 | `lib/queries` | Hook TanStack Query theo tài nguyên |
 | `lib/auth` | Phiên đăng nhập: access token trong bộ nhớ, `SessionProvider`, `SessionGate` |
 | `lib/routes.ts` | Đường dẫn các màn hình |
-| `lib/labels.ts` | Nhãn hiển thị của enum API (loài, nhóm kích cỡ, tính cách, nhóm mốc giờ – UI-Screens 2.4) |
+| `lib/labels.ts` | Nhãn hiển thị của enum API (loài, nhóm kích cỡ, tính cách, nhóm mốc giờ, trạng thái lịch hẹn, lý do hủy, khoản thanh toán – UI-Screens 2.4) |
 | `lib/time.ts` | Ngày giờ theo múi giờ cửa hàng, dựng ISO 8601 có `+07:00` (Frontend-Architecture 8) |
 | `proxy.ts` | Chuyển hướng lạc quan theo cookie phiên |
 
