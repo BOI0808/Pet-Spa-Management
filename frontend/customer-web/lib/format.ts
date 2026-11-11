@@ -66,6 +66,16 @@ export function formatDayMonth(date: string) {
   return `${day}/${month}`;
 }
 
+/** “2026-10-06” → “thứ ba”. */
+export function formatWeekday(date: string) {
+  return WEEKDAYS[weekdayIndex(date)];
+}
+
+/** “2026-10-06” → “06/10/2026”. */
+export function formatDate(date: string) {
+  return `${formatDayMonth(date)}/${date.slice(0, 4)}`;
+}
+
 /** “2026-10-06” → “thứ ba 06/10”. */
 export function formatWeekdayDayMonth(date: string) {
   return `${WEEKDAYS[weekdayIndex(date)]} ${formatDayMonth(date)}`;

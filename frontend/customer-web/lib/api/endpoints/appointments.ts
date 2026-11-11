@@ -1,5 +1,14 @@
 import { apiClient } from "@/lib/api/client";
-import type { SpaBookingCreated, SpaBookingRequest, SpaSlots } from "@/lib/api/types";
+import type {
+  AppointmentDetail,
+  AppointmentPage,
+  AppointmentStatus,
+  AppointmentType,
+  Payment,
+  SpaBookingCreated,
+  SpaBookingRequest,
+  SpaSlots,
+} from "@/lib/api/types";
 
 export type SpaSlotParams = { date: string; petId: string; serviceIds: string[] };
 
@@ -14,5 +23,32 @@ export async function getSpaSlots({ date, petId, serviceIds }: SpaSlotParams) {
 /** POST /appointments/spa – FR-BOOK-03. Backend tính tiền, thời lượng, số nhân viên và giữ chỗ (BR-18). */
 export async function createSpaAppointment(body: SpaBookingRequest) {
   const { data } = await apiClient.post<SpaBookingCreated>("/appointments/spa", body);
+  return data;
+}
+
+export type AppointmentListParams = {
+  type?: AppointmentType;
+  status?: AppointmentStatus;
+  date?: string;
+  petId?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+/** GET /appointments – FR-BOOK-04, FR-BOOK-05. Backend chỉ trả lịch của khách đang đăng nhập (BR-16). */
+export async function listAppointments(params: AppointmentListParams) {
+  const { data } = await apiClient.get<AppointmentPage>("/appointments", { params });
+  return data;
+}
+
+/** GET /appointments/{id} – FR-BOOK-04. Lịch của khách khác → 403, không trả thông tin (BR-16). */
+export async function getAppointment(appointmentId: string) {
+  const { data } = await apiClient.get<AppointmentDetail>(`/appointments/${encodeURIComponent(appointmentId)}`);
+  return data;
+}
+
+/** GET /appointments/{id}/payments – FR-PAY-04. Spa có 1 khoản; lưu trú tối đa 2 khoản (Stay, LateFee). */
+export async function listAppointmentPayments(appointmentId: string) {
+  const { data } = await apiClient.get<Payment[]>(`/appointments/${encodeURIComponent(appointmentId)}/payments`);
   return data;
 }
