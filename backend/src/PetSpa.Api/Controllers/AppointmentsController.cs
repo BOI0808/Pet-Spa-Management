@@ -119,4 +119,17 @@ public sealed class AppointmentsController(
         var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, ct);
         return Ok(new AppointmentStatusResponse(status));
     }
+
+    [HttpPut("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.Customer)]
+    [EndpointSummary("Khách hàng tự đổi lịch hẹn trong hạn")]
+    [EndpointDescription("Chỉ khách hàng. Spa: slotStart, petId, serviceIds. Lưu trú: plannedCheckIn, plannedCheckOut, petId. Thành công: lịch về Chờ xác nhận, phân công nhân viên/chuồng bị bỏ (BR-26). Lịch hoặc thú cưng của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Thiếu trường hoặc dịch vụ không áp dụng cho loài trả 400 VALIDATION_ERROR. Quá hạn tự đổi trả 409 CHANGE_WINDOW_CLOSED; lịch sai trạng thái trả 409 INVALID_TRANSITION; mốc giờ đã kín trả 409 SLOT_FULL; hết chuồng trả 409 NO_CAPACITY.")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAppointmentRequest request, CancellationToken ct)
+    {
+        if (request is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
+
+        var status = await appointmentChangeService.ChangeAsync(User.ToCurrentUser(), id, request.ToInput(), ct);
+        return Ok(new AppointmentStatusResponse(status));
+    }
 }
