@@ -17,7 +17,8 @@ public sealed class AppointmentsController(
     BookingService bookingService,
     AssignmentService assignmentService,
     HotelAssignmentService hotelAssignment,
-    AppointmentQueryService appointmentQueryService) : ControllerBase
+    AppointmentQueryService appointmentQueryService,
+    AppointmentChangeService appointmentChangeService) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
@@ -107,5 +108,15 @@ public sealed class AppointmentsController(
     {
         var result = await hotelAssignment.RejectAsync(id, ct);
         return Ok(AppointmentRejectedResponse.From(result));
+    }
+
+    [HttpPost("{id}/cancel")]
+    [Authorize(Policy = AuthorizationPolicies.Customer)]
+    [EndpointSummary("Khách hàng tự hủy lịch hẹn trong hạn")]
+    [EndpointDescription("Chỉ khách hàng, không có body; lý do CustomerCancelled do backend đặt. Lịch của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Lịch không ở Chờ xác nhận hoặc Đã xác nhận trả 409 INVALID_TRANSITION. Quá hạn tự hủy trả 409 CHANGE_WINDOW_CLOSED (liên hệ hotline).")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    {
+        var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, ct);
+        return Ok(new AppointmentStatusResponse(status));
     }
 }
