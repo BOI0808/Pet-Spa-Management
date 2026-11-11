@@ -15,6 +15,8 @@ public sealed class AppointmentChangeService(
     IPetRepository pets,
     IBookingRepository bookings,
     IServiceCatalogRepository catalog,
+    IHotelBookingRepository hotelBookings,
+    IStoreTimeZoneProvider timeZoneProvider,
     ShopTimeZone shopTimeZone,
     IConcurrencyGuard concurrency)
 {
@@ -72,8 +74,10 @@ public sealed class AppointmentChangeService(
         if (found.Appointment is SpaAppointment)
             return await ChangeSpaAsync(user, appointmentId, input, deadlineMinutes, ct);
 
-        // Đổi lịch lưu trú được bổ sung ở Phần 5.
-        throw new BusinessException(ErrorCodes.ValidationError, "Đổi lịch lưu trú chưa được hỗ trợ.");
+        if (found.Appointment is HotelAppointment)
+            return await ChangeHotelAsync(user, appointmentId, input, deadlineMinutes, ct);
+
+        throw new BusinessException(ErrorCodes.NotFound);
     }
 
     private async Task<AppointmentStatus> ChangeSpaAsync(
@@ -132,6 +136,67 @@ public sealed class AppointmentChangeService(
 
             return spa.Status;
         }, ct);
+    }
+
+    private async Task<AppointmentStatus> ChangeHotelAsync(
+        CurrentUser user, Guid appointmentId, AppointmentChangeInput input, int deadlineMinutes, CancellationToken ct)
+    {
+        if (input.PetId is null || input.PlannedCheckIn is null || input.PlannedCheckOut is null)
+            throw new BusinessException(
+                ErrorCodes.ValidationError, "Đổi lịch lưu trú cần petId, plannedCheckIn và plannedCheckOut.");
+
+        var checkInUtc = input.PlannedCheckIn.Value.ToUniversalTime();
+        var checkOutUtc = input.PlannedCheckOut.Value.ToUniversalTime();
+
+        if (checkInUtc <= DateTimeOffset.UtcNow)
+            throw new BusinessException(ErrorCodes.ValidationError, "Thời điểm nhận phòng phải ở tương lai.");
+
+        EnsureAtLeastOneNight(checkInUtc, checkOutUtc);
+
+        var pet = await FindOwnPetAsync(user, input.PetId.Value, ct);
+        var storeTimeZone = timeZoneProvider.GetStoreTimeZone();
+
+        return await concurrency.RunAsync(async () =>
+        {
+            // Khóa tư vấn theo loài và nhóm kích cỡ của thú cưng mới trước, khóa dòng lịch hẹn sau.
+            await concurrency.LockHotelGroupAsync(pet.Species, pet.SizeGroup, ct);
+            await concurrency.LockAppointmentAsync(appointmentId, ct);
+
+            var fresh = await changes.FindWithOwnerAsync(appointmentId, asNoTracking: false, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+
+            if (fresh.Appointment is not HotelAppointment stay)
+                throw new BusinessException(ErrorCodes.NotFound);
+
+            EnsureChangeAllowed(stay, deadlineMinutes);
+
+            // Danh sách lịch đang giữ chỗ có cả chính lịch này: bỏ ra để không tự chiếm chuồng của mình (BR-21).
+            var activeCages = await hotelBookings.CountActiveCagesAsync(pet.Species, pet.SizeGroup, ct);
+            var holdingStays = (await hotelBookings.ListHoldingStaysAsync(
+                pet.Species, pet.SizeGroup, checkInUtc, checkOutUtc, ct))
+                .Where(s => s.AppointmentId != appointmentId);
+
+            if (HotelCapacityService.AvailableCages(activeCages, holdingStays, checkInUtc, checkOutUtc, storeTimeZone) < 1)
+                throw new BusinessException(ErrorCodes.NoCapacity);
+
+            // Domain đưa lịch về Chờ xác nhận và bỏ gán chuồng (BR-26).
+            stay.ChangeByCustomer(pet.PetId, pet.SizeGroup, checkInUtc, checkOutUtc);
+
+            return stay.Status;
+        }, ct);
+    }
+
+    // Lưu trú tính theo đêm theo ngày ở múi giờ cửa hàng: ngày trả phải sau ngày nhận (như HotelBookingService).
+    private void EnsureAtLeastOneNight(DateTimeOffset checkIn, DateTimeOffset checkOut)
+    {
+        try
+        {
+            PricingService.CountNights(checkIn, checkOut, timeZoneProvider.GetStoreTimeZone());
+        }
+        catch (InvalidOperationException)
+        {
+            throw new BusinessException(ErrorCodes.ValidationError, "Ngày trả phải sau ngày nhận.");
+        }
     }
 
     // Thú cưng phải thuộc khách đang đăng nhập (BR-16) và đang hoạt động.
