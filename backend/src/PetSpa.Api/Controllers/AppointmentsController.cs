@@ -18,30 +18,24 @@ public sealed class AppointmentsController(
     AssignmentService assignmentService,
     HotelAssignmentService hotelAssignment,
     AppointmentQueryService appointmentQueryService,
-    AppointmentChangeService appointmentChangeService) : ControllerBase
+    AppointmentChangeService appointmentChangeService,
+    CheckInService checkInService) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
+    [Authorize]
     [EndpointSummary("Danh sách lịch hẹn, lịch sử, tổng quan tiến độ")]
-    [EndpointDescription("Lọc theo phạm vi vai trò ở backend: Khách hàng chỉ thấy lịch của mình; Quản lý thấy toàn cửa hàng. Lọc tùy chọn theo type, status, petId. Mặc định page = 1, pageSize = 20 (tối đa 100).")]
+    [EndpointDescription("Lọc theo phạm vi vai trò ở backend: Khách hàng chỉ thấy lịch của mình; Lễ tân và Quản lý thấy toàn cửa hàng; Nhân viên spa chỉ thấy lịch spa đang được phân công cho mình. Lọc tùy chọn theo type, status; petId chỉ áp dụng cho Khách hàng. Mặc định page = 1, pageSize = 20 (tối đa 100).")]
     public async Task<IActionResult> List([FromQuery] AppointmentListQuery query, CancellationToken ct)
     {
-        var currentUser = User.ToCurrentUser();
-        if (currentUser.Role == UserRole.Manager)
-        {
-            var result = await bookingService.ListAppointmentsAsync(query.Type, query.Status, query.Page, query.PageSize, ct);
-            return Ok(result);
-        }
-
-        var customerResult = await appointmentQueryService.ListAsync(
-            currentUser, query.Type, query.Status, query.PetId, query.Page, query.PageSize, ct);
-        return Ok(customerResult);
+        var result = await appointmentQueryService.ListAsync(
+            User.ToCurrentUser(), query.Type, query.Status, query.PetId, query.Page, query.PageSize, ct);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
-    [Authorize(Policy = AuthorizationPolicies.Customer)]
-    [EndpointSummary("Khách hàng xem chi tiết lịch hẹn của mình")]
-    [EndpointDescription("Kiểm tra quyền sở hữu theo id: lịch của khách khác trả 403 FORBIDDEN và không trả thông tin; không tìm thấy trả 404. Lịch spa kèm danh sách dịch vụ và nhân viên được phân công (rỗng khi chưa xác nhận); lịch lưu trú trả hai danh sách rỗng.")]
+    [Authorize]
+    [EndpointSummary("Xem chi tiết lịch hẹn theo phạm vi vai trò")]
+    [EndpointDescription("Khách hàng chỉ xem lịch của mình; Nhân viên spa chỉ xem lịch spa được phân công cho mình; Lễ tân và Quản lý xem toàn cửa hàng. Ngoài phạm vi trả 403 FORBIDDEN và không trả thông tin; không tìm thấy trả 404. Lịch spa kèm danh sách dịch vụ và nhân viên được phân công (rỗng khi chưa xác nhận); lịch lưu trú trả hai danh sách rỗng.")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
         var detail = await appointmentQueryService.GetAsync(User.ToCurrentUser(), id, ct);
@@ -108,6 +102,16 @@ public sealed class AppointmentsController(
     {
         var result = await hotelAssignment.RejectAsync(id, ct);
         return Ok(AppointmentRejectedResponse.From(result));
+    }
+
+    [HttpPost("{id}/check-in")]
+    [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
+    [EndpointSummary("Lễ tân hoặc quản lý tiếp nhận thú cưng lịch spa")]
+    [EndpointDescription("Chỉ lễ tân và quản lý, không có body. Lịch spa Đã xác nhận chuyển sang Đã tiếp nhận khi chưa quá Booking.HoldMinutes sau giờ hẹn. Lịch không ở Đã xác nhận hoặc đã quá thời gian giữ chỗ trả 409 INVALID_TRANSITION; không tìm thấy lịch spa trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> CheckIn(Guid id, CancellationToken ct)
+    {
+        var status = await checkInService.CheckInSpaAsync(id, ct);
+        return Ok(new AppointmentStatusResponse(status));
     }
 
     [HttpPost("{id}/cancel")]
