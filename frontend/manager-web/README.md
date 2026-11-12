@@ -22,7 +22,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/auth` | Màn MW-01 Đăng nhập |
 | `features/services` | Màn MW-06 Danh mục dịch vụ: bảng, ngăn kéo thêm/sửa, hộp thoại ngừng cung cấp |
 | `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
-| `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem |
+| `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem; lịch lưu trú: thông tin lịch + tạm tính, chuồng đề xuất, xác nhận và từ chối (`RejectAppointmentDialog` dùng chung cho lịch spa ở thẻ 144) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
 | `components/feedback` | Hiển thị lỗi và ghi chú: `Alert` (tông danger, info), `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
@@ -85,3 +85,12 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - Form giá đi theo dữ liệu backend (`values` + `keepDirtyValues` của React Hook Form): refetch cập nhật các ô chưa sửa, giữ ô đang gõ dở.
 - Tạm thời: backend chưa có `GET /cages` (FR-HTL-08, thẻ 88) nên bảng chuồng chỉ liệt kê chuồng đã thêm/sửa trong lần mở trang (state trong `CagesScreen`, mất khi tải lại). Thẻ 150 nối `GET /cages`: thay danh sách này, thêm 4 thẻ số liệu, cột "Đang chứa", tổng số chuồng trên tab và tải lại danh sách sau khi ghi (`lib/queries/cages.ts`).
 - Cả hai tab luôn được dựng (tab không chọn bị ẩn bằng `hidden`) nên đổi tab không mất danh sách chuồng hay giá đang nhập. Chưa làm (Đề xuất trong UI-Screens): hỏi xác nhận khi rời trang hoặc tải lại lúc có giá chưa lưu.
+
+## Xác nhận và từ chối lịch lưu trú (MW-04, thẻ 145)
+
+- Chọn lịch lưu trú ở `/cho-xac-nhan`: `GET /appointments/{id}/suggestions` (`useHotelSuggestions`) trả `{ cage }`; `cage` là `null` khi không còn chuồng phù hợp thì nút "Xác nhận lịch lưu trú" bị khóa, chỉ còn "Từ chối".
+- Xác nhận: `POST /appointments/{id}/confirm` chỉ gửi `{ cageId }` (không gửi số tiền, trạng thái, nhóm kích cỡ). Từ chối: `POST /appointments/{id}/reject` không body (`RejectAppointmentDialog`, dùng chung cho lịch spa ở thẻ 144).
+- Tạm thời chỉ hiện chuồng hệ thống đề xuất, chưa chọn chuồng khác vì backend chưa có `GET /cages` (thẻ 88; UI-Screens G-08). Thẻ 150 nối `GET /cages` thì thêm danh sách chuồng vào `HotelCageSection`.
+- "Tạm tính" tính ở web (`features/pending/hotel-stay.ts`) từ `GET /hotel/pricing` và hồ sơ thú cưng chỉ để hiển thị; số tiền thật do backend tính (BR-22, BR-26).
+- Lỗi 409: `CAGE_CONFLICT` hiện `ErrorAlert` trong thẻ rồi tải lại đề xuất chuồng; `INVALID_TRANSITION` hiện toast lỗi rồi tải lại danh sách chờ và huy hiệu.
+- Sau khi xác nhận hoặc từ chối: `PendingScreen.handleProcessed` đổi `?appointmentId=` sang lịch kế tiếp bằng History API (không chờ máy chủ), gỡ lịch khỏi cache rồi tải lại danh sách và huy hiệu.
