@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** Khung xương của MW-04: ba phiếu bên trái, thẻ chi tiết bên phải (UI-Screens 2.2). */
 export function PendingSkeleton() {
   return (
-    <div className="grid grid-cols-[420px_minmax(0,1fr)] items-start gap-6 max-[1180px]:grid-cols-1">
+    <div className="grid grid-cols-[380px_minmax(0,1fr)] items-start gap-6 max-[1180px]:grid-cols-1">
       <div className="flex flex-col gap-2.5">
         {Array.from({ length: 3 }, (_, index) => (
           <Skeleton key={index} className="h-[66px] rounded-2xl" />

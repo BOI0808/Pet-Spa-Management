@@ -4,7 +4,6 @@ import { AppointmentTicket } from "@/components/domain/appointment-ticket";
 import type { Appointment } from "@/lib/api/types";
 import { formatDayMonth, formatWeekdayShort } from "@/lib/format";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/labels";
-import { usePet } from "@/lib/queries/pets";
 import { getStoreToday, toStoreDate, toStoreTime } from "@/lib/time";
 
 const MISSING = "–";
@@ -36,22 +35,23 @@ type PendingTicketItemProps = {
 };
 
 /**
- * Một phiếu trong danh sách chờ xác nhận. Danh sách `GET /appointments` không có loài nên gọi
- * `GET /pets/{petId}` để vẽ hình thú cưng; cùng khóa với thẻ chi tiết nên phiếu đang chọn không gọi thêm.
+ * Một phiếu trong danh sách chờ xác nhận. Không gọi `GET /pets/{petId}` cho từng phiếu để tránh N+1
+ * request khi `GET /appointments` chưa trả `species`; hồ sơ thú cưng chỉ tải ở thẻ chi tiết khi chọn.
+ * Bấm phiếu chỉ đổi `?appointmentId=` tại chỗ nên bật `replace` và giữ nguyên vị trí cuộn.
  * Dòng phụ chỉ có loại lịch và tên khách: backend chưa trả lý do chờ (UI-Screens G-08).
  */
 export function PendingTicketItem({ appointment, selected, href }: PendingTicketItemProps) {
-  const petQuery = usePet(appointment.petId);
   const stub = getStub(appointment);
 
   return (
     <AppointmentTicket
       href={href}
+      replace
+      scroll={false}
       selected={selected}
       variant={appointment.type === "Spa" ? "spa" : "hotel"}
       stubTop={stub.top}
       stubBottom={stub.bottom}
-      species={petQuery.data?.species ?? null}
       title={appointment.petName ?? "Thú cưng"}
       subtitle={`${APPOINTMENT_TYPE_LABELS[appointment.type]}, ${appointment.customerName ?? "Khách hàng"}`}
     />

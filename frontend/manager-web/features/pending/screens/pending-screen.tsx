@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
+import { NotFoundState } from "@/components/feedback/not-found-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,56 +40,107 @@ function sortByAppointmentTime(items: readonly Appointment[]) {
   );
 }
 
+function MissingAppointmentNotice({
+  matchedInAll,
+  filter,
+  loadedCount,
+  isTruncated,
+  onNavigate,
+}: {
+  matchedInAll: Appointment | undefined;
+  filter: TypeFilter;
+  loadedCount: number;
+  isTruncated: boolean;
+  onNavigate: (href: string) => void;
+}) {
+  if (matchedInAll) {
+    const typeLabel = APPOINTMENT_TYPE_LABELS[matchedInAll.type].toLocaleLowerCase("vi-VN");
+    return (
+      <Card className="p-5">
+        <NotFoundState
+          title="Lịch hẹn đang chọn không thuộc bộ lọc hiện tại"
+          description={`Lịch này thuộc nhóm ${typeLabel}, không nằm trong bộ lọc đang chọn.`}
+          action={
+            <Button onClick={() => onNavigate(buildPendingHref({ filter: "all", appointmentId: matchedInAll.appointmentId }))}>
+              Xem tất cả để mở lịch này
+            </Button>
+          }
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-5">
+      <NotFoundState
+        title="Không tìm thấy lịch chờ xác nhận này"
+        description={
+          isTruncated
+            ? `Lịch hẹn có thể nằm ngoài ${loadedCount} lịch tải trước hoặc không còn ở trạng thái Chờ xác nhận.`
+            : "Lịch hẹn có thể đã được xác nhận, từ chối, hủy hoặc liên kết không đúng."
+        }
+        action={<Button onClick={() => onNavigate(buildPendingHref({ filter }))}>Về danh sách chờ</Button>}
+      />
+    </Card>
+  );
+}
+
 export function PendingScreen() {
   const pendingQuery = usePendingAppointments();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filter = parseTypeFilter(searchParams.get("type"));
-  const selectedId = searchParams.get("appointmentId");
+  const rawSelectedId = searchParams.get("appointmentId");
+  const selectedId = rawSelectedId && rawSelectedId.trim().length > 0 ? rawSelectedId.trim() : null;
 
   const items = pendingQuery.data ? sortByAppointmentTime(pendingQuery.data.items) : undefined;
   const visible = items?.filter((item) => filter === "all" || item.type === filter);
-  // Không có `?appointmentId=` hoặc lịch đó không còn trong danh sách đang hiện thì chọn phiếu đầu tiên.
-  const selected = visible?.find((item) => item.appointmentId === selectedId) ?? visible?.[0];
+  const matchedInAll = selectedId ? items?.find((item) => item.appointmentId === selectedId) : undefined;
+  // Chỉ tự chọn phiếu đầu tiên khi URL không chỉ định `?appointmentId=`; nếu URL có mã mà không thấy thì báo rõ thay vì âm thầm mở nhầm lịch khác.
+  const selected = selectedId ? visible?.find((item) => item.appointmentId === selectedId) : visible?.[0];
 
   const spaCount = items?.filter((item) => item.type === "Spa").length ?? 0;
   const hotelCount = items?.filter((item) => item.type === "Hotel").length ?? 0;
+  const replaceUrl = (href: string) => router.replace(href, { scroll: false });
 
   function changeFilter(next: TypeFilter) {
-    // Giữ lịch đang chọn nếu nó vẫn thuộc nhóm mới.
-    const keepSelected = selected && (next === "all" || selected.type === next);
-    router.replace(buildPendingHref({ filter: next, appointmentId: keepSelected ? selected.appointmentId : undefined }), {
-      scroll: false,
-    });
+    // Giữ lịch đang chỉ định/đang chọn nếu nó vẫn thuộc nhóm mới.
+    const current = matchedInAll ?? selected;
+    const keepSelected = current && (next === "all" || current.type === next);
+    replaceUrl(buildPendingHref({ filter: next, appointmentId: keepSelected ? current.appointmentId : undefined }));
   }
 
-  // Vùng 1 – Tiêu đề + lọc; vùng 2 – Danh sách chờ; vùng 3 – Đầu thẻ chi tiết.
-  return (
-    <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1>Lịch hẹn chờ xác nhận</h1>
-          <p className="mt-1 text-muted">
-            {items && `Spa ${spaCount}, lưu trú ${hotelCount}. Xử lý theo thứ tự giờ hẹn gần nhất.`}
-          </p>
-        </div>
-        <SegmentedControl label="Lọc theo loại lịch" options={FILTER_OPTIONS} value={filter} onChange={changeFilter} />
-      </div>
+  const missingNotice =
+    items !== undefined && selected === undefined && selectedId !== null ? (
+      <MissingAppointmentNotice
+        matchedInAll={matchedInAll}
+        filter={filter}
+        loadedCount={items.length}
+        isTruncated={Boolean(pendingQuery.data?.isTruncated)}
+        onNavigate={replaceUrl}
+      />
+    ) : null;
 
-      {items === undefined ? (
-        pendingQuery.isError ? (
-          isForbiddenError(pendingQuery.error) ? (
-            <ForbiddenState />
-          ) : (
-            <div className="flex flex-col items-start gap-3">
-              <ErrorAlert error={pendingQuery.error} className="w-full" />
-              <Button onClick={() => void pendingQuery.refetch()}>Thử lại</Button>
-            </div>
-          )
+  function renderMainContent() {
+    if (items === undefined) {
+      if (pendingQuery.isError) {
+        return isForbiddenError(pendingQuery.error) ? (
+          <ForbiddenState />
         ) : (
-          <PendingSkeleton />
-        )
-      ) : visible?.length === 0 || selected === undefined ? (
+          <div className="flex flex-col items-start gap-3">
+            <ErrorAlert error={pendingQuery.error} className="w-full" />
+            <Button onClick={() => void pendingQuery.refetch()}>Thử lại</Button>
+          </div>
+        );
+      }
+      return <PendingSkeleton />;
+    }
+
+    if (!visible || visible.length === 0) {
+      if (missingNotice) {
+        return missingNotice;
+      }
+      return (
         <Card>
           {items.length === 0 ? (
             <EmptyState
@@ -104,25 +156,44 @@ export function PendingScreen() {
             />
           )}
         </Card>
-      ) : (
-        <div className="grid grid-cols-[420px_minmax(0,1fr)] items-start gap-6 max-[1180px]:grid-cols-1">
-          <div className="flex flex-col gap-2.5">
-            {(visible ?? []).map((item) => (
-              <PendingTicketItem
-                key={item.appointmentId}
-                appointment={item}
-                selected={item.appointmentId === selected.appointmentId}
-                href={buildPendingHref({ filter, appointmentId: item.appointmentId })}
-              />
-            ))}
-          </div>
-          <PendingDetailCard key={selected.appointmentId} appointment={selected} />
-        </div>
-      )}
+      );
+    }
 
-      {pendingQuery.data && pendingQuery.data.total > pendingQuery.data.items.length && (
+    return (
+      <div className="grid grid-cols-[380px_minmax(0,1fr)] items-start gap-6 max-[1180px]:grid-cols-1">
+        <div className="flex flex-col gap-2.5">
+          {visible.map((item) => (
+            <PendingTicketItem
+              key={item.appointmentId}
+              appointment={item}
+              selected={item.appointmentId === selected?.appointmentId}
+              href={buildPendingHref({ filter, appointmentId: item.appointmentId })}
+            />
+          ))}
+        </div>
+        {selected ? <PendingDetailCard key={selected.appointmentId} appointment={selected} /> : missingNotice}
+      </div>
+    );
+  }
+
+  // Vùng 1 – Tiêu đề + lọc; vùng 2 – Danh sách chờ; vùng 3 – Đầu thẻ chi tiết.
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1>Lịch hẹn chờ xác nhận</h1>
+          <p className="mt-1 text-muted">
+            {items && `Spa ${spaCount}, lưu trú ${hotelCount}. Xử lý theo thứ tự giờ hẹn gần nhất.`}
+          </p>
+        </div>
+        <SegmentedControl label="Lọc theo loại lịch" options={FILTER_OPTIONS} value={filter} onChange={changeFilter} />
+      </div>
+
+      {renderMainContent()}
+
+      {pendingQuery.data?.isTruncated && (
         <Alert tone="info" className="mt-3">
-          Đang hiển thị {pendingQuery.data.items.length} trong {pendingQuery.data.total} lịch chờ xác nhận; số đếm ở trên chỉ tính
+          Đang hiển thị {pendingQuery.data.items.length} trong {pendingQuery.data.total} lịch chờ xác nhận đầu tiên; số đếm ở trên chỉ tính
           trong phần đang hiển thị. Xử lý bớt để xem tiếp.
         </Alert>
       )}
