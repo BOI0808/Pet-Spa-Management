@@ -17,6 +17,8 @@ public interface IAssignmentRepository
     // Lấy số ngày xét lịch phân công gần nhất.
     Task<int> GetSuggestLookbackDaysAsync(CancellationToken ct = default);
 
+    Task<int> GetHoldMinutesAsync(CancellationToken ct = default);
+
     // Nhân viên spa đang hoạt động, kèm số lịch được phân công từ `since` đến nay (không tính lịch Cancelled).
     Task<IReadOnlyList<StaffCandidate>> ListSpaStaffCandidatesAsync(DateTimeOffset since, CancellationToken ct = default);
 

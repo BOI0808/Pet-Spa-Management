@@ -43,6 +43,9 @@ public class AssignmentServiceConfirmSpaTests
         public Task<int> GetSuggestLookbackDaysAsync(CancellationToken ct = default) =>
             throw new NotImplementedException();
 
+        public Task<int> GetHoldMinutesAsync(CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
         public Task<IReadOnlyList<StaffCandidate>> ListSpaStaffCandidatesAsync(
             DateTimeOffset since, CancellationToken ct = default) =>
             throw new NotImplementedException();

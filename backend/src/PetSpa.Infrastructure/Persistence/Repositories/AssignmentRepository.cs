@@ -34,6 +34,18 @@ public sealed class AssignmentRepository(AppDbContext db) : IAssignmentRepositor
         return int.Parse(value, CultureInfo.InvariantCulture);
     }
 
+    public async Task<int> GetHoldMinutesAsync(CancellationToken ct = default)
+    {
+        var value = await db.Set<SystemConfig>().AsNoTracking()
+            .Where(c => c.ConfigKey == "Booking.HoldMinutes")
+            .Select(c => c.ConfigValue)
+            .FirstOrDefaultAsync(ct);
+
+        if (value is null) throw new InvalidOperationException("Thiếu cấu hình Booking.HoldMinutes.");
+
+        return int.Parse(value, CultureInfo.InvariantCulture);
+    }
+
     public async Task<IReadOnlyList<StaffCandidate>> ListSpaStaffCandidatesAsync(
         DateTimeOffset since, CancellationToken ct = default)
     {
