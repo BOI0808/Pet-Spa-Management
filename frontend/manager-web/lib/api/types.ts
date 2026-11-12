@@ -147,3 +147,59 @@ export type StaffUpdateRequest = {
 
 /** Phản hồi của POST /staff/{id}/deactivate: số lịch spa “Đã xác nhận” đã về “Chờ xác nhận” (BR-27). */
 export type DeactivateResult = { returnedToPending: number };
+
+// ── Lịch hẹn và hồ sơ thú cưng (FR-ASG-01, FR-PET-02) ──
+export type Temperament = "Calm" | "Normal" | "Difficult";
+export type AppointmentType = "Spa" | "Hotel";
+export type AppointmentStatus =
+  | "Pending"
+  | "Confirmed"
+  | "Received"
+  | "InProgress"
+  | "InStay"
+  | "Completed"
+  | "Cancelled";
+
+/** Thông tin trang (PageInfo) của các phản hồi danh sách; `items` là phần tử của trang. */
+export type PageInfo = { page: number; pageSize: number; total: number };
+export type Page<T> = PageInfo & { items: T[] };
+
+/**
+ * Một dòng của GET /appointments (schema Appointment). Chỉ khai báo các trường MW-04 dùng;
+ * thêm trường khi màn khác cần. `customerName`, `petName` là trường đề xuất của openapi nhưng backend đã trả.
+ * Lịch Spa có `slotStart`/`slotEnd`; lịch Hotel có `plannedCheckIn`/`plannedCheckOut`.
+ */
+export type Appointment = {
+  appointmentId: string;
+  type: AppointmentType;
+  customerId: string;
+  petId: string;
+  customerName?: string;
+  petName?: string;
+  status: AppointmentStatus;
+  sizeGroup: SizeGroup;
+  slotStart?: string | null;
+  slotEnd?: string | null;
+  plannedCheckIn?: string | null;
+  plannedCheckOut?: string | null;
+  createdAt: string;
+};
+
+/** Phản hồi của GET /appointments. */
+export type AppointmentPage = Page<Appointment>;
+
+/** GET /pets/{petId} (schema Pet). Quản lý chỉ xem (FR-PET-02). */
+export type Pet = {
+  petId: string;
+  customerId: string;
+  name: string;
+  species: Species;
+  breed: string;
+  temperament: Temperament;
+  weightKg: number;
+  heightCm?: number | null;
+  coatNote?: string | null;
+  notes?: string | null;
+  sizeGroup: SizeGroup;
+  isActive: boolean;
+};

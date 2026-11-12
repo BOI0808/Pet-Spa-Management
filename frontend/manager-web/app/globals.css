@@ -14,6 +14,10 @@
   --color-apricot-50: #fff4dc;
   --color-apricot-100: #fce6b6;
   --color-apricot-700: #7a4b00;
+  /* Lịch lưu trú (Design-System 2.1; cần đồng bộ thêm sang customer-web và staff-web). */
+  --color-hotel: #6a5bc4;
+  --color-hotel-50: #f1effc;
+  --color-hotel-700: #4a3fa6;
   --color-ink: #14323a;
   --color-muted: #5b7178;
   --color-mist: #f5f9fa;

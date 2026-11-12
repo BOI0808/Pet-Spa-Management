@@ -29,9 +29,9 @@ export function Sidebar() {
           <small className="block text-[11px] font-medium leading-[14px] text-[#89BDC2]">Web quản lý</small>
         </span>
       </Link>
-      {/* Thẻ 143 – 1.7.4.1 truyền số lịch Pending (UI-Screens 2.1 vùng C); trước đó để null nên huy hiệu ẩn. */}
+      {/* Số lịch Pending ở huy hiệu (UI-Screens 2.1 vùng C) do ActiveSidebarNav tự lấy từ API. */}
       <Suspense fallback={<SidebarNav pathname={null} pendingCount={null} />}>
-        <ActiveSidebarNav pendingCount={null} />
+        <ActiveSidebarNav />
       </Suspense>
     </aside>
   );

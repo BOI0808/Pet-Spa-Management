@@ -22,13 +22,14 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/auth` | Màn MW-01 Đăng nhập |
 | `features/services` | Màn MW-06 Danh mục dịch vụ: bảng, ngăn kéo thêm/sửa, hộp thoại ngừng cung cấp |
 | `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
+| `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
-| `components/feedback` | Hiển thị lỗi và ghi chú: `Alert` (tông danger, info), `ErrorAlert`, `ForbiddenState`, `FieldError`, toast |
-| `components/ui`, `components/domain` | Thành phần dùng chung: Button, Card, Skeleton, Field/Input/Select/Textarea, Tag, EmptyState, ConfirmDialog, Drawer, PetAvatar |
+| `components/feedback` | Hiển thị lỗi và ghi chú: `Alert` (tông danger, info), `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
+| `components/ui`, `components/domain` | Thành phần dùng chung: Button, Card, Skeleton, Field/Input/Select/Textarea, Tag, EmptyState, ConfirmDialog, Drawer, PetAvatar, SegmentedControl, StatusBadge, AppointmentTicket |
 | `lib/queries` | Hook TanStack Query theo từng nhóm endpoint (`useServices`, `useCreateService`, …) |
 | `lib/number-input.ts`, `lib/size-groups.ts` | Đọc số người dùng nhập (`toWholeNumber`), nhóm kích cỡ theo loài (BR-19) và khung bảng giá loài × nhóm; dùng chung cho form dịch vụ và giá lưu trú |
-| `lib/labels.ts`, `lib/format.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ) và định dạng tiền |
+| `lib/labels.ts`, `lib/format.ts`, `lib/time.ts` | Nhãn tiếng Việt cho enum (loài, nhóm kích cỡ, tính cách, loại và trạng thái lịch hẹn), định dạng hiển thị và ngày giờ theo múi giờ cửa hàng |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, kiểu dữ liệu và hàm gọi endpoint |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `proxy.ts` | Chuyển hướng theo cookie phiên: chưa đăng nhập → `/dang-nhap` |
@@ -38,7 +39,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 
 - Thứ tự, nhãn, biểu tượng theo `.side-nav` của ui-demo (`NAV_ITEMS` trong `components/layout/sidebar-nav.tsx`).
 - Lịch spa và lưu trú chung một màn MW-03 `/lich-hen` (lọc bằng `?type=`); tình trạng chuồng nằm trong MW-07.
-- Số lịch chờ xác nhận (`pendingCount`) đang để `null` nên chưa hiện; thẻ 1.7.4.1 lấy số này từ API.
+- Số lịch chờ xác nhận: `ActiveSidebarNav` gọi `GET /appointments?status=Pending&page=1&pageSize=1` lấy `total` (làm mới 60 giây/lần, chỉ sau khi có phiên); chưa có số hoặc lỗi thì ẩn huy hiệu.
 - Khối tài khoản hiện `userName` của `GET /me`; nút đăng xuất gọi `POST /api/session/logout`.
 - Dưới 980px thanh bên thành thanh ngang cuộn được.
 
