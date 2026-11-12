@@ -1,3 +1,4 @@
+using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Services.Assignment;
 using PetSpa.Domain.Entities;
@@ -15,7 +16,11 @@ public class CheckInServiceTests
     private sealed class FakeAssignmentRepository : IAssignmentRepository
     {
         public SpaAppointment? Appointment { get; set; }
+        public AppointmentType? AppointmentType { get; set; } = Domain.Enums.AppointmentType.Spa;
         public int HoldMinutes { get; set; } = 15;
+
+        public Task<AppointmentType?> FindAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult(Appointment is not null ? AppointmentType : null);
 
         public Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult(Appointment);
@@ -74,11 +79,17 @@ public class CheckInServiceTests
     };
 
     private static (CheckInService Sut, FakeAssignmentRepository Repo, FakeConcurrencyGuard Guard) CreateSut(
-        SpaAppointment? appointment, int holdMinutes = 15)
+        SpaAppointment? appointment, int holdMinutes = 15, AppointmentType? appointmentType = AppointmentType.Spa)
     {
-        var repo = new FakeAssignmentRepository { Appointment = appointment, HoldMinutes = holdMinutes };
+        var repo = new FakeAssignmentRepository
+        {
+            Appointment = appointment,
+            HoldMinutes = holdMinutes,
+            AppointmentType = appointmentType
+        };
         var guard = new FakeConcurrencyGuard();
-        return (new CheckInService(repo, guard), repo, guard);
+        var shopTimeZone = new ShopTimeZone(TimeZoneInfo.Utc);
+        return (new CheckInService(repo, guard, shopTimeZone), repo, guard);
     }
 
     [Fact]
@@ -95,7 +106,7 @@ public class CheckInServiceTests
     }
 
     [Fact]
-    public async Task CheckInSpaAsync_WhenBeforeSlotStart_MovesToReceived()
+    public async Task CheckInSpaAsync_WhenBeforeSlotStartOnSameDay_MovesToReceived()
     {
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(30));
         var (sut, _, _) = CreateSut(appointment);
@@ -103,6 +114,18 @@ public class CheckInServiceTests
         var status = await sut.CheckInSpaAsync(AppointmentId);
 
         Assert.Equal(AppointmentStatus.Received, status);
+    }
+
+    [Fact]
+    public async Task CheckInSpaAsync_WhenFutureDate_ThrowsInvalidTransition()
+    {
+        var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddDays(1));
+        var (sut, _, _) = CreateSut(appointment);
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+
+        Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
+        Assert.Equal(AppointmentStatus.Confirmed, appointment.Status);
     }
 
     [Fact]
@@ -153,5 +176,16 @@ public class CheckInServiceTests
         var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
 
         Assert.Equal(ErrorCodes.NotFound, ex.Code);
+    }
+
+    [Fact]
+    public async Task CheckInSpaAsync_WhenHotelAppointment_ThrowsInvalidTransition()
+    {
+        var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-5));
+        var (sut, _, _) = CreateSut(appointment, appointmentType: AppointmentType.Hotel);
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+
+        Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
     }
 }

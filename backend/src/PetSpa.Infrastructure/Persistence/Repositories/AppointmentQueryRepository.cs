@@ -106,7 +106,7 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
             join s in db.Set<Staff>().AsNoTracking() on asg.StaffId equals s.StaffId
             join c in db.Set<Customer>().AsNoTracking() on a.CustomerId equals c.CustomerId
             join p in db.Set<Pet>().AsNoTracking() on a.PetId equals p.PetId
-            where s.UserId == staffUserId && asg.IsHolding
+            where s.UserId == staffUserId
             select new { Appointment = a, CustomerName = c.FullName, PetName = p.Name };
 
         var total = await query.CountAsync(ct);

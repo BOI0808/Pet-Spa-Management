@@ -82,6 +82,17 @@ public sealed class AssignmentRepository(AppDbContext db) : IAssignmentRepositor
         return rows.Select(r => new StaffAssignment(r.StaffId, r.BusyFrom, r.BusyUntil)).ToList();
     }
 
+    public async Task<AppointmentType?> FindAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default)
+    {
+        var row = await db.Set<Appointment>().AsNoTracking()
+            .Where(a => a.AppointmentId == appointmentId)
+            .Select(a => new { IsSpa = a is SpaAppointment })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null) return null;
+        return row.IsSpa ? AppointmentType.Spa : AppointmentType.Hotel;
+    }
+
     public Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
         db.Set<SpaAppointment>().FirstOrDefaultAsync(a => a.AppointmentId == appointmentId, ct);
 

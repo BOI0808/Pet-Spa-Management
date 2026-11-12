@@ -26,6 +26,9 @@ public interface IAssignmentRepository
     Task<IReadOnlyList<StaffAssignment>> ListHoldingAssignmentsAsync(
         DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken ct = default);
 
+    // Lấy loại lịch hẹn (Spa hay Hotel); null nếu không tồn tại.
+    Task<AppointmentType?> FindAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default);
+
     // Lịch spa để xác nhận, đang được theo dõi (tracked) để cập nhật trạng thái; null nếu không có lịch hoặc không phải lịch spa.
     Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default);
 
