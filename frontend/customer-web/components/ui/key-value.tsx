@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 /** Dòng “nhãn – giá trị” căn hai bên (`.kv` của ui-demo). */
 export function KeyValue({ label, children, muted = false }: { label: string; children: ReactNode; muted?: boolean }) {
@@ -17,10 +17,10 @@ export function DescriptionList({ items }: { items: DescriptionItem[] }) {
   return (
     <dl className="m-0 grid grid-cols-[150px_minmax(0,1fr)] gap-x-4 gap-y-2.5 max-[640px]:grid-cols-1 max-[640px]:gap-y-0.5">
       {items.map((item) => (
-        <div key={item.label} className="contents">
+        <Fragment key={item.label}>
           <dt className="text-muted max-[640px]:mt-2">{item.label}</dt>
           <dd className="m-0 break-words font-medium">{item.value}</dd>
-        </div>
+        </Fragment>
       ))}
     </dl>
   );

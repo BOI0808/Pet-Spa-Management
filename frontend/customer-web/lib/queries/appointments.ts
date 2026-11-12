@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSpaAppointment,
   getAppointment,
@@ -8,7 +8,7 @@ import {
   type AppointmentListParams,
   type SpaSlotParams,
 } from "@/lib/api/endpoints/appointments";
-import type { AppointmentStatus } from "@/lib/api/types";
+import type { AppointmentDetail, AppointmentStatus } from "@/lib/api/types";
 
 export const appointmentKeys = {
   all: ["appointments"] as const,
@@ -60,6 +60,36 @@ export function useAppointments(params: AppointmentListParams, { enabled = true 
   return useQuery({ queryKey: appointmentKeys.list(params), queryFn: () => listAppointments(params), enabled });
 }
 
+/**
+ * Gộp danh sách của nhiều trạng thái: API chỉ lọc một trạng thái mỗi lần (G-06) nên gọi song song từng trạng thái,
+ * mỗi trạng thái một trang cỡ `pageSize`. `total` là tổng số thật từ backend, `truncated` khi có trạng thái
+ * nhiều hơn một trang (phần dư không tải).
+ */
+export function useAppointmentsByStatuses(
+  statuses: readonly AppointmentStatus[],
+  params: Omit<AppointmentListParams, "status" | "page">,
+) {
+  return useQueries({
+    queries: statuses.map((status) => {
+      const listParams = { ...params, status, page: 1 };
+      return { queryKey: appointmentKeys.list(listParams), queryFn: () => listAppointments(listParams) };
+    }),
+    combine: (results) => {
+      const error = results.find((result) => result.isError)?.error ?? null;
+      const pages = results.map((result) => result.data);
+      const loaded = pages.every((page) => page !== undefined);
+      return {
+        isPending: results.some((result) => result.isPending),
+        error,
+        items: loaded ? pages.flatMap((page) => page?.items ?? []) : [],
+        total: loaded ? pages.reduce((sum, page) => sum + (page?.total ?? 0), 0) : undefined,
+        truncated: pages.some((page) => page !== undefined && page.total > page.items.length),
+        refetch: () => results.forEach((result) => void result.refetch()),
+      };
+    },
+  });
+}
+
 /** Danh sách tải thêm từng trang (“Xem thêm” ở CW-11); `page` do hook tự tăng. */
 export function useInfiniteAppointments(params: Omit<AppointmentListParams, "page">, { enabled = true }: QueryToggle = {}) {
   return useInfiniteQuery({
@@ -71,13 +101,27 @@ export function useInfiniteAppointments(params: Omit<AppointmentListParams, "pag
   });
 }
 
-export function useAppointment(appointmentId: string, { enabled = true }: QueryToggle = {}) {
+type AppointmentQueryOptions = QueryToggle & {
+  /** Tải lại định kỳ khi lịch đang ở cửa hàng; chỉ bật ở CW-09, danh sách không cần. */
+  live?: boolean;
+};
+
+export function useAppointment(appointmentId: string, { enabled = true, live = false }: AppointmentQueryOptions = {}) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: appointmentKeys.detail(appointmentId),
-    queryFn: () => getAppointment(appointmentId),
+    queryFn: async () => {
+      const previous = queryClient.getQueryData<AppointmentDetail>(appointmentKeys.detail(appointmentId));
+      const next = await getAppointment(appointmentId);
+      // Đổi trạng thái (vd. vừa hoàn tất) thì khoản thanh toán có thể vừa phát sinh: tải lại.
+      if (previous && previous.status !== next.status) {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.payments(appointmentId), exact: true });
+      }
+      return next;
+    },
     enabled,
     refetchInterval: (query) =>
-      query.state.data && LIVE_STATUSES.includes(query.state.data.status) ? LIVE_DETAIL_REFETCH_MS : false,
+      live && query.state.data && LIVE_STATUSES.includes(query.state.data.status) ? LIVE_DETAIL_REFETCH_MS : false,
   });
 }
 

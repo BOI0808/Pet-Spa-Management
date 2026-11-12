@@ -3,6 +3,7 @@
 // CW-08 Lịch hẹn của tôi – UI-Screens.md
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { Icon } from "@/components/icons";
@@ -16,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { isForbiddenError } from "@/lib/api/errors";
 import type { Appointment, AppointmentType, Pet } from "@/lib/api/types";
-import { useAppointments } from "@/lib/queries/appointments";
+import { useAppointments, useAppointmentsByStatuses } from "@/lib/queries/appointments";
 import { usePets } from "@/lib/queries/pets";
 import { ROUTES } from "@/lib/routes";
 import { getStoreToday } from "@/lib/time";
@@ -37,8 +38,8 @@ const PET_LIST_PARAMS = { page: 1, pageSize: 50 };
 /** 20 lịch/trang (UI-Screens CW-08). */
 const PAGE_SIZE = 20;
 /**
- * API chỉ lọc một trạng thái (G-06): tab 1 gọi không lọc trạng thái, lấy trang đầu cỡ tối đa (100) rồi lọc ở web.
- * Backend trả lịch tạo gần nhất trước nên lịch chưa kết thúc nằm trong trang này.
+ * API chỉ lọc một trạng thái (G-06): tab 1 gọi song song từng trạng thái chưa kết thúc, mỗi trạng thái một trang
+ * cỡ tối đa (100), rồi gộp, sắp xếp và phân trang ở web. Số trên tab là tổng thật của backend.
  */
 const ONGOING_SOURCE_SIZE = 100;
 const PANEL_ID = "appointment-tab-panel";
@@ -111,18 +112,13 @@ export function AppointmentsScreen() {
 
   const pets = usePets(PET_LIST_PARAMS);
   // Tab 2, 3 lọc trạng thái ở backend; tổng số (`total`) dùng luôn cho số trên tab.
-  const ongoing = useAppointments({ type, page: 1, pageSize: ONGOING_SOURCE_SIZE });
+  const ongoing = useAppointmentsByStatuses(ONGOING_STATUSES, { type, pageSize: ONGOING_SOURCE_SIZE });
   const completed = useAppointments({ type, status: "Completed", page: tab === "completed" ? page : 1, pageSize: PAGE_SIZE });
   const cancelled = useAppointments({ type, status: "Cancelled", page: tab === "cancelled" ? page : 1, pageSize: PAGE_SIZE });
 
-  const ongoingItems = ongoing.data
-    ? sortByStart(
-        ongoing.data.items.filter((appointment) => ONGOING_STATUSES.includes(appointment.status)),
-        "asc",
-      )
-    : [];
+  const ongoingItems = sortByStart(ongoing.items, "asc");
   const counts: Record<AppointmentTab, number | undefined> = {
-    upcoming: ongoing.data ? ongoingItems.length : undefined,
+    upcoming: ongoing.total,
     completed: completed.data?.total,
     cancelled: cancelled.data?.total,
   };
@@ -142,33 +138,51 @@ export function AppointmentsScreen() {
   const description =
     petNames.length > 0 ? `Lịch spa và lưu trú của ${joinNames(petNames)}.` : "Lịch spa và lưu trú của các bé.";
 
-  // Nội dung theo tab đang chọn.
-  const current = tab === "upcoming" ? ongoing : tab === "completed" ? completed : cancelled;
+  // Nội dung theo tab đang chọn: tab 1 lấy từ các danh sách đã gộp, tab 2, 3 từ một danh sách của backend.
+  const statusList = tab === "completed" ? completed : cancelled;
+  const isPending = tab === "upcoming" ? ongoing.isPending : statusList.isPending;
+  const error = tab === "upcoming" ? ongoing.error : statusList.error;
+  const retry = tab === "upcoming" ? ongoing.refetch : () => void statusList.refetch();
+
   let content;
-  if (current.isPending) {
+  if (isPending) {
     content = <TicketListSkeleton />;
-  } else if (current.isError) {
-    content = isForbiddenError(current.error) ? (
+  } else if (error) {
+    content = isForbiddenError(error) ? (
       <ForbiddenState />
     ) : (
       <div className="flex flex-col items-start gap-3">
-        <ErrorAlert error={current.error} className="w-full" />
-        <Button onClick={() => void current.refetch()}>Thử lại</Button>
+        <ErrorAlert error={error} className="w-full" />
+        <Button onClick={retry}>Thử lại</Button>
       </div>
     );
   } else {
     let items: Appointment[];
     let total: number;
     if (tab === "upcoming") {
-      // Phân trang ở web trên danh sách đã lọc.
+      // Phân trang ở web trên các lịch đã tải.
       total = ongoingItems.length;
       items = ongoingItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     } else {
-      total = current.data.total;
-      items = sortByStart(current.data.items, "desc");
+      total = statusList.data?.total ?? 0;
+      items = sortByStart(statusList.data?.items ?? [], "desc");
     }
+    const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
     content =
-      items.length === 0 ? (
+      items.length === 0 && total > 0 ? (
+        // `?page=` vượt quá số trang (nhập tay, hoặc danh sách vừa ngắn lại): cho về trang cuối còn lịch.
+        <Card>
+          <EmptyState
+            icon="calendar"
+            title="Trang này không có lịch hẹn"
+            action={
+              <Button onClick={() => updateQuery({ page: lastPage > 1 ? String(lastPage) : undefined })}>
+                Về trang {lastPage}
+              </Button>
+            }
+          />
+        </Card>
+      ) : items.length === 0 ? (
         <EmptyTab tab={tab} />
       ) : (
         <>
@@ -190,6 +204,11 @@ export function AppointmentsScreen() {
             total={total}
             onChange={(next) => updateQuery({ page: next > 1 ? String(next) : undefined })}
           />
+          {tab === "upcoming" && ongoing.truncated && (
+            <Alert tone="neutral" className="mt-4">
+              Danh sách đang hiện tối đa {ONGOING_SOURCE_SIZE} lịch tạo gần nhất của mỗi trạng thái.
+            </Alert>
+          )}
         </>
       );
   }

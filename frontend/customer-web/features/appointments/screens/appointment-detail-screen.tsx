@@ -20,7 +20,7 @@ import { isForbiddenError } from "@/lib/api/errors";
 import type { AppointmentDetail, Pet } from "@/lib/api/types";
 import { formatAppointmentCode } from "@/lib/format";
 import { useAppointment } from "@/lib/queries/appointments";
-import { usePets } from "@/lib/queries/pets";
+import { usePet } from "@/lib/queries/pets";
 import { ROUTES } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
 import {
@@ -31,9 +31,6 @@ import {
   lifecycleSteps,
 } from "../appointments";
 import { AppointmentInfoCard, HotelStayCard, PaymentCard, SpaServicesCard } from "../components/appointment-detail-cards";
-
-// Cùng khóa với CW-04, CW-08 nên dùng lại bộ đệm; hồ sơ đã gỡ không có trong danh sách (hiện tên từ lịch hẹn).
-const PET_LIST_PARAMS = { page: 1, pageSize: 50 };
 
 /** Bố cục 2 cột (`.split` của ui-demo): nội dung chính trái, thẻ phụ phải 360px; dưới 1180px còn 1 cột. */
 const splitClass = "grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-[1180px]:grid-cols-1";
@@ -143,8 +140,11 @@ export function AppointmentDetailSkeleton() {
 
 export function AppointmentDetailScreen() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
-  const appointment = useAppointment(appointmentId);
-  const pets = usePets(PET_LIST_PARAMS);
+  const appointment = useAppointment(appointmentId, { live: true });
+  // GET /pets/{id} (không phải GET /pets) để lịch cũ của hồ sơ đã gỡ vẫn có loài, giống và giá.
+  // Lỗi thì vẫn hiện lịch với tên từ `petName`, không có giá theo loài.
+  const petId = appointment.data?.petId ?? "";
+  const petQuery = usePet(petId, { enabled: petId !== "" });
 
   if (appointment.isPending) return <AppointmentDetailSkeleton />;
 
@@ -167,6 +167,6 @@ export function AppointmentDetailScreen() {
     );
   }
 
-  const pet = pets.data?.items.find((item) => item.petId === appointment.data.petId) ?? null;
+  const pet = petQuery.data ?? null;
   return <AppointmentDetailView appointment={appointment.data} pet={pet} />;
 }

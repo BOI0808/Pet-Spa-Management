@@ -27,8 +27,9 @@ export function useCountdown(expiresAt: string, onExpire?: () => void) {
   });
 
   useEffect(() => {
-    // Đã hết hạn từ khi mở màn: dữ liệu vừa tải đã là mới nhất, không gọi lại để tránh vòng lặp tải.
-    if (deadline <= Date.now()) return;
+    // `expiresAt` không đọc được, hoặc đã hết hạn từ khi mở màn (dữ liệu vừa tải đã là mới nhất):
+    // không chạy đồng hồ, không gọi lại để tránh vòng lặp tải.
+    if (!Number.isFinite(deadline) || deadline <= Date.now()) return;
     const timer = window.setInterval(() => {
       const current = Date.now();
       setNow(current);
@@ -40,7 +41,7 @@ export function useCountdown(expiresAt: string, onExpire?: () => void) {
     return () => window.clearInterval(timer);
   }, [deadline]);
 
-  return Math.max(0, Math.ceil((deadline - now) / 1000));
+  return Number.isFinite(deadline) ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
 }
 
 type CountdownProps = { expiresAt: string; onExpire?: () => void; plain?: boolean };

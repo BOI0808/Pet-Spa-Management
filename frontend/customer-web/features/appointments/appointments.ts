@@ -13,7 +13,7 @@ import type {
   SizeGroup,
   Species,
 } from "@/lib/api/types";
-import { formatDate, formatDayMonth, formatMoney, formatWeekday, formatWeekdayShort } from "@/lib/format";
+import { formatDate, formatDayMonth, formatFullDate, formatMoney, formatWeekday, formatWeekdayShort } from "@/lib/format";
 import { APPOINTMENT_STATUS_LABELS, CANCEL_REASON_LABELS, SPECIES_LABELS } from "@/lib/labels";
 import { addDays, countNights, toStoreDate, toStoreTime } from "@/lib/time";
 
@@ -66,9 +66,7 @@ export function formatSlotRange(appointment: Appointment) {
 
 /** “Thứ ba 06/10/2026”. */
 export function formatLongDate(isoDateTime: string) {
-  const date = toStoreDate(isoDateTime);
-  const weekday = formatWeekday(date);
-  return `${weekday.charAt(0).toLocaleUpperCase("vi-VN")}${weekday.slice(1)} ${formatDate(date)}`;
+  return formatFullDate(toStoreDate(isoDateTime));
 }
 
 /** “21:40 ngày 19/09/2026”. */
@@ -187,12 +185,12 @@ export function describePayment(payment: Payment) {
 const SPA_STEPS: readonly AppointmentStatus[] = ["Pending", "Confirmed", "Received", "InProgress", "Completed"];
 const HOTEL_STEPS: readonly AppointmentStatus[] = ["Pending", "Confirmed", "InStay", "Completed"];
 
-// Không lưu lịch sử trạng thái (G-02) nên bước đã đạt trước khi hủy suy ra từ lý do hủy:
-// vắng mặt chỉ xảy ra với lịch đã xác nhận; không xác nhận chi phí chỉ xảy ra sau khi tiếp nhận.
-// Lý do khác không biết chắc nên chỉ hiện bước Chờ xác nhận.
-const REACHED_BEFORE_CANCEL: Partial<Record<CancelReason, AppointmentStatus>> = {
-  NoShow: "Confirmed",
-  CostNotConfirmed: "Received",
+// Không lưu lịch sử trạng thái (G-02) nên bước đã đạt trước khi hủy suy ra từ lý do hủy, theo
+// AppointmentLifecycle ở backend: vắng mặt chỉ hủy từ Đã xác nhận; không xác nhận chi phí hủy từ Đã tiếp nhận (spa)
+// hoặc Đã xác nhận (lưu trú). Lý do khác không biết chắc nên chỉ hiện bước Chờ xác nhận.
+const REACHED_BEFORE_CANCEL: Record<AppointmentType, Partial<Record<CancelReason, AppointmentStatus>>> = {
+  Spa: { NoShow: "Confirmed", CostNotConfirmed: "Received" },
+  Hotel: { NoShow: "Confirmed", CostNotConfirmed: "Confirmed" },
 };
 
 export function lifecycleSteps(appointment: Appointment): LifecycleStep[] {
@@ -202,7 +200,7 @@ export function lifecycleSteps(appointment: Appointment): LifecycleStep[] {
     status === "Pending" ? formatStepTime(appointment.createdAt) : undefined;
 
   if (appointment.status === "Cancelled") {
-    const reached = (appointment.cancelReason && REACHED_BEFORE_CANCEL[appointment.cancelReason]) ?? "Pending";
+    const reached = (appointment.cancelReason && REACHED_BEFORE_CANCEL[appointment.type][appointment.cancelReason]) ?? "Pending";
     const reachedIndex = Math.max(0, order.indexOf(reached));
     return [
       ...order.slice(0, reachedIndex + 1).map((status) => ({

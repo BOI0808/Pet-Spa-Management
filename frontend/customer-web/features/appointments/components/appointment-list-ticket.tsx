@@ -85,9 +85,10 @@ export function AppointmentListTicket({ appointment, pet, tab, today }: Appointm
   const isCancelled = appointment.status === "Cancelled";
   const isSpa = appointment.type === "Spa";
   const detail = useAppointment(appointment.appointmentId, { enabled: inView && isSpa && !isCancelled });
-  // Spa chỉ có khoản sau khi hoàn tất; lưu trú có tiền lưu trú từ khi xác nhận.
+  // Spa chỉ có khoản sau khi hoàn tất; lưu trú có tiền lưu trú từ khi xác nhận (lịch Chờ xác nhận chưa có khoản).
+  const hasPayments = isSpa ? appointment.status === "Completed" : appointment.status !== "Pending";
   const payments = useAppointmentPayments(appointment.appointmentId, {
-    enabled: inView && !isCancelled && (!isSpa || appointment.status === "Completed"),
+    enabled: inView && !isCancelled && hasPayments,
   });
 
   let description;

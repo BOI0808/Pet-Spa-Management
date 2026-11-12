@@ -232,18 +232,25 @@ function HotelPayment({ appointment, pet, payments }: DetailCardProps & { paymen
       ? `${nights} × (${formatMoney(row.pricePerNight)} + ${formatMoney(row.foodPerNight)}). `
       : "";
 
+  const payAtCounter = "Thanh toán tại quầy khi gửi bé, trước khi bé vào chuồng.";
+  // Đã trả muộn hay chưa chỉ biết chắc khi lịch kết thúc.
+  const isFinished = appointment.status === "Completed" || appointment.status === "Cancelled";
+
   return (
     <>
       {stay ? (
         <>
           <PaymentAmount payment={stay} />
-          <p className="mt-1 text-xs text-muted">{formula}Thanh toán tại quầy khi gửi bé, trước khi bé vào chuồng.</p>
+          <p className="mt-1 text-xs text-muted">
+            {formula}
+            {stay.status === "Unpaid" ? payAtCounter : ""}
+          </p>
         </>
       ) : (
         <EstimateAmount
           label="Tạm tính"
           amount={row && nights !== null ? nights * (row.pricePerNight + row.foodPerNight) : null}
-          note={`${formula}Thanh toán tại quầy khi gửi bé, trước khi bé vào chuồng.`}
+          note={`${formula}${payAtCounter}`}
         />
       )}
       <div className="mt-2 border-t border-line-soft pt-1">
@@ -251,7 +258,7 @@ function HotelPayment({ appointment, pet, payments }: DetailCardProps & { paymen
           <PaymentAmount payment={lateFee} />
         ) : (
           <KeyValue label="Phí trả muộn" muted>
-            Chưa phát sinh
+            {isFinished ? "Không phát sinh" : "Chưa phát sinh"}
           </KeyValue>
         )}
       </div>
@@ -260,10 +267,10 @@ function HotelPayment({ appointment, pet, payments }: DetailCardProps & { paymen
   );
 }
 
-/** Vùng 7 – Thanh toán. Lịch đã hủy không có khoản nào thì ẩn thẻ. */
+/** Vùng 7 – Thanh toán. Lịch đã hủy không có khoản nào thì ẩn thẻ; lỗi khi tải vẫn hiện để thử lại. */
 export function PaymentCard({ appointment, pet }: DetailCardProps) {
   const payments = useAppointmentPayments(appointment.appointmentId);
-  if (appointment.status === "Cancelled" && (!payments.data || payments.data.length === 0)) return null;
+  if (appointment.status === "Cancelled" && (payments.isPending || payments.data?.length === 0)) return null;
 
   let content;
   if (payments.isPending) {
