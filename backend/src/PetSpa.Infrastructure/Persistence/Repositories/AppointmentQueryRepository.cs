@@ -89,6 +89,45 @@ public sealed class AppointmentQueryRepository(AppDbContext db) : IAppointmentQu
             pendingCost);
     }
 
+    public async Task<PagedResult<AppointmentListItem>> ListBySpaStaffUserAsync(
+        Guid staffUserId, AppointmentType? type, AppointmentStatus? status, int page, int pageSize,
+        CancellationToken ct = default)
+    {
+        var appointments = db.Set<Appointment>().AsNoTracking();
+
+        if (type == AppointmentType.Spa) appointments = appointments.Where(a => a is SpaAppointment);
+        else if (type == AppointmentType.Hotel) appointments = appointments.Where(a => a is HotelAppointment);
+
+        if (status is { } wantedStatus) appointments = appointments.Where(a => a.Status == wantedStatus);
+
+        var query =
+            from a in appointments
+            join asg in db.Set<AppointmentStaff>().AsNoTracking() on a.AppointmentId equals asg.AppointmentId
+            join s in db.Set<Staff>().AsNoTracking() on asg.StaffId equals s.StaffId
+            join c in db.Set<Customer>().AsNoTracking() on a.CustomerId equals c.CustomerId
+            join p in db.Set<Pet>().AsNoTracking() on a.PetId equals p.PetId
+            where s.UserId == staffUserId
+            select new { Appointment = a, CustomerName = c.FullName, PetName = p.Name };
+
+        var total = await query.CountAsync(ct);
+        var rows = await query
+            .OrderBy(x => x.Appointment.CreatedAt)
+            .ThenBy(x => x.Appointment.AppointmentId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var items = rows.Select(r => ToListItem(r.Appointment, r.CustomerName, r.PetName)).ToList();
+        return new PagedResult<AppointmentListItem>(items, page, pageSize, total);
+    }
+
+    public Task<bool> IsAssignedToSpaStaffAsync(Guid appointmentId, Guid staffUserId, CancellationToken ct = default) =>
+        (from asg in db.Set<AppointmentStaff>().AsNoTracking()
+         join s in db.Set<Staff>().AsNoTracking() on asg.StaffId equals s.StaffId
+         where asg.AppointmentId == appointmentId && s.UserId == staffUserId
+         select asg.AppointmentId)
+        .AnyAsync(ct);
+
     private static AppointmentListItem ToListItem(Appointment a, string customerName, string petName)
     {
         var spa = a as SpaAppointment;

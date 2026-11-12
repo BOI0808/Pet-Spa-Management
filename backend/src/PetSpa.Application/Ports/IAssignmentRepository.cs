@@ -17,12 +17,17 @@ public interface IAssignmentRepository
     // Lấy số ngày xét lịch phân công gần nhất.
     Task<int> GetSuggestLookbackDaysAsync(CancellationToken ct = default);
 
+    Task<int> GetHoldMinutesAsync(CancellationToken ct = default);
+
     // Nhân viên spa đang hoạt động, kèm số lịch được phân công từ `since` đến nay (không tính lịch Cancelled).
     Task<IReadOnlyList<StaffCandidate>> ListSpaStaffCandidatesAsync(DateTimeOffset since, CancellationToken ct = default);
 
     // Các lượt giữ chỗ nhân viên (IsHolding) có khoảng bận giao với [windowStart, windowEnd).
     Task<IReadOnlyList<StaffAssignment>> ListHoldingAssignmentsAsync(
         DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken ct = default);
+
+    // Lấy loại lịch hẹn (Spa hay Hotel); null nếu không tồn tại.
+    Task<AppointmentType?> FindAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default);
 
     // Lịch spa để xác nhận, đang được theo dõi (tracked) để cập nhật trạng thái; null nếu không có lịch hoặc không phải lịch spa.
     Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default);

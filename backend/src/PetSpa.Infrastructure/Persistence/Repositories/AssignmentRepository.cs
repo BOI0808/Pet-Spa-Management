@@ -34,6 +34,18 @@ public sealed class AssignmentRepository(AppDbContext db) : IAssignmentRepositor
         return int.Parse(value, CultureInfo.InvariantCulture);
     }
 
+    public async Task<int> GetHoldMinutesAsync(CancellationToken ct = default)
+    {
+        var value = await db.Set<SystemConfig>().AsNoTracking()
+            .Where(c => c.ConfigKey == "Booking.HoldMinutes")
+            .Select(c => c.ConfigValue)
+            .FirstOrDefaultAsync(ct);
+
+        if (value is null) throw new InvalidOperationException("Thiếu cấu hình Booking.HoldMinutes.");
+
+        return int.Parse(value, CultureInfo.InvariantCulture);
+    }
+
     public async Task<IReadOnlyList<StaffCandidate>> ListSpaStaffCandidatesAsync(
         DateTimeOffset since, CancellationToken ct = default)
     {
@@ -68,6 +80,17 @@ public sealed class AssignmentRepository(AppDbContext db) : IAssignmentRepositor
             .ToListAsync(ct);
 
         return rows.Select(r => new StaffAssignment(r.StaffId, r.BusyFrom, r.BusyUntil)).ToList();
+    }
+
+    public async Task<AppointmentType?> FindAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default)
+    {
+        var row = await db.Set<Appointment>().AsNoTracking()
+            .Where(a => a.AppointmentId == appointmentId)
+            .Select(a => new { IsSpa = a is SpaAppointment })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null) return null;
+        return row.IsSpa ? AppointmentType.Spa : AppointmentType.Hotel;
     }
 
     public Task<SpaAppointment?> FindSpaAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
