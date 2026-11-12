@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/icons";
 import type { Species } from "@/lib/api/types";
 
 // Hình minh họa theo loài, chép nguyên từ symbol g-dog, g-cat, g-rabbit, g-guinea của ui-demo (viewBox 48×48).
@@ -91,7 +92,8 @@ export function SpeciesIllustration({ species, className = "size-5" }: { species
 }
 
 type PetAvatarProps = {
-  species: Species;
+  /** null khi không biết loài (hồ sơ đã gỡ không còn trong GET /pets): hiện dấu chân trên nền Lagoon nhạt. */
+  species: Species | null;
   size?: keyof typeof SIZE_CLASS;
   className?: string;
 };
@@ -99,6 +101,16 @@ type PetAvatarProps = {
 /** Hình minh họa thú cưng trên nền sắc theo loài; chỉ trang trí (tên/loài luôn có chữ bên cạnh). */
 export function PetAvatar({ species, size = "md", className = "" }: PetAvatarProps) {
   const sizeClass = SIZE_CLASS[size];
+  if (species === null) {
+    return (
+      <span
+        aria-hidden="true"
+        className={`grid shrink-0 place-items-center bg-lagoon-50 text-lagoon ${sizeClass.box} ${className}`}
+      >
+        <Icon name="paw" className="size-1/2" />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden="true"
