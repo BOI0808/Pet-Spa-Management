@@ -21,3 +21,22 @@ export const customerSearchRoute = (search: string) =>
   search ? `${ROUTES.customers}?search=${encodeURIComponent(search)}` : ROUTES.customers;
 export const petCreateRoute = (customerId: string) => `${ROUTES.customers}/${customerId}/thu-cung/them`;
 export const petEditRoute = (customerId: string, petId: string) => `${ROUTES.customers}/${customerId}/thu-cung/${petId}`;
+
+/** Loại lịch ở SW-06 (`?type=`), cùng giá trị với `AppointmentType` của API. */
+export type BookingType = "Spa" | "Hotel";
+
+/** SW-06 `/dat-lich?customerId=&petId=&type=` (User-Flows 2.2); bỏ tham số trống. */
+export function bookForCustomerRoute({
+  customerId,
+  petId,
+  type,
+}: {
+  customerId: string;
+  petId?: string | null;
+  type?: BookingType;
+}) {
+  const params = new URLSearchParams({ customerId });
+  if (petId) params.set("petId", petId);
+  if (type) params.set("type", type);
+  return `${ROUTES.bookForCustomer}?${params.toString()}`;
+}
