@@ -1,15 +1,17 @@
 "use client";
 
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isForbiddenError, type ApiError } from "@/lib/api/errors";
+import { isForbiddenError, toApiError, type ApiError } from "@/lib/api/errors";
 import type { HotelSuggestions } from "@/lib/api/types";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
+import { invalidatePending } from "@/lib/queries/appointments";
 import { SuggestedTag } from "./suggested-tag";
 
 type HotelCageSectionProps = {
@@ -25,16 +27,34 @@ type HotelCageSectionProps = {
  * Gặp 409 CAGE_CONFLICT khi xác nhận thì đề xuất được tải lại và có thể đổi sang chuồng khác.
  */
 export function HotelCageSection({ query, nights }: HotelCageSectionProps) {
+  const queryClient = useQueryClient();
   const cage = query.data?.cage ?? null;
   const nightsText = nights > 0 ? `cả ${nights} đêm` : "toàn bộ các đêm";
+
+  const isInvalidTransition = Boolean(query.error && toApiError(query.error).code === "INVALID_TRANSITION");
+
+  useEffect(() => {
+    if (isInvalidTransition) {
+      void invalidatePending(queryClient);
+    }
+  }, [isInvalidTransition, queryClient]);
 
   function renderContent() {
     if (query.isPending) return <Skeleton className="h-[66px] rounded-xl" />;
 
     if (query.isError) {
-      return isForbiddenError(query.error) ? (
-        <ForbiddenState />
-      ) : (
+      if (isForbiddenError(query.error)) {
+        return <ForbiddenState />;
+      }
+      if (isInvalidTransition) {
+        return (
+          <div className="flex flex-col items-start gap-3">
+            <ErrorAlert error={query.error} className="w-full" />
+            <Button onClick={() => void invalidatePending(queryClient)}>Tải lại danh sách</Button>
+          </div>
+        );
+      }
+      return (
         <div className="flex flex-col items-start gap-3">
           <ErrorAlert error={query.error} className="w-full" />
           <Button onClick={() => void query.refetch()}>Thử lại</Button>

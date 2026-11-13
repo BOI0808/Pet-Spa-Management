@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { useToast } from "@/components/feedback/toast";
 import { Icon } from "@/components/icons";
@@ -37,6 +37,11 @@ export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAss
   const { plannedCheckIn, plannedCheckOut } = appointment;
   const nights = plannedCheckIn && plannedCheckOut ? getStayNights(plannedCheckIn, plannedCheckOut).length : 0;
 
+  const resetConfirm = confirm.reset;
+  useEffect(() => {
+    resetConfirm();
+  }, [appointment.appointmentId, cage?.cageId, resetConfirm]);
+
   function handleConfirm() {
     if (!cage) return;
     confirm.mutate(
@@ -67,7 +72,13 @@ export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAss
           <Icon name="x-circle" />
           Từ chối: cửa hàng không thể đáp ứng
         </Button>
-        <Button variant="primary" className="ml-auto" disabled={!cage} loading={confirm.isPending} onClick={handleConfirm}>
+        <Button
+          variant="primary"
+          className="ml-auto"
+          disabled={!cage || suggestionQuery.isFetching}
+          loading={confirm.isPending}
+          onClick={handleConfirm}
+        >
           Xác nhận lịch lưu trú
         </Button>
       </CardFooter>

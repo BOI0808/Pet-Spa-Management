@@ -124,7 +124,7 @@ export function useHotelSuggestions(appointmentId: string) {
   });
 }
 
-function invalidatePending(queryClient: QueryClient) {
+export function invalidatePending(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: appointmentKeys.pending() }),
     queryClient.invalidateQueries({ queryKey: appointmentKeys.pendingCount() }),
