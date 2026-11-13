@@ -75,7 +75,9 @@ export function HotelBookingForm({ customerId, pet, petCard, notice }: HotelBook
   const hotelPricing = useHotelPricing();
   const createBooking = useCreateHotelAppointment();
 
-  const noCapacity = createBooking.error?.code === "NO_CAPACITY";
+  // Lỗi của lần tạo lịch chỉ hiện khi lần đó gửi cho đúng bé đang chọn: đổi bé thì lỗi cũ (hết chỗ, 400) không còn đúng.
+  const bookingError = createBooking.variables?.petId === pet?.petId ? createBooking.error : null;
+  const noCapacity = bookingError?.code === "NO_CAPACITY";
   const isFull = noCapacity || (isSettled && availability.data?.available === false);
 
   let availabilityView: AvailabilityView = { kind: "idle" };
@@ -95,22 +97,17 @@ export function HotelBookingForm({ customerId, pet, petCard, notice }: HotelBook
     apiResult?.estimatedAmount ?? (price && nights !== null ? nights * (price.pricePerNight + price.foodPerNight) : null);
 
   // 400 khi tạo lịch: lỗi dưới ô Ngày trả (UI-Screens CW-07).
-  const badRequest = createBooking.error?.status === 400 ? createBooking.error : null;
+  const badRequest = bookingError?.status === 400 ? bookingError : null;
   if (badRequest && !shownErrors.checkOutDate) shownErrors.checkOutDate = getErrorMessage(badRequest);
-  const submitError = createBooking.error && !badRequest && !noCapacity ? createBooking.error : null;
+  const submitError = bookingError && !badRequest && !noCapacity ? bookingError : null;
 
   const checkOutInvalid = errors.checkOutDate === CHECK_OUT_BEFORE_MESSAGE && Boolean(times.checkOutDate);
   let disabledReason: string | null = null;
   if (isFull) disabledReason = FULL_REASON;
   else if (checkOutInvalid) disabledReason = CHECK_OUT_BEFORE_MESSAGE;
 
-  // Đổi thú cưng: kết quả còn chỗ tự tính lại theo `petId` mới; chỉ cần bỏ lỗi của lần tạo lịch trước.
-  const [shownPetId, setShownPetId] = useState(pet?.petId ?? null);
-  if ((pet?.petId ?? null) !== shownPetId) {
-    setShownPetId(pet?.petId ?? null);
-    setPetMessage(null);
-    createBooking.reset();
-  }
+  // Đã chọn bé thì bỏ câu “Vui lòng chọn thú cưng.”; kết quả còn chỗ tự tính lại theo `petId` mới.
+  if (pet && petMessage) setPetMessage(null);
 
   function changeTime(field: StayField, value: string) {
     setTimes((current) => ({ ...current, [field]: value }));

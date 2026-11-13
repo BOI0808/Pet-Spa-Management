@@ -234,8 +234,10 @@ export function SpaBookingForm({ customerId, pet, petCard, notice }: SpaBookingF
     );
   }
 
-  const slotFullError = createBooking.error?.code === "SLOT_FULL" ? createBooking.error : null;
-  const submitError = createBooking.error && !slotFullError ? createBooking.error : null;
+  // Lỗi của lần tạo lịch chỉ hiện khi lần đó gửi cho đúng bé đang chọn (đổi bé thì lỗi cũ không còn đúng).
+  const bookingError = createBooking.variables?.petId === pet?.petId ? createBooking.error : null;
+  const slotFullError = bookingError?.code === "SLOT_FULL" ? bookingError : null;
+  const submitError = bookingError && !slotFullError ? bookingError : null;
 
   let slotContent;
   if (!canPickSlot) {
