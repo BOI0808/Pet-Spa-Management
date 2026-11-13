@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   confirmHotelAppointment,
+  confirmSpaAppointment,
+  getAppointment,
   getHotelSuggestions,
+  getSpaSuggestions,
   listAppointments,
   rejectAppointment,
 } from "@/lib/api/endpoints/appointments";
@@ -29,6 +32,7 @@ export const appointmentKeys = {
   pending: () => [...appointmentKeys.all, "pending"] as const,
   pendingCount: () => [...appointmentKeys.all, "pending-count"] as const,
   suggestions: (appointmentId: string) => [...appointmentKeys.all, "suggestions", appointmentId] as const,
+  detail: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId] as const,
 };
 
 async function fetchAllPendingAppointments(): Promise<PendingAppointmentsResult> {
@@ -124,6 +128,26 @@ export function useHotelSuggestions(appointmentId: string) {
   });
 }
 
+/**
+ * Nhân viên đề xuất cho lịch spa Chờ xác nhận (FR-ASG-01). Cùng khóa với đề xuất chuồng của lịch lưu trú vì mỗi lịch chỉ thuộc một loại.
+ * Nhân viên rảnh thay đổi theo từng lịch được xử lý nên cũng không giữ cache khi rời lịch (`gcTime: 0`).
+ */
+export function useSpaSuggestions(appointmentId: string) {
+  return useQuery({
+    queryKey: appointmentKeys.suggestions(appointmentId),
+    queryFn: () => getSpaSuggestions(appointmentId),
+    gcTime: 0,
+  });
+}
+
+/** Chi tiết lịch hẹn (MW-04 dùng `services` của lịch spa để nêu tên dịch vụ và tính tạm tính). */
+export function useAppointmentDetail(appointmentId: string) {
+  return useQuery({
+    queryKey: appointmentKeys.detail(appointmentId),
+    queryFn: () => getAppointment(appointmentId),
+  });
+}
+
 export function invalidatePending(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: appointmentKeys.pending() }),
@@ -150,6 +174,15 @@ export function useConfirmHotelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: confirmHotelAppointment,
+    onError: (error, { appointmentId }) => refetchAfterConflict(queryClient, appointmentId, error),
+  });
+}
+
+/** POST /appointments/{id}/confirm cho lịch spa (FR-ASG-02, FR-ASG-03). Việc tải lại danh sách sau khi thành công do màn hình làm (`useRemovePendingAppointment`). */
+export function useConfirmSpaAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmSpaAppointment,
     onError: (error, { appointmentId }) => refetchAfterConflict(queryClient, appointmentId, error),
   });
 }

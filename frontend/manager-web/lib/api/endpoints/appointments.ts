@@ -1,11 +1,14 @@
 import { apiClient } from "@/lib/api/client";
 import type {
+  AppointmentDetail,
   AppointmentPage,
   AppointmentStatus,
   AppointmentType,
   ConfirmHotelRequest,
+  ConfirmSpaRequest,
   HotelSuggestions,
   RejectResult,
+  SpaSuggestions,
   StatusResult,
 } from "@/lib/api/types";
 
@@ -52,5 +55,38 @@ export async function confirmHotelAppointment({
  */
 export async function rejectAppointment(appointmentId: string) {
   const { data } = await apiClient.post<RejectResult>(`/appointments/${appointmentId}/reject`);
+  return data;
+}
+
+/** GET /appointments/{id} – chi tiết lịch hẹn; lịch spa kèm `services` (tên dịch vụ) để MW-04 nêu dịch vụ và tính tạm tính. */
+export async function getAppointment(appointmentId: string) {
+  const { data } = await apiClient.get<AppointmentDetail>(`/appointments/${encodeURIComponent(appointmentId)}`);
+  return data;
+}
+
+/**
+ * GET /appointments/{id}/suggestions – với lịch spa Chờ xác nhận trả nhân viên đề xuất và nhân viên thay thế (FR-ASG-01).
+ * Lịch không còn Chờ xác nhận → 409 INVALID_TRANSITION; không tìm thấy → 404 NOT_FOUND.
+ */
+export async function getSpaSuggestions(appointmentId: string) {
+  const { data } = await apiClient.get<SpaSuggestions>(`/appointments/${appointmentId}/suggestions`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/confirm – xác nhận lịch spa kèm nhân viên phụ trách (FR-ASG-02, FR-ASG-03). Chỉ gửi `staffIds`
+ * (và `confirmOutOfShift: true` khi Quản lý đã đồng ý chọn người ngoài ca); không gửi trạng thái hay số tiền.
+ * Sai số nhân viên → 409 STAFF_COUNT_MISMATCH; trùng khung giờ → 409 STAFF_CONFLICT; ngoài ca mà chưa đồng ý → 409 STAFF_OUT_OF_SHIFT;
+ * không phải nhân viên spa đang hoạt động → 400 VALIDATION_ERROR; lịch không còn Chờ xác nhận → 409 INVALID_TRANSITION.
+ */
+export async function confirmSpaAppointment({
+  appointmentId,
+  staffIds,
+  confirmOutOfShift,
+}: { appointmentId: string } & ConfirmSpaRequest) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${appointmentId}/confirm`, {
+    staffIds,
+    ...(confirmOutOfShift ? { confirmOutOfShift } : {}),
+  } satisfies ConfirmSpaRequest);
   return data;
 }
