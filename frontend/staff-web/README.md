@@ -24,15 +24,18 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/auth` | Màn SW-01 và quy tắc kiểm tra form đăng nhập |
 | `features/customers` | SW-04 Khách hàng: tìm khách, ghi nhận khách vãng lai |
 | `features/pets` | SW-05 Hồ sơ thú cưng (form, nhóm kích cỡ dự kiến) – phần form chép từ customer-web |
+| `features/booking` | SW-06 Đặt lịch thay khách: tab Lịch spa, tab Lưu trú (phần lưu trú theo CW-07 của customer-web) |
+| `features/services` | SW-14 Danh mục dịch vụ (chỉ xem) |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh trên của web nhân viên, menu thả xuống, `PageHeader` |
-| `components/ui`, `components/domain` | Thành phần dùng chung chép từ customer-web: `Button`, `Card`, `Field`, `ChoiceCard`, `Tag`, `PetAvatar`… |
-| `components/feedback` | Hiển thị lỗi: `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
+| `components/ui`, `components/domain` | Thành phần dùng chung chép từ customer-web: `Button`, `Card`, `Field`, `ChoiceCard`, `Tag`, `Tabs`, `SegmentedControl`, `PetAvatar`, `DateStrip`, `SlotPicker`, `ServiceOption`… |
+| `components/feedback` | Hiển thị lỗi và gợi ý: `Alert`, `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, hàm gọi API theo tài nguyên (`endpoints/`) |
 | `lib/queries` | Khóa query và hook TanStack Query theo tài nguyên |
 | `lib/format.ts`, `lib/labels.ts`, `lib/validation.ts` | Định dạng hiển thị, nhãn enum, luật kiểm tra form (giống customer-web) |
+| `lib/time.ts` | Ngày giờ theo múi giờ cửa hàng `Asia/Ho_Chi_Minh` (giống customer-web) |
 | `lib/serving-customer.ts` | Khách đang phục vụ (SW-04 → SW-05, SW-06) |
 | `lib/routes.ts` | Đường dẫn các màn hình SW-01 → SW-15 |
 | `lib/staff-role.ts` | Vai trò nhân viên: lễ tân, nhân viên spa |
@@ -84,3 +87,7 @@ Phần này giống Web khách hàng để 3 web dùng chung một cách:
   (khóa `ps.servingCustomer`, chỉ thông tin hiển thị) để SW-05 và SW-06 dùng tiếp. Tải lại trang vẫn còn, đóng tab thì mất.
 - Đăng xuất hoặc hết phiên thì xóa (`clearServingCustomer` trong `useSession`).
 - Đường dẫn SW-05 chứa `customerId`; khác khách đang phục vụ thì màn hiện "Chưa chọn khách hàng" và nút về SW-04.
+- SW-06 cũng vậy: chưa chọn khách, hoặc `?customerId=` khác khách đang phục vụ, thì hiện "Chưa chọn khách hàng" và nút "Tìm khách".
+  Lịch spa và lưu trú gửi kèm `customerId` của khách đang phục vụ (lễ tân đặt thay, không áp dụng khóa tự đặt lịch).
+- Nhãn "Khách vãng lai" chỉ biết khi vừa ghi nhận ở SW-04 (API tìm khách không cho biết – G-05); chọn lại chính khách đó ở
+  thẻ khách thì nhãn được giữ.
