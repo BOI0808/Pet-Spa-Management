@@ -203,3 +203,20 @@ export type Pet = {
   sizeGroup: SizeGroup;
   isActive: boolean;
 };
+
+// ── Đề xuất chuồng, xác nhận, từ chối lịch lưu trú (FR-HTL-05, FR-HTL-06) ──
+
+/**
+ * GET /appointments/{id}/suggestions của lịch lưu trú (schema HotelSuggestions). `cage` là `null` khi không còn chuồng
+ * phù hợp trống trong cả các đêm (backend trả `{ "cage": null }`, openapi ghi bắt buộc); vắng mặt cũng coi như không có.
+ */
+export type HotelSuggestions = { cage?: Cage | null };
+
+/** Body của POST /appointments/{id}/confirm cho lịch lưu trú (schema ConfirmHotelRequest). */
+export type ConfirmHotelRequest = { cageId: string };
+
+/** Phản hồi của POST /appointments/{id}/confirm (schema StatusResult). */
+export type StatusResult = { status: AppointmentStatus };
+
+/** Phản hồi của POST /appointments/{id}/reject (schema RejectResult). */
+export type RejectResult = { status: "Cancelled"; reason: "StoreUnable" };

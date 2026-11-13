@@ -1,5 +1,11 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listAppointments } from "@/lib/api/endpoints/appointments";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  confirmHotelAppointment,
+  getHotelSuggestions,
+  listAppointments,
+  rejectAppointment,
+} from "@/lib/api/endpoints/appointments";
+import { toApiError } from "@/lib/api/errors";
 import type { Appointment } from "@/lib/api/types";
 
 // Backend giới hạn `pageSize` tối đa 100 và luôn sắp theo `CreatedAt` tăng dần;
@@ -22,6 +28,7 @@ export const appointmentKeys = {
   all: ["appointments"] as const,
   pending: () => [...appointmentKeys.all, "pending"] as const,
   pendingCount: () => [...appointmentKeys.all, "pending-count"] as const,
+  suggestions: (appointmentId: string) => [...appointmentKeys.all, "suggestions", appointmentId] as const,
 };
 
 async function fetchAllPendingAppointments(): Promise<PendingAppointmentsResult> {
@@ -103,4 +110,73 @@ export function usePendingCount({ enabled }: { enabled: boolean }) {
     refetchInterval: enabled ? PENDING_REFRESH_MS : false,
     refetchIntervalInBackground: false,
   });
+}
+
+/**
+ * Chuồng đề xuất cho lịch lưu trú Chờ xác nhận (FR-HTL-05). Chuồng trống thay đổi theo từng lịch được xử lý nên không giữ cache khi rời lịch
+ * (`gcTime: 0`): mở lại lịch luôn tải mới, không hiện lại chuồng đề xuất cũ.
+ */
+export function useHotelSuggestions(appointmentId: string) {
+  return useQuery({
+    queryKey: appointmentKeys.suggestions(appointmentId),
+    queryFn: () => getHotelSuggestions(appointmentId),
+    gcTime: 0,
+  });
+}
+
+export function invalidatePending(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: appointmentKeys.pending() }),
+    queryClient.invalidateQueries({ queryKey: appointmentKeys.pendingCount() }),
+  ]);
+}
+
+/**
+ * Sau lỗi 409 tải lại dữ liệu liên quan (Frontend-Conventions 5.1): lịch không còn chờ (INVALID_TRANSITION) thì tải lại danh sách và
+ * huy hiệu (đề xuất của lịch đó chắc chắn báo 409 nên không tải); xung đột khác (CAGE_CONFLICT) thì tải lại đề xuất chuồng.
+ */
+function refetchAfterConflict(queryClient: QueryClient, appointmentId: string, error: unknown) {
+  const apiError = toApiError(error);
+  if (apiError.status !== 409) return;
+  if (apiError.code === "INVALID_TRANSITION") {
+    void invalidatePending(queryClient);
+  } else {
+    void queryClient.invalidateQueries({ queryKey: appointmentKeys.suggestions(appointmentId) });
+  }
+}
+
+/** POST /appointments/{id}/confirm cho lịch lưu trú (FR-HTL-05). Việc tải lại danh sách sau khi thành công do màn hình làm (`useRemovePendingAppointment`). */
+export function useConfirmHotelAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmHotelAppointment,
+    onError: (error, { appointmentId }) => refetchAfterConflict(queryClient, appointmentId, error),
+  });
+}
+
+/** POST /appointments/{id}/reject (FR-HTL-06, FR-ASG-04): dùng chung cho lịch lưu trú và lịch spa. */
+export function useRejectAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: rejectAppointment,
+    onError: (error, appointmentId) => refetchAfterConflict(queryClient, appointmentId, error),
+  });
+}
+
+/**
+ * Trả về hàm gỡ một lịch vừa xác nhận hoặc từ chối khỏi danh sách chờ rồi tải lại danh sách và huy hiệu.
+ * Gỡ ngay trong cache để lịch đã xử lý không còn được tự chọn trong lúc chờ tải lại.
+ */
+export function useRemovePendingAppointment() {
+  const queryClient = useQueryClient();
+  return (appointmentId: string) => {
+    queryClient.setQueryData<PendingAppointmentsResult>(appointmentKeys.pending(), (current) =>
+      current && {
+        ...current,
+        items: current.items.filter((item) => item.appointmentId !== appointmentId),
+        total: Math.max(current.total - 1, 0),
+      },
+    );
+    void invalidatePending(queryClient);
+  };
 }

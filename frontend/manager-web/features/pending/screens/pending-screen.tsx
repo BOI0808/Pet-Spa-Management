@@ -1,7 +1,8 @@
 "use client";
 
 // MW-04 Xử lý lịch hẹn chờ xác nhận – UI-Screens.md (hồ sơ thú cưng chỉ xem: FR-PET-02).
-// Thẻ này làm vùng 1 – 3 (tiêu đề, danh sách chờ, đầu thẻ chi tiết + hồ sơ thú cưng); các vùng 4 – 6 thuộc thẻ 144 và 145.
+// Thẻ 143 làm vùng 1 – 3 (tiêu đề, danh sách chờ, đầu thẻ chi tiết + hồ sơ thú cưng); thẻ 145 thêm vùng 4, 6, 8 của lịch lưu trú;
+// vùng 4 – 6 của lịch spa thuộc thẻ 144.
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
@@ -14,7 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { isForbiddenError } from "@/lib/api/errors";
 import type { Appointment } from "@/lib/api/types";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/labels";
-import { usePendingAppointments } from "@/lib/queries/appointments";
+import { usePendingAppointments, useRemovePendingAppointment } from "@/lib/queries/appointments";
 import { PendingDetailCard } from "../components/pending-detail-card";
 import { PendingSkeleton } from "../components/pending-skeleton";
 import { PendingTicketItem } from "../components/pending-ticket-item";
@@ -102,6 +103,20 @@ export function PendingScreen() {
   const spaCount = items?.filter((item) => item.type === "Spa").length ?? 0;
   const hotelCount = items?.filter((item) => item.type === "Hotel").length ?? 0;
   const replaceUrl = (href: string) => router.replace(href, { scroll: false });
+  const removePendingAppointment = useRemovePendingAppointment();
+
+  /**
+   * Sau khi xác nhận hoặc từ chối: chọn lịch liền sau trong danh sách đang lọc (hết thì lịch liền trước; không còn lịch nào thì bỏ `?appointmentId=`),
+   * rồi gỡ lịch đã xử lý khỏi danh sách và tải lại (UI-Screens MW-04 “Hành vi”).
+   * Đổi URL bằng History API (Next.js đồng bộ với `useSearchParams` tại chỗ, không chờ máy chủ) và làm TRƯỚC khi gỡ lịch,
+   * để không hiện nhầm “Không tìm thấy lịch chờ xác nhận này” trong lúc `router.replace` còn đang chờ.
+   */
+  function handleProcessed(processedId: string) {
+    const index = visible?.findIndex((item) => item.appointmentId === processedId) ?? -1;
+    const next = index === -1 ? undefined : (visible?.[index + 1] ?? visible?.[index - 1]);
+    window.history.replaceState(null, "", buildPendingHref({ filter, appointmentId: next?.appointmentId }));
+    removePendingAppointment(processedId);
+  }
 
   function changeFilter(next: TypeFilter) {
     // Giữ lịch đang chỉ định/đang chọn nếu nó vẫn thuộc nhóm mới.
@@ -171,7 +186,7 @@ export function PendingScreen() {
             />
           ))}
         </div>
-        {selected ? <PendingDetailCard key={selected.appointmentId} appointment={selected} /> : missingNotice}
+        {selected ? <PendingDetailCard key={selected.appointmentId} appointment={selected} onProcessed={handleProcessed} /> : missingNotice}
       </div>
     );
   }
