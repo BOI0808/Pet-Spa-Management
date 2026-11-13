@@ -16,7 +16,10 @@ const BOOKING_NOTES = [
   "Thanh toán sau khi hoàn tất, tại quầy hoặc trực tuyến.",
 ];
 
-/** Vùng 9 – hiện khi `POST /appointments/spa` trả 403 `BOOKING_LOCKED` (UI-Screens G-04). */
+/** Lý do nút gửi bị khóa khi tài khoản bị khóa tự đặt lịch, dùng chung CW-06 và CW-07. */
+export const BOOKING_LOCKED_REASON = "Tài khoản tạm thời không thể tự đặt lịch, vui lòng liên hệ cửa hàng qua hotline.";
+
+/** Vùng 9 (CW-06) – hiện khi `POST /appointments/spa`, `/hotel` trả 403 `BOOKING_LOCKED` (UI-Screens G-04). */
 export function BookingLockedAlert() {
   return (
     <Alert tone="danger" icon="lock" title="Tài khoản tạm thời không thể tự đặt lịch">

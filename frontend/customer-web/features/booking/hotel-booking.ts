@@ -33,22 +33,40 @@ function isFilled(field: StayField, value: string) {
   return (field === "checkInDate" || field === "checkOutDate" ? DATE_PATTERN : TIME_PATTERN).test(value);
 }
 
+export type StayValidation = {
+  errors: StayErrors;
+  /** Đã nhập cả hai ngày nhưng ngày trả không sau ngày nhận: khóa nút gửi, Tạm tính ghi “Chưa hợp lệ”. */
+  checkOutTooEarly: boolean;
+};
+
 /**
  * Kiểm tra ở web trước khi gọi API (UI-Screens CW-07): đủ 4 ô; ngày trả sau ngày nhận (số đêm ≥ 1, nên thời điểm trả
  * cũng sau thời điểm nhận); thời điểm nhận không ở quá khứ. `now` truyền vào để hàm thuần khi render.
  */
-export function validateStay(times: StayTimes, now: number): StayErrors {
+export function validateStay(times: StayTimes, now: number): StayValidation {
   const errors: StayErrors = {};
   for (const field of Object.keys(REQUIRED_MESSAGES) as StayField[]) {
     if (!isFilled(field, times[field])) errors[field] = REQUIRED_MESSAGES[field];
   }
-  if (!errors.checkInDate && !errors.checkOutDate && daysBetween(times.checkInDate, times.checkOutDate) < 1) {
-    errors.checkOutDate = CHECK_OUT_BEFORE_MESSAGE;
-  }
+  const checkOutTooEarly =
+    !errors.checkInDate && !errors.checkOutDate && daysBetween(times.checkInDate, times.checkOutDate) < 1;
+  if (checkOutTooEarly) errors.checkOutDate = CHECK_OUT_BEFORE_MESSAGE;
   if (!errors.checkInDate && !errors.checkInTime && Date.parse(checkInAt(times)) <= now) {
     errors.checkInTime = CHECK_IN_PAST_MESSAGE;
   }
-  return errors;
+  return { errors, checkOutTooEarly };
+}
+
+/**
+ * Ô nhận lỗi 400 của `GET /hotel/availability`, `POST /appointments/hotel`. Backend chỉ trả `detail` là các câu lỗi
+ * nối lại, không có tên trường (lib/api/errors.ts), nên dựa vào câu của backend: nói về ngày trả → ô Ngày trả; nói về
+ * thời điểm nhận → ô Giờ nhận. Không nhận ra thì trả `null` để hiện `ErrorAlert` chung.
+ */
+export function stayFieldOfBadRequest(detail: string | null): StayField | null {
+  const text = (detail ?? "").toLocaleLowerCase("vi-VN");
+  if (text.includes("ngày trả") || text.includes("thời điểm trả")) return "checkOutDate";
+  if (text.includes("thời điểm nhận") || text.includes("ngày nhận")) return "checkInTime";
+  return null;
 }
 
 export function checkInAt(times: StayTimes) {

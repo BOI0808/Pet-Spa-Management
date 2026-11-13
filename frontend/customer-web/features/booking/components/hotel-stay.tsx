@@ -3,7 +3,6 @@ import { PetLine } from "@/components/domain/pet-line";
 import { SumFact, SumTotal } from "@/components/domain/summary";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
-import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
@@ -13,7 +12,6 @@ import { formatMoney } from "@/lib/format";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
 import { addDays } from "@/lib/time";
 import {
-  CHECK_OUT_BEFORE_MESSAGE,
   describeCageFit,
   describeNights,
   formatStayMoment,
@@ -37,7 +35,8 @@ function openPicker(event: MouseEvent<HTMLInputElement>) {
 export type AvailabilityView =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "error"; error: ApiError; onRetry: () => void }
+  /** `onRetry` chỉ có với lỗi thử lại được (mất mạng, 5xx, 429); 400 thử lại vẫn ra cùng lỗi nên không có nút. */
+  | { kind: "error"; error: ApiError; onRetry?: () => void }
   | { kind: "available"; nights: number }
   | { kind: "full" };
 
@@ -66,7 +65,7 @@ function AvailabilityResult({ pet, checkInDate, view }: { pet: Pet | null; check
       return (
         <div className="flex flex-col items-start gap-3">
           <ErrorAlert error={view.error} className="w-full" />
-          <Button onClick={view.onRetry}>Kiểm tra lại</Button>
+          {view.onRetry && <Button onClick={view.onRetry}>Kiểm tra lại</Button>}
         </div>
       );
     case "available":
@@ -164,7 +163,8 @@ export function StayTimeCard({ pet, times, errors, today, onChange, availability
 type HotelSummaryProps = {
   pet: Pet | null;
   times: StayTimes;
-  errors: StayErrors;
+  /** Ngày trả không sau ngày nhận (`validateStay`): dòng Trả ghi “Chưa hợp lệ”. */
+  checkOutTooEarly: boolean;
   /** Số đêm đã biết (từ API, hoặc tính ở web khi ngày hợp lệ); `null` khi chưa đủ dữ liệu. */
   nights: number | null;
   price: HotelPricingRow | null;
@@ -179,12 +179,22 @@ function momentOrPlaceholder(date: string, time: string) {
 }
 
 /** Vùng 5 – tạm tính, dính bên phải khi cuộn. */
-export function HotelSummary({ pet, times, errors, nights, price, amount, lateFeePerBlock, children }: HotelSummaryProps) {
-  const checkOutInvalid = errors.checkOutDate === CHECK_OUT_BEFORE_MESSAGE;
-  const formula =
-    price && nights !== null
-      ? `${nights} × (${formatMoney(price.pricePerNight)} + ${formatMoney(price.foodPerNight)})`
-      : "Chọn thời gian gửi và đón để tính tiền lưu trú";
+export function HotelSummary({
+  pet,
+  times,
+  checkOutTooEarly,
+  nights,
+  price,
+  amount,
+  lateFeePerBlock,
+  children,
+}: HotelSummaryProps) {
+  let formula = "Chọn thời gian gửi và đón để tính tiền lưu trú";
+  if (price && nights !== null) {
+    formula = `${nights} × (${formatMoney(price.pricePerNight)} + ${formatMoney(price.foodPerNight)})`;
+  } else if (pet && nights !== null && amount === null) {
+    formula = "Cửa hàng chưa có giá lưu trú cho loài và nhóm của bé";
+  }
 
   return (
     <aside className="sticky top-[92px] max-[1180px]:static">
@@ -204,7 +214,7 @@ export function HotelSummary({ pet, times, errors, nights, price, amount, lateFe
           <div className="text-sm">
             <SumFact label="Nhận">{momentOrPlaceholder(times.checkInDate, times.checkInTime)}</SumFact>
             <SumFact label="Trả">
-              {checkOutInvalid ? (
+              {checkOutTooEarly ? (
                 <span className="text-danger">Chưa hợp lệ</span>
               ) : (
                 momentOrPlaceholder(times.checkOutDate, times.checkOutTime)
@@ -218,7 +228,7 @@ export function HotelSummary({ pet, times, errors, nights, price, amount, lateFe
               <span className="tabular-nums">{price ? formatMoney(price.foodPerNight) : "–"}</span>
             </SumFact>
           </div>
-          <SumTotal label="Tiền lưu trú" amount={amount ?? 0} note={formula} />
+          <SumTotal label="Tiền lưu trú" amount={amount} note={formula} />
           <p className="mt-3 text-xs leading-4 text-muted">
             Thanh toán tại quầy khi gửi bé. Cửa hàng cân lại bé khi tiếp nhận nên số tiền có thể thay đổi.
             {lateFeePerBlock !== undefined &&
@@ -230,15 +240,5 @@ export function HotelSummary({ pet, times, errors, nights, price, amount, lateFe
         </CardFooter>
       </Card>
     </aside>
-  );
-}
-
-/** Lý do nút gửi bị khóa (`.btn-reason` của ui-demo). */
-export function DisabledReason({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex items-start gap-1.5 text-xs leading-4 text-muted">
-      <Icon name="lock" className="mt-px size-3.5" />
-      {children}
-    </p>
   );
 }

@@ -13,16 +13,18 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getErrorMessage } from "@/lib/api/errors";
+import { getErrorMessage, type ApiError } from "@/lib/api/errors";
 import type { Pet } from "@/lib/api/types";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useCreateHotelAppointment, useHotelAvailability } from "@/lib/queries/hotel-booking";
 import { useHotelPricing } from "@/lib/queries/hotel-pricing";
 import { usePets } from "@/lib/queries/pets";
 import { ROUTES } from "@/lib/routes";
 import { daysBetween, getStoreToday } from "@/lib/time";
+import { DisabledReason } from "../components/disabled-reason";
+import { HotelSummary, StayTimeCard, type AvailabilityView } from "../components/hotel-stay";
 import { PetPickerCard } from "../components/pet-step";
-import { BookingLockedAlert } from "../components/review-step";
-import { DisabledReason, HotelSummary, StayTimeCard, type AvailabilityView } from "../components/hotel-stay";
+import { BOOKING_LOCKED_REASON, BookingLockedAlert } from "../components/review-step";
 import {
   CHECK_OUT_BEFORE_MESSAGE,
   EMPTY_STAY_TIMES,
@@ -30,20 +32,37 @@ import {
   checkOutAt,
   describeHotelPet,
   findStayPrice,
+  stayFieldOfBadRequest,
   validateStay,
   type StayErrors,
   type StayField,
   type StayTimes,
 } from "../hotel-booking";
 import { BookingSkeleton } from "./spa-booking-screen";
-import { useDebouncedValue } from "../use-debounced-value";
 
 const PET_LIST_PARAMS = { page: 1, pageSize: 50 };
 const AVAILABILITY_DELAY_MS = 400;
 
 const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
 const FULL_REASON = "Hết chỗ trong thời gian đã chọn.";
-const LOCKED_REASON = "Tài khoản tạm thời không thể tự đặt lịch.";
+
+/** Ô nhận lỗi 400; `null` khi không phải 400 hoặc không xác định được ô. */
+function badRequestField(error: ApiError | null) {
+  return error?.status === 400 ? stayFieldOfBadRequest(error.detail) : null;
+}
+
+/**
+ * Alert khóa nằm trong thẻ Thời gian, xa nút gửi (trên điện thoại nút ở cuối trang) và hiện ra thì đẩy nút xuống:
+ * cuộn tới alert một lần khi nó xuất hiện để khách thấy lý do.
+ */
+function scrollIntoViewOnMount(node: HTMLDivElement | null) {
+  node?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/** Thử lại có ích khi mất mạng, quá tải (429) hoặc lỗi server; lỗi 4xx khác thử lại vẫn ra như cũ. */
+function isRetryable(error: ApiError) {
+  return error.kind !== "http" || error.status === 429 || (error.status ?? 0) >= 500;
+}
 
 /** Lỗi “bắt buộc” chỉ hiện sau lần bấm gửi đầu tiên; lỗi ngày trả, thời điểm đã qua hiện ngay khi đủ ô. */
 function visibleErrors(errors: StayErrors, times: StayTimes, showRequired: boolean): StayErrors {
@@ -71,7 +90,7 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
   const [isLocked, setIsLocked] = useState(false);
 
   const pet = pets.find((item) => item.petId === petId) ?? null;
-  const errors = validateStay(times, now);
+  const { errors, checkOutTooEarly } = validateStay(times, now);
   const shownErrors = visibleErrors(errors, times, showRequired);
   const isStayValid = Object.keys(errors).length === 0;
 
@@ -85,16 +104,30 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
   const hotelPricing = useHotelPricing();
   const createBooking = useCreateHotelAppointment();
 
+  // Gửi bị 409 thì lần kiểm tra lại (đã invalidate) quyết định: đang kiểm tra lại vẫn coi là hết chỗ, có kết quả
+  // thì theo kết quả mới, nên nếu chỗ vừa trống lại thì nút gửi mở lại mà khách không phải sửa ô nào.
   const noCapacity = createBooking.error?.code === "NO_CAPACITY";
-  const isFull = noCapacity || (isSettled && availability.data?.available === false);
+  const isFull =
+    isSettled && (availability.data?.available === false || (noCapacity && availability.isFetching));
+
+  // 400 của kiểm tra còn chỗ: hiện dưới ô liên quan như lỗi khi gửi; không xác định được ô thì hiện alert, không có
+  // nút thử lại vì gọi lại vẫn ra cùng lỗi.
+  const availabilityError = isSettled ? availability.error : null;
+  const availabilityField = badRequestField(availabilityError);
+  if (availabilityError && availabilityField) shownErrors[availabilityField] = getErrorMessage(availabilityError);
 
   let availabilityView: AvailabilityView = { kind: "idle" };
   if (params) {
     if (isFull) availabilityView = { kind: "full" };
     else if (!isSettled || availability.isPending) availabilityView = { kind: "checking" };
-    else if (availability.isError)
-      availabilityView = { kind: "error", error: availability.error, onRetry: () => void availability.refetch() };
-    else if (availability.data) availabilityView = { kind: "available", nights: availability.data.nights };
+    else if (availabilityError && !availabilityField)
+      availabilityView = {
+        kind: "error",
+        error: availabilityError,
+        onRetry: isRetryable(availabilityError) ? () => void availability.refetch() : undefined,
+      };
+    else if (availability.data && !availabilityError)
+      availabilityView = { kind: "available", nights: availability.data.nights };
   }
 
   // Số đêm, tiền ở web chỉ để xem; có kết quả API thì dùng của API (BR-22).
@@ -105,17 +138,19 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
   const amount =
     apiResult?.estimatedAmount ?? (price && nights !== null ? nights * (price.pricePerNight + price.foodPerNight) : null);
 
-  // 400 khi gửi: lỗi dưới ô Ngày trả (UI-Screens CW-07).
-  const badRequest = createBooking.error?.status === 400 ? createBooking.error : null;
-  if (badRequest && !shownErrors.checkOutDate) shownErrors.checkOutDate = getErrorMessage(badRequest);
+  // 400 khi gửi: lỗi dưới đúng ô (ngày trả → Ngày trả, thời điểm nhận → Giờ nhận), là phản hồi mới nhất nên đè lỗi
+  // ở web của ô đó. Không xác định được ô (vd. lỗi về thú cưng) thì hiện ErrorAlert chung ở đầu nội dung.
+  const submitField = badRequestField(createBooking.error);
+  if (createBooking.error && submitField) shownErrors[submitField] = getErrorMessage(createBooking.error);
   const submitError =
-    createBooking.error && !badRequest && !noCapacity && !isLocked ? createBooking.error : null;
+    createBooking.error && !submitField && !noCapacity && createBooking.error.code !== "BOOKING_LOCKED"
+      ? createBooking.error
+      : null;
 
-  const checkOutInvalid = errors.checkOutDate === CHECK_OUT_BEFORE_MESSAGE && Boolean(times.checkOutDate);
   let disabledReason: string | null = null;
-  if (isLocked) disabledReason = LOCKED_REASON;
+  if (isLocked) disabledReason = BOOKING_LOCKED_REASON;
   else if (isFull) disabledReason = FULL_REASON;
-  else if (checkOutInvalid) disabledReason = CHECK_OUT_BEFORE_MESSAGE;
+  else if (checkOutTooEarly) disabledReason = CHECK_OUT_BEFORE_MESSAGE;
 
   function selectPet(nextPetId: string) {
     setPetId(nextPetId);
@@ -134,7 +169,7 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
     setNow(current);
     setShowRequired(true);
     if (!pet) setPetMessage(NO_PET_MESSAGE);
-    if (!pet || Object.keys(validateStay(times, current)).length > 0) return;
+    if (!pet || Object.keys(validateStay(times, current).errors).length > 0) return;
 
     createBooking.mutate(
       { petId: pet.petId, plannedCheckIn: checkInAt(times), plannedCheckOut: checkOutAt(times) },
@@ -146,8 +181,10 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
         },
         onError: (error) => {
           if (error.code === "BOOKING_LOCKED") setIsLocked(true);
-          // Lỗi chung hiện ở đầu nội dung, trên điện thoại nút gửi nằm cuối trang.
-          if (error.status !== 400 && error.code !== "NO_CAPACITY") window.scrollTo({ top: 0, behavior: "smooth" });
+          // Chỉ cuộn lên đầu khi lỗi hiện bằng ErrorAlert ở đầu nội dung (trên điện thoại nút gửi nằm cuối trang). Hết
+          // chỗ, lỗi theo ô: lý do nằm ngay dưới nút gửi hoặc ở ô liên quan. Bị khóa: cuộn tới alert khóa (ở trên).
+          const shownInPlace = error.code === "BOOKING_LOCKED" || error.code === "NO_CAPACITY" || badRequestField(error);
+          if (!shownInPlace) window.scrollTo({ top: 0, behavior: "smooth" });
         },
       },
     );
@@ -171,7 +208,13 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
           today={today}
           onChange={changeTime}
           availability={availabilityView}
-          lockedAlert={isLocked && <BookingLockedAlert />}
+          lockedAlert={
+            isLocked && (
+              <div ref={scrollIntoViewOnMount}>
+                <BookingLockedAlert />
+              </div>
+            )
+          }
         />
         <Alert tone="neutral">
           Muốn tắm hoặc cắt tỉa cho bé trong thời gian lưu trú? Hãy{" "}
@@ -188,7 +231,7 @@ function HotelBookingFlow({ pets }: { pets: Pet[] }) {
       <HotelSummary
         pet={pet}
         times={times}
-        errors={shownErrors}
+        checkOutTooEarly={checkOutTooEarly}
         nights={nights}
         price={price}
         amount={amount}
