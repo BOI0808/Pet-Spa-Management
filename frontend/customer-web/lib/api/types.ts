@@ -152,6 +152,30 @@ export type SpaBookingCreated = {
   estimatedAmount: number;
 };
 
+// ── Đặt lịch lưu trú ──
+export type HotelAvailability = {
+  /** Còn ít nhất một chuồng hợp loài, nhóm kích cỡ, trống trong cả các đêm (BR-21). */
+  available: boolean;
+  nights: number;
+  /** Tiền lưu trú tạm tính, VND (BR-22). */
+  estimatedAmount: number;
+};
+
+export type HotelBookingRequest = {
+  petId: string;
+  /** ISO 8601 có độ lệch, ví dụ “2026-10-16T09:00:00+07:00”. */
+  plannedCheckIn: string;
+  plannedCheckOut: string;
+};
+
+export type HotelBookingCreated = {
+  appointmentId: string;
+  status: AppointmentStatus;
+  nights: number;
+  /** VND. */
+  estimatedAmount: number;
+};
+
 // ── Lịch hẹn: danh sách, chi tiết ──
 export type CancelReason =
   | "CustomerCancelled"
