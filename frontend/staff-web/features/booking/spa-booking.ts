@@ -45,9 +45,11 @@ export function earliestLatestStart(services: PricedService[]) {
 
 /**
  * Thẻ chọn thú cưng ở SW-06 vùng 3: “Chó Corgi, 11,0 kg, nhóm Vừa, khó tính, dữ”. Khác customer-web ở phần tính cách:
- * UI-Screens SW-06 yêu cầu hiện tính cách để lễ tân biết vì sao lịch cần 2 nhân viên.
+ * chỉ thêm khi bé khó tính (như ui-demo), để lễ tân biết vì sao lịch cần 2 nhân viên; bé hiền, bình thường thì bỏ cho gọn.
  */
 export function describePet(pet: Pet) {
-  const temperament = TEMPERAMENT_LABELS[pet.temperament].toLocaleLowerCase("vi-VN");
-  return `${SPECIES_LABELS[pet.species]} ${pet.breed}, ${formatWeight(pet.weightKg)}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}, ${temperament}`;
+  const base = `${SPECIES_LABELS[pet.species]} ${pet.breed}, ${formatWeight(pet.weightKg)}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
+  return pet.temperament === "Difficult"
+    ? `${base}, ${TEMPERAMENT_LABELS.Difficult.toLocaleLowerCase("vi-VN")}`
+    : base;
 }

@@ -127,22 +127,14 @@ export function SpaBookingForm({ customerId, pet, petCard, notice }: SpaBookingF
   const { showSuccess } = useToast();
 
   const [serviceIds, setServiceIds] = useState<string[]>([]);
-  const [dates] = useState(() => {
-    const today = getStoreToday();
-    return Array.from({ length: DATE_COUNT }, (_, index) => addDays(today, index));
-  });
-  const [date, setDate] = useState(dates[0]);
+  // Dải ngày tính lại theo hôm nay mỗi lần vẽ (mốc giờ tự tải lại mỗi phút nên màn vẽ lại đều): màn mở qua nửa đêm thì
+  // dải bắt đầu từ hôm nay, ngày đã chọn rơi khỏi dải thì về hôm nay. Khác customer-web (tính một lần khi mở màn).
+  const today = getStoreToday();
+  const dates = useMemo(() => Array.from({ length: DATE_COUNT }, (_, index) => addDays(today, index)), [today]);
+  const [pickedDate, setDate] = useState(today);
+  const date = dates.includes(pickedDate) ? pickedDate : dates[0];
   const [slotTime, setSlotTime] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
-
-  // Đổi thú cưng thì bỏ mốc giờ đã chọn (UI-Screens CW-06). Cập nhật state ngay khi render theo mẫu “lưu giá trị trước”
-  // của React thay cho useEffect, để không vẽ một lần với mốc giờ cũ.
-  const [shownPetId, setShownPetId] = useState(pet?.petId ?? null);
-  if ((pet?.petId ?? null) !== shownPetId) {
-    setShownPetId(pet?.petId ?? null);
-    setSlotTime(null);
-    setValidationMessage(null);
-  }
 
   const services = useServices(pet ? { species: pet.species, sizeGroup: pet.sizeGroup } : {}, {
     enabled: pet !== null,
@@ -163,6 +155,18 @@ export function SpaBookingForm({ customerId, pet, petCard, notice }: SpaBookingF
     { enabled: canPickSlot },
   );
   const createBooking = useCreateSpaAppointment();
+
+  // Đổi thú cưng thì bỏ mốc giờ đã chọn (UI-Screens CW-06) và bỏ qua lỗi của lần tạo lịch trước (so theo `submittedAt`
+  // nên chọn lại bé cũ cũng không hiện lại). Cập nhật state ngay khi vẽ theo mẫu “lưu giá trị trước” của React thay cho
+  // useEffect, để không vẽ một lần với mốc giờ cũ.
+  const [shownPetId, setShownPetId] = useState(pet?.petId ?? null);
+  const [dismissedAt, setDismissedAt] = useState(0);
+  if ((pet?.petId ?? null) !== shownPetId) {
+    setShownPetId(pet?.petId ?? null);
+    setSlotTime(null);
+    setValidationMessage(null);
+    setDismissedAt(createBooking.submittedAt);
+  }
 
   // Có kết quả `GET /spa/slots` thì dùng thời lượng, số nhân viên của backend; chưa có thì dùng số tính ở web để xem.
   const slotData = canPickSlot ? slots.data : undefined;
@@ -234,8 +238,7 @@ export function SpaBookingForm({ customerId, pet, petCard, notice }: SpaBookingF
     );
   }
 
-  // Lỗi của lần tạo lịch chỉ hiện khi lần đó gửi cho đúng bé đang chọn (đổi bé thì lỗi cũ không còn đúng).
-  const bookingError = createBooking.variables?.petId === pet?.petId ? createBooking.error : null;
+  const bookingError = createBooking.submittedAt > dismissedAt ? createBooking.error : null;
   const slotFullError = bookingError?.code === "SLOT_FULL" ? bookingError : null;
   const submitError = bookingError && !slotFullError ? bookingError : null;
 

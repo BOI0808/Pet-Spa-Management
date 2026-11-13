@@ -58,7 +58,8 @@ export function HotelBookingForm({ customerId, pet, petCard, notice }: HotelBook
   const [times, setTimes] = useState<StayTimes>(EMPTY_STAY_TIMES);
   // Mốc “bây giờ” để chặn thời điểm nhận đã qua; cập nhật khi sửa ô hoặc bấm tạo lịch để hàm render vẫn thuần.
   const [now, setNow] = useState(() => Date.now());
-  const [today] = useState(getStoreToday);
+  // Tính lại mỗi lần vẽ: màn mở qua nửa đêm thì ngày nhỏ nhất của ô Ngày nhận vẫn là hôm nay.
+  const today = getStoreToday();
   const [showRequired, setShowRequired] = useState(false);
   const [petMessage, setPetMessage] = useState<string | null>(null);
 
@@ -75,9 +76,19 @@ export function HotelBookingForm({ customerId, pet, petCard, notice }: HotelBook
   const hotelPricing = useHotelPricing();
   const createBooking = useCreateHotelAppointment();
 
-  // Lỗi của lần tạo lịch chỉ hiện khi lần đó gửi cho đúng bé đang chọn: đổi bé thì lỗi cũ (hết chỗ, 400) không còn đúng.
-  const bookingError = createBooking.variables?.petId === pet?.petId ? createBooking.error : null;
-  const noCapacity = bookingError?.code === "NO_CAPACITY";
+  // Đổi bé thì lỗi của lần tạo lịch trước (hết chỗ, 400) không còn đúng: ghi lại lần gửi đó là đã bỏ qua, so theo
+  // `submittedAt` nên chọn lại bé cũ cũng không hiện lại lỗi cũ. Cập nhật state ngay khi vẽ (mẫu “lưu giá trị trước”).
+  const [shownPetId, setShownPetId] = useState(pet?.petId ?? null);
+  const [dismissedAt, setDismissedAt] = useState(0);
+  if ((pet?.petId ?? null) !== shownPetId) {
+    setShownPetId(pet?.petId ?? null);
+    setDismissedAt(createBooking.submittedAt);
+  }
+  const bookingError = createBooking.submittedAt > dismissedAt ? createBooking.error : null;
+  // Sau 409 NO_CAPACITY hook kiểm tra còn chỗ lại; kết quả mới (về sau lần gửi) báo còn chỗ thì mở lại nút tạo lịch.
+  const recheckedAvailable =
+    isSettled && availability.data?.available === true && availability.dataUpdatedAt > createBooking.submittedAt;
+  const noCapacity = bookingError?.code === "NO_CAPACITY" && !recheckedAvailable;
   const isFull = noCapacity || (isSettled && availability.data?.available === false);
 
   let availabilityView: AvailabilityView = { kind: "idle" };
@@ -99,7 +110,7 @@ export function HotelBookingForm({ customerId, pet, petCard, notice }: HotelBook
   // 400 khi tạo lịch: lỗi dưới ô Ngày trả (UI-Screens CW-07).
   const badRequest = bookingError?.status === 400 ? bookingError : null;
   if (badRequest && !shownErrors.checkOutDate) shownErrors.checkOutDate = getErrorMessage(badRequest);
-  const submitError = bookingError && !badRequest && !noCapacity ? bookingError : null;
+  const submitError = bookingError && !badRequest && bookingError.code !== "NO_CAPACITY" ? bookingError : null;
 
   const checkOutInvalid = errors.checkOutDate === CHECK_OUT_BEFORE_MESSAGE && Boolean(times.checkOutDate);
   let disabledReason: string | null = null;
