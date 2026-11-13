@@ -154,6 +154,23 @@ const ICON_PATHS = {
     </>
   ),
   x: <path d="M18 6 6 18M6 6l12 12" />,
+  // SW-06 (thẻ 124): ô chọn dịch vụ, ô giờ lưu trú, đang kiểm tra chỗ, lý do nút bị khóa – giống customer-web.
+  check: <path d="M20 6 9 17l-5-5" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </>
+  ),
+  hourglass: (
+    <path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />
+  ),
+  lock: (
+    <>
+      <rect width="18" height="11" x="3" y="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICON_PATHS;
