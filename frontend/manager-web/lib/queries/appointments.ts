@@ -157,11 +157,13 @@ export function invalidatePending(queryClient: QueryClient) {
 
 /**
  * Sau lỗi 409 tải lại dữ liệu liên quan (Frontend-Conventions 5.1): lịch không còn chờ (INVALID_TRANSITION) thì tải lại danh sách và
- * huy hiệu (đề xuất của lịch đó chắc chắn báo 409 nên không tải); xung đột khác (CAGE_CONFLICT) thì tải lại đề xuất chuồng.
+ * huy hiệu (đề xuất của lịch đó chắc chắn báo 409 nên không tải); xung đột khác (CAGE_CONFLICT, STAFF_CONFLICT) thì tải lại đề xuất.
+ * STAFF_OUT_OF_SHIFT không tải lại: Quản lý đang quyết định có vẫn xác nhận người ngoài ca hay không (MW-04·D2), danh sách không đổi.
  */
 function refetchAfterConflict(queryClient: QueryClient, appointmentId: string, error: unknown) {
   const apiError = toApiError(error);
   if (apiError.status !== 409) return;
+  if (apiError.code === "STAFF_OUT_OF_SHIFT") return;
   if (apiError.code === "INVALID_TRANSITION") {
     void invalidatePending(queryClient);
   } else {

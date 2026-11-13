@@ -22,6 +22,8 @@ type ConfirmDialogProps = {
   /** Tông ô biểu tượng; mặc định `warn`. */
   tone?: DialogTone;
   confirmLabel: string;
+  /** Chữ của nút đóng hộp thoại; mặc định “Quay lại”. */
+  cancelLabel?: string;
   /** Đang gửi lệnh: nút xác nhận hiện spinner, không đóng được. */
   loading?: boolean;
   /** Lỗi của lần xác nhận gần nhất, hiện ngay trong hộp thoại (UI-Screens 2.2). */
@@ -32,13 +34,14 @@ type ConfirmDialogProps = {
   children: ReactNode;
 };
 
-/** Hộp thoại xác nhận hành động nguy hiểm (SA 6.6): nút xác nhận nêu đúng hậu quả, nút còn lại là “Quay lại”. */
+/** Hộp thoại xác nhận hành động nguy hiểm (SA 6.6): nút xác nhận nêu đúng hậu quả, nút còn lại mặc định là “Quay lại”. */
 export function ConfirmDialog({
   title,
   subtitle,
   icon,
   tone = "warn",
   confirmLabel,
+  cancelLabel = "Quay lại",
   loading = false,
   error,
   onConfirm,
@@ -67,7 +70,7 @@ export function ConfirmDialog({
         </div>
         <div className="flex justify-end gap-2.5 px-5 pb-5 pt-3.5">
           <Button variant="ghost" onClick={onClose} disabled={loading}>
-            Quay lại
+            {cancelLabel}
           </Button>
           <Button variant="danger-solid" onClick={onConfirm} loading={loading}>
             {confirmLabel}

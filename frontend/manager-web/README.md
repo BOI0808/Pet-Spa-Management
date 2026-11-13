@@ -22,7 +22,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/auth` | Màn MW-01 Đăng nhập |
 | `features/services` | Màn MW-06 Danh mục dịch vụ: bảng, ngăn kéo thêm/sửa, hộp thoại ngừng cung cấp |
 | `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
-| `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem; lịch lưu trú: thông tin lịch + tạm tính, chuồng đề xuất, xác nhận và từ chối (`RejectAppointmentDialog` dùng chung cho lịch spa ở thẻ 144) |
+| `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem; lịch lưu trú: thông tin lịch + tạm tính, chuồng đề xuất, xác nhận và từ chối; lịch spa: thông tin lịch + tạm tính, nhân viên đề xuất và điều chỉnh, xác nhận (kèm hộp thoại nhân viên ngoài ca) và từ chối (`RejectAppointmentDialog` dùng chung cho cả hai loại lịch) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
 | `components/feedback` | Hiển thị lỗi và ghi chú: `Alert` (tông danger, info), `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
