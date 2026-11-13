@@ -24,7 +24,7 @@ import type { Pet } from "@/lib/api/types";
 import { formatPhone } from "@/lib/format";
 import { SPECIES_LABELS, TEMPERAMENT_LABELS } from "@/lib/labels";
 import { useCreatePet, usePet, useUpdatePet } from "@/lib/queries/pets";
-import { ROUTES, customerSearchRoute } from "@/lib/routes";
+import { ROUTES, bookForCustomerRoute, customerSearchRoute } from "@/lib/routes";
 import { useServingCustomer, type ServingCustomer } from "@/lib/serving-customer";
 import { validateBreed, validateHeightCm, validatePetName, validateWeightKg } from "@/lib/validation";
 import { SizePreview } from "../components/size-preview";
@@ -114,18 +114,33 @@ function PetForm({ customer, pet }: { customer: ServingCustomer; pet?: Pet }) {
 
   const onSubmit = handleSubmit((values, event) => {
     const form = event?.target instanceof HTMLFormElement ? event.target : null;
-    const options = {
-      onSuccess: () => {
-        showSuccess("Đã lưu hồ sơ thú cưng");
-        // Thẻ 123 chưa có SW-06 (thẻ 124) nên quay về SW-04; thẻ 124 đổi thành “Lưu và đặt lịch” → SW-06.
-        router.push(backToCustomer(customer));
-      },
-      // Lỗi hiện ở đầu form; form dài nên cuộn lên để lễ tân thấy (nhất là trên điện thoại).
-      onError: () => form?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    };
-    // Lễ tân tạo hồ sơ phải gửi `customerId` (openapi PetRequest); khi sửa, backend bỏ qua trường này.
-    if (pet) updatePet.mutate({ petId: pet.petId, body: toPetRequest(values) }, options);
-    else createPet.mutate({ ...toPetRequest(values), customerId: customer.customerId }, options);
+    // Lỗi hiện ở đầu form; form dài nên cuộn lên để lễ tân thấy (nhất là trên điện thoại).
+    const onError = () => form?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Sửa: “Lưu hồ sơ” → về SW-04. Tạo mới: “Lưu và đặt lịch” → SW-06 chọn sẵn bé vừa tạo (UI-Screens SW-05 vùng 6).
+    if (pet) {
+      updatePet.mutate(
+        { petId: pet.petId, body: toPetRequest(values) },
+        {
+          onSuccess: () => {
+            showSuccess("Đã lưu hồ sơ thú cưng");
+            router.push(backToCustomer(customer));
+          },
+          onError,
+        },
+      );
+    } else {
+      // Lễ tân tạo hồ sơ phải gửi `customerId` (openapi PetRequest).
+      createPet.mutate(
+        { ...toPetRequest(values), customerId: customer.customerId },
+        {
+          onSuccess: ({ petId }) => {
+            showSuccess("Đã lưu hồ sơ thú cưng");
+            router.push(bookForCustomerRoute({ customerId: customer.customerId, petId }));
+          },
+          onError,
+        },
+      );
+    }
   });
 
   return (
@@ -250,7 +265,7 @@ function PetForm({ customer, pet }: { customer: ServingCustomer; pet?: Pet }) {
               Hủy bỏ
             </ButtonLink>
             <Button type="submit" variant="primary" className="ml-auto" loading={mutation.isPending}>
-              Lưu hồ sơ
+              {pet ? "Lưu hồ sơ" : "Lưu và đặt lịch"}
             </Button>
           </CardFooter>
         </form>
