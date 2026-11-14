@@ -17,6 +17,7 @@ export const ROUTES = {
   hotelBooking: "/dat-lich/luu-tru", // CW-07
   appointments: "/lich-hen", // CW-08, CW-10
   appointmentDetail: (appointmentId: string) => `/lich-hen/${encodeURIComponent(appointmentId)}`, // CW-09
+  appointmentChange: (appointmentId: string) => `/lich-hen/${encodeURIComponent(appointmentId)}/doi-lich`, // CW-10
   history: "/lich-su", // CW-11
   notifications: "/thong-bao", // CW-12
   profile: "/ho-so", // CW-13
