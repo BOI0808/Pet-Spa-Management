@@ -251,6 +251,27 @@ export type AppointmentDetail = Appointment & {
   pendingCostConfirmation?: CostConfirmation | null;
 };
 
+// ── Lịch hẹn: đổi, hủy (FR-CHG-01) ──
+/** KH đổi lịch spa: đủ 3 trường; không gửi nhân viên, giá, `status` (BR-17, BR-26). */
+export type SpaChangeRequest = {
+  petId: string;
+  serviceIds: string[];
+  /** ISO 8601 có độ lệch, ví dụ “2026-10-16T09:00:00+07:00”. */
+  slotStart: string;
+};
+
+/** KH đổi lịch lưu trú: không gửi chuồng, giá, `status`. */
+export type HotelChangeRequest = {
+  petId: string;
+  plannedCheckIn: string;
+  plannedCheckOut: string;
+};
+
+export type UpdateAppointmentRequest = SpaChangeRequest | HotelChangeRequest;
+
+/** Kết quả `PUT /appointments/{id}`, `POST /appointments/{id}/cancel`. */
+export type StatusResult = { status: AppointmentStatus };
+
 // ── Thanh toán ──
 export type PaymentKind = "Spa" | "Stay" | "LateFee";
 export type PaymentStatus = "Unpaid" | "Paid";

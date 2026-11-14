@@ -38,7 +38,12 @@ export type AvailabilityView =
   /** `onRetry` chỉ có với lỗi thử lại được (mất mạng, 5xx, 429); 400 thử lại vẫn ra cùng lỗi nên không có nút. */
   | { kind: "error"; error: ApiError; onRetry?: () => void }
   | { kind: "available"; nights: number }
-  | { kind: "full" };
+  | { kind: "full" }
+  /**
+   * CW-10: `GET /hotel/availability` báo hết chỗ nhưng thời gian mới trùng các đêm của chính lịch đang đổi, mà API vẫn
+   * tính chuồng của lịch này là đã giữ. Backend bỏ lịch này ra khi đổi nên chưa chắc hết chỗ; vẫn cho gửi.
+   */
+  | { kind: "own-hold" };
 
 type StayTimeCardProps = {
   pet: Pet | null;
@@ -49,6 +54,8 @@ type StayTimeCardProps = {
   availability: AvailabilityView;
   /** Alert tài khoản bị khóa (403 `BOOKING_LOCKED`), đặt cuối thẻ như UI demo. */
   lockedAlert?: ReactNode;
+  /** Tiêu đề thẻ; CW-10 dùng “Thời gian mới”. */
+  title?: string;
 };
 
 function AvailabilityResult({ pet, checkInDate, view }: { pet: Pet | null; checkInDate: string; view: AvailabilityView }) {
@@ -81,16 +88,32 @@ function AvailabilityResult({ pet, checkInDate, view }: { pet: Pet | null; check
           Hết chỗ trong thời gian này, vui lòng chọn ngày khác.
         </Alert>
       );
+    case "own-hold":
+      return (
+        <Alert tone="warn" title="Chưa chắc còn chỗ">
+          Thời gian mới trùng với lịch hiện tại của bé nên kết quả còn tính cả chuồng bé đang giữ. Cửa hàng kiểm tra lại
+          khi bạn gửi yêu cầu; nếu hết chỗ, bạn sẽ được báo để chọn ngày khác.
+        </Alert>
+      );
   }
 }
 
 /** Vùng 3 – thời gian gửi và đón, kết quả còn chỗ. */
-export function StayTimeCard({ pet, times, errors, today, onChange, availability, lockedAlert }: StayTimeCardProps) {
+export function StayTimeCard({
+  pet,
+  times,
+  errors,
+  today,
+  onChange,
+  availability,
+  lockedAlert,
+  title = "Thời gian gửi và đón",
+}: StayTimeCardProps) {
   // Ngày trả sớm nhất là ngày sau ngày nhận (ít nhất 1 đêm).
   const minCheckOut = addDays(times.checkInDate || today, 1);
   return (
     <Card>
-      <CardHeader title="Thời gian gửi và đón" />
+      <CardHeader title={title} />
       <CardBody className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-x-5 gap-y-4 max-[640px]:grid-cols-1">
           <Field id="stay-check-in-date" label="Ngày nhận" required error={errors.checkInDate}>
