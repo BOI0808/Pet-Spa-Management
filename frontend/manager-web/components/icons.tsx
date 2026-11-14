@@ -169,6 +169,7 @@ const ICON_PATHS = {
     </>
   ),
   x: <path d="M18 6 6 18M6 6l12 12" />,
+  check: <path d="M20 6 9 17l-5-5" />,
   // Ba biểu tượng của màn Danh mục dịch vụ MW-06 (ui-demo: i-plus, i-edit, i-ban).
   plus: <path d="M12 5v14M5 12h14" />,
   edit: <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />,

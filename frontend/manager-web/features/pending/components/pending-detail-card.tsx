@@ -15,9 +15,10 @@ import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
 import { usePet } from "@/lib/queries/pets";
 import { HotelAssignmentPanel } from "./hotel-assignment-panel";
 import { PetProfile } from "./pet-profile";
+import { SpaAssignmentPanel } from "./spa-assignment-panel";
 
 // Thẻ chi tiết của MW-04: vùng 3 (đầu thẻ) và hồ sơ thú cưng chỉ xem (FR-PET-02).
-// Lịch lưu trú thêm vùng 4, 8, 6 bên dưới hồ sơ (thẻ 145); phần của lịch spa (vùng 4 – 6) do thẻ 144 thêm.
+// Lịch lưu trú thêm vùng 4, 8, 6 bên dưới hồ sơ (thẻ 145); lịch spa thêm vùng 4, 5, 6 (thẻ 144).
 type PendingDetailCardProps = {
   appointment: Appointment;
   /** Gọi sau khi lịch đã được xác nhận hoặc từ chối để màn hình chọn lịch kế tiếp. */
@@ -76,6 +77,7 @@ export function PendingDetailCard({ appointment, onProcessed }: PendingDetailCar
       </div>
 
       {appointment.type === "Hotel" && <HotelAssignmentPanel appointment={appointment} pet={pet} onProcessed={onProcessed} />}
+      {appointment.type === "Spa" && <SpaAssignmentPanel appointment={appointment} pet={pet} onProcessed={onProcessed} />}
     </Card>
   );
 }

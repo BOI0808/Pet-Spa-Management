@@ -2,7 +2,7 @@
 
 // MW-04 Xử lý lịch hẹn chờ xác nhận – UI-Screens.md (hồ sơ thú cưng chỉ xem: FR-PET-02).
 // Thẻ 143 làm vùng 1 – 3 (tiêu đề, danh sách chờ, đầu thẻ chi tiết + hồ sơ thú cưng); thẻ 145 thêm vùng 4, 6, 8 của lịch lưu trú;
-// vùng 4 – 6 của lịch spa thuộc thẻ 144.
+// thẻ 144 thêm vùng 4, 5, 6 của lịch spa.
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";

@@ -220,3 +220,43 @@ export type StatusResult = { status: AppointmentStatus };
 
 /** Phản hồi của POST /appointments/{id}/reject (schema RejectResult). */
 export type RejectResult = { status: "Cancelled"; reason: "StoreUnable" };
+
+// ── Đề xuất nhân viên, xác nhận lịch spa (FR-ASG-01 → 03) ──
+
+/** Một dòng của `suggested` / `alternatives` trong GET /appointments/{id}/suggestions của lịch spa (schema StaffSuggestion). */
+export type StaffSuggestion = {
+  staffId: string;
+  fullName: string;
+  /** Số lịch được phân công trong `Suggest.LookbackDays` (30) ngày gần nhất. */
+  recentAssignmentCount?: number;
+};
+
+/**
+ * GET /appointments/{id}/suggestions của lịch spa (schema SpaSuggestions). `suggested` là đủ `staffRequired` người (ít hơn khi cửa hàng
+ * không đủ nhân viên phù hợp); `alternatives` là các nhân viên phù hợp còn lại. Cả hai chỉ gồm người có ca phủ khung giờ và không trùng lịch.
+ */
+export type SpaSuggestions = {
+  staffRequired: 1 | 2;
+  suggested: StaffSuggestion[];
+  alternatives: StaffSuggestion[];
+};
+
+/** Body của POST /appointments/{id}/confirm cho lịch spa (schema ConfirmSpaRequest). `confirmOutOfShift` chỉ gửi `true` sau khi Quản lý đồng ý (MW-04·D2). */
+export type ConfirmSpaRequest = {
+  staffIds: string[];
+  confirmOutOfShift?: true;
+};
+
+/** Một dịch vụ trong `services` của GET /appointments/{id} (schema AppointmentServiceItem); lịch spa mới có. */
+export type AppointmentServiceItem = {
+  serviceId: string;
+  name?: string;
+  isDone: boolean;
+  doneAt?: string | null;
+  note?: string | null;
+};
+
+/** GET /appointments/{id} (schema AppointmentDetail). Chỉ khai báo `services` mà MW-04 cần để nêu tên dịch vụ và tính tạm tính. */
+export type AppointmentDetail = Appointment & {
+  services?: AppointmentServiceItem[];
+};
