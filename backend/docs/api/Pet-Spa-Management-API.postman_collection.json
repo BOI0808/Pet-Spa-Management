@@ -12432,7 +12432,308 @@
             },
             {
               "name": "06.S.4 Danh sách chờ xác nhận và đề xuất nhân viên – FR-ASG-01",
-              "item": []
+              "item": [
+                {
+                  "name": "GET /appointments – quản lý xem danh sách lịch spa chờ xác nhận (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "",
+                          "pm.test(\"Có danh sách phân trang và ít nhất 1 lịch chờ xác nhận\", function () {",
+                          "    pm.expect(body.items).to.be.an(\"array\");",
+                          "    pm.expect(body.page).to.eql(1);",
+                          "    pm.expect(body.pageSize).to.eql(100);",
+                          "    pm.expect(body.total).to.be.at.least(1);",
+                          "});",
+                          "",
+                          "pm.test(\"Mọi lịch trong danh sách là lịch spa đang Pending\", function () {",
+                          "    body.items.forEach(function (item) {",
+                          "        pm.expect(item.type).to.eql(\"Spa\");",
+                          "        pm.expect(item.status).to.eql(\"Pending\");",
+                          "    });",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments?type=Spa&status=Pending&page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments"
+                      ],
+                      "query": [
+                        {
+                          "key": "type",
+                          "value": "Spa"
+                        },
+                        {
+                          "key": "status",
+                          "value": "Pending"
+                        },
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – lịch cần 1 nhân viên, cả A và B đều rảnh (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "const ids = body.suggested.concat(body.alternatives).map((s) => s.staffId);",
+                          "",
+                          "pm.test(\"Cần 1 nhân viên: 1 người được đề xuất và 1 người dự phòng\", function () {",
+                          "    pm.expect(body.staffRequired).to.eql(1);",
+                          "    pm.expect(body.suggested).to.have.lengthOf(1);",
+                          "    pm.expect(body.alternatives).to.have.lengthOf(1);",
+                          "});",
+                          "",
+                          "pm.test(\"Hai người là nhân viên A và B của ngày thử\", function () {",
+                          "    pm.expect(ids).to.have.members([",
+                          "        pm.environment.get(\"spaStaffAId\"),",
+                          "        pm.environment.get(\"spaStaffBId\")",
+                          "    ]);",
+                          "});",
+                          "",
+                          "pm.test(\"Mỗi nhân viên có họ tên và số lần phân công gần đây\", function () {",
+                          "    body.suggested.concat(body.alternatives).forEach(function (s) {",
+                          "        pm.expect(s.fullName).to.be.a(\"string\");",
+                          "        pm.expect(s.recentAssignmentCount).to.be.a(\"number\");",
+                          "    });",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle1Id}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle1Id}}",
+                        "suggestions"
+                      ],
+                      "query": []
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – lịch cần 2 nhân viên (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "",
+                          "pm.test(\"Cần 2 nhân viên: đề xuất đủ A và B, không còn người dự phòng\", function () {",
+                          "    pm.expect(body.staffRequired).to.eql(2);",
+                          "    pm.expect(body.suggested).to.have.lengthOf(2);",
+                          "    pm.expect(body.alternatives).to.have.lengthOf(0);",
+                          "    pm.expect(body.suggested.map((s) => s.staffId)).to.have.members([",
+                          "        pm.environment.get(\"spaStaffAId\"),",
+                          "        pm.environment.get(\"spaStaffBId\")",
+                          "    ]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptDoubleId}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptDoubleId}}",
+                        "suggestions"
+                      ],
+                      "query": []
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle2Id}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle2Id}}",
+                        "suggestions"
+                      ],
+                      "query": []
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – lịch không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404 Not Found\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/11111111-1111-1111-1111-111111111111/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "11111111-1111-1111-1111-111111111111",
+                        "suggestions"
+                      ],
+                      "query": []
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Danh sách chờ xác nhận và đề xuất nhân viên spa – FR-ASG-01, BR-10\n\n- `GET /api/v1/appointments?type=Spa&status=Pending` quản lý xem lịch spa đang chờ xác nhận.\n- `GET /api/v1/appointments/{id}/suggestions` (chỉ quản lý) trả:\n  - `staffRequired`: số nhân viên cần,\n  - `suggested`: tối đa số nhân viên cần (ít hơn nếu không đủ người phù hợp), ưu tiên người ít được phân công gần đây,\n  - `alternatives`: các nhân viên còn lại có thể thay thế.\n\nChỉ những nhân viên spa đang hoạt động, có ca làm bao trọn khung giờ của lịch (kể cả thời gian đệm) và chưa bị giữ chỗ ở khung giờ chồng lấn mới được đề xuất.\n\nDùng lịch tạo ở 06.S.2 (nhân viên A, B). Chạy sau 06.S.2."
             },
             {
               "name": "06.S.5 Xác nhận và điều chỉnh nhân viên – FR-ASG-02, FR-ASG-03",
