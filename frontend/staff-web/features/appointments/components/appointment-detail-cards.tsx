@@ -197,7 +197,10 @@ function PaymentAmount({ payment }: { payment: Payment }) {
 export function PaymentCard({ appointment, pet }: DetailCardProps) {
   const pricingOf = useSpaPricing(appointment, pet);
   const payments = useAppointmentPayments(appointment.appointmentId);
-  if (appointment.status === "Cancelled" && (payments.isPending || payments.data?.length === 0)) return null;
+  // Backend chưa có GET /appointments/{id}/payments (thẻ 92, hạn 18–19/11) nên trả 404: coi như chưa có khoản nào
+  // và hiện tạm tính, không báo lỗi. Có API rồi thì nhánh này không còn chạy.
+  const paymentList = payments.error?.status === 404 ? [] : payments.data;
+  if (appointment.status === "Cancelled" && (payments.isPending || paymentList?.length === 0)) return null;
 
   let content;
   if (payments.isPending) {
@@ -207,20 +210,20 @@ export function PaymentCard({ appointment, pet }: DetailCardProps) {
         <Skeleton className="mt-2 h-7 w-32" />
       </div>
     );
-  } else if (payments.isError) {
+  } else if (!paymentList) {
     content = (
       <div className="flex flex-col items-start gap-3">
-        <ErrorAlert error={payments.error} className="w-full" />
+        {payments.error && <ErrorAlert error={payments.error} className="w-full" />}
         <Button size="sm" onClick={() => void payments.refetch()}>
           Thử lại
         </Button>
       </div>
     );
-  } else if (payments.data.length > 0) {
+  } else if (paymentList.length > 0) {
     content = (
       <div className="flex flex-col gap-3">
         {(["Spa", "Stay", "LateFee"] as const).map((kind) => {
-          const payment = findPayment(payments.data, kind);
+          const payment = findPayment(paymentList, kind);
           return payment ? <PaymentAmount key={kind} payment={payment} /> : null;
         })}
       </div>
