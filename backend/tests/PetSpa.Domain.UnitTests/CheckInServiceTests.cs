@@ -73,6 +73,80 @@ public class CheckInServiceTests
         public Task SaveChangesAsync(CancellationToken ct = default) => throw new NotImplementedException();
     }
 
+    private sealed class FakePaymentAmountRepository : IPaymentAmountRepository
+    {
+        public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<SpaAmountSnapshot?>(null);
+
+        public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<StayAmountSnapshot?>(null);
+
+        public Task<LateFeeConfig> GetLateFeeConfigAsync(CancellationToken ct = default) =>
+            Task.FromResult(new LateFeeConfig(15, 60, 50000m));
+    }
+
+    private sealed class FakeBookingRepository : IBookingRepository
+    {
+        public Task<IReadOnlyList<BookableService>> FindBookableServicesAsync(
+            IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<int> GetBufferMinutesAsync(CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<StaffShift>> ListSpaStaffShiftsAsync(
+            DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<HeldBooking>> ListHeldBookingsAsync(
+            DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<ServicePricing>> ListPricingAsync(
+            IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ServicePricing>>([]);
+
+        public void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds) =>
+            throw new NotImplementedException();
+
+        public Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
+            AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+    }
+
+    private sealed class FakeHotelAssignmentRepository : IHotelAssignmentRepository
+    {
+        public Task<Appointment?> FindAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult<Appointment?>(null);
+
+        public Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult<HotelAppointmentWithSpecies?>(null);
+
+        public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeHotelCatalogRepository : IHotelCatalogRepository
+    {
+        public Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default) =>
+            Task.FromResult(new HotelPricingSnapshot([], 50000m));
+
+        public Task AddCageAsync(Cage cage, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeStoreTimeZoneProvider : IStoreTimeZoneProvider
+    {
+        public TimeZoneInfo GetStoreTimeZone() => TimeZoneInfo.Utc;
+    }
+
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard
     {
         public Guid? LockedAppointmentId { get; private set; }
@@ -113,7 +187,19 @@ public class CheckInServiceTests
         var guard = new FakeConcurrencyGuard();
         var shopTimeZone = new ShopTimeZone(TimeZoneInfo.Utc);
         var pet = new Pet { PetId = Guid.NewGuid(), Species = Species.Cat, WeightKg = 4m, SizeGroup = SizeGroup.Medium };
-        var weightCheck = new WeightCheckService(new FakePetRepository(pet), null!, null!, null!, null!, null!, null!);
+        var paymentRepo = new FakePaymentAmountRepository();
+        var bookingRepo = new FakeBookingRepository();
+        var hotelAssignRepo = new FakeHotelAssignmentRepository();
+        var hotelCatalogRepo = new FakeHotelCatalogRepository();
+        var timeZoneProvider = new FakeStoreTimeZoneProvider();
+        var weightCheck = new WeightCheckService(
+            new FakePetRepository(pet),
+            paymentRepo,
+            bookingRepo,
+            hotelAssignRepo,
+            hotelCatalogRepo,
+            timeZoneProvider,
+            guard);
         return (new CheckInService(repo, guard, shopTimeZone, weightCheck), repo, guard);
     }
 

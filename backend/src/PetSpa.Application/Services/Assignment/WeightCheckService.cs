@@ -47,14 +47,17 @@ public sealed class WeightCheckService(
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
-            var found = await hotelAssignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
-                ?? throw new BusinessException(ErrorCodes.InvalidTransition);
+            var appointment = await hotelAssignments.FindAppointmentAsync(appointmentId, asNoTracking: true, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
 
-            var stay = found.Appointment;
-            if (stay.Status != AppointmentStatus.Confirmed)
+            if (appointment is not HotelAppointment stay || stay.Status != AppointmentStatus.Confirmed)
                 throw new BusinessException(ErrorCodes.InvalidTransition);
 
-            var context = await CompareAsync(stay.PetId, stay.SizeGroup, actualWeightKg, ct);
+            var found = await hotelAssignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+
+            var hotelStay = found.Appointment;
+            var context = await CompareAsync(hotelStay.PetId, hotelStay.SizeGroup, actualWeightKg, ct);
             var comparison = context.Comparison;
 
             decimal? oldAmount = null;
@@ -64,13 +67,13 @@ public sealed class WeightCheckService(
             {
                 var hotelPricing = await hotelCatalog.GetPricingAsync(ct);
                 var nights = PricingService.CountNights(
-                    stay.PlannedCheckIn, stay.PlannedCheckOut, timeZoneProvider.GetStoreTimeZone());
+                    hotelStay.PlannedCheckIn, hotelStay.PlannedCheckOut, timeZoneProvider.GetStoreTimeZone());
 
-                oldAmount = PricingService.CalculateStayAmount(nights, found.Species, stay.SizeGroup, hotelPricing.Pricing);
+                oldAmount = PricingService.CalculateStayAmount(nights, found.Species, hotelStay.SizeGroup, hotelPricing.Pricing);
                 newAmount = PricingService.CalculateStayAmount(nights, found.Species, comparison.NewSizeGroup, hotelPricing.Pricing);
             }
 
-            return Apply(stay, context, actualWeightKg, oldAmount, newAmount);
+            return Apply(hotelStay, context, actualWeightKg, oldAmount, newAmount);
         }, ct);
     }
 
@@ -93,6 +96,8 @@ public sealed class WeightCheckService(
     {
         var comparison = context.Comparison;
 
+        // Lưu ý: Đối với lịch lưu trú, việc kiểm tra và gán lại chuồng phù hợp (CageId)
+        // khi đổi nhóm kích cỡ (cả PRICE_DECREASED và NEEDS_CONFIRMATION) được thực hiện tại Task 82 và Task 88 (BR-23).
         appointment.RecordWeight(
             actualWeightKg,
             comparison.Result == WeightCheckResult.PRICE_DECREASED ? comparison.NewSizeGroup : null);

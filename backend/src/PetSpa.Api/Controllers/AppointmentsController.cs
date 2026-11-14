@@ -113,24 +113,24 @@ public sealed class AppointmentsController(
     public async Task<IActionResult> CheckIn(
         Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActualWeightRequest? request, CancellationToken ct)
     {
-        if (request is null)
+        if (request?.ActualWeightKg is null)
             throw new BusinessException(ErrorCodes.ValidationError, "Cân nặng thực tế là bắt buộc khi tiếp nhận lịch spa.");
 
-        var result = await checkInService.CheckInSpaAsync(id, request.ActualWeightKg!.Value, ct);
+        var result = await checkInService.CheckInSpaAsync(id, request.ActualWeightKg.Value, ct);
         return Ok(CheckInResponse.From(result));
     }
-
 
     [HttpPost("{id}/weight-check")]
     [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
     [EndpointSummary("Lễ tân hoặc quản lý ghi nhận và đối chiếu cân nặng lịch lưu trú")]
     [EndpointDescription("Chỉ lễ tân và quản lý. Body { actualWeightKg }. Chỉ áp dụng cho lịch lưu trú Đã xác nhận, thực hiện trước khi thu tiền lưu trú. Trả { weightCheck } với weightCheck.result là OK, PRICE_DECREASED hoặc NEEDS_CONFIRMATION (BR-23). Cân nặng không hợp lệ trả 400 VALIDATION_ERROR; lịch không phải lưu trú hoặc không ở Đã xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND.")]
-    public async Task<IActionResult> WeightCheck(Guid id, [FromBody] ActualWeightRequest request, CancellationToken ct)
+    public async Task<IActionResult> WeightCheck(
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActualWeightRequest? request, CancellationToken ct)
     {
-        if (request is null)
-            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
+        if (request?.ActualWeightKg is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Cân nặng thực tế là bắt buộc khi đối chiếu cân nặng lịch lưu trú.");
 
-        var outcome = await weightCheckService.CheckHotelAsync(id, request.ActualWeightKg!.Value, ct);
+        var outcome = await weightCheckService.CheckHotelAsync(id, request.ActualWeightKg.Value, ct);
         return Ok(WeightCheckResponse.From(outcome));
     }
 
