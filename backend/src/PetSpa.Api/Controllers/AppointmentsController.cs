@@ -26,11 +26,11 @@ public sealed class AppointmentsController(
     [HttpGet]
     [Authorize]
     [EndpointSummary("Danh sách lịch hẹn, lịch sử, tổng quan tiến độ")]
-    [EndpointDescription("Lọc theo phạm vi vai trò ở backend: Khách hàng chỉ thấy lịch của mình; Lễ tân và Quản lý thấy toàn cửa hàng; Nhân viên spa chỉ thấy lịch spa đang được phân công cho mình. Lọc tùy chọn theo type, status; petId chỉ áp dụng cho Khách hàng. Mặc định page = 1, pageSize = 20 (tối đa 100).")]
+    [EndpointDescription("Lọc theo phạm vi vai trò ở backend: Khách hàng chỉ thấy lịch của mình; Lễ tân và Quản lý thấy toàn cửa hàng; Nhân viên spa chỉ thấy lịch spa đang được phân công cho mình. Lọc tùy chọn theo type, status, date, petId; petId chỉ áp dụng cho Khách hàng. Sắp xếp tùy chọn theo sort (time_asc, time_desc, created_desc, created_asc). Mặc định page = 1, pageSize = 20 (tối đa 100).")]
     public async Task<IActionResult> List([FromQuery] AppointmentListQuery query, CancellationToken ct)
     {
         var result = await appointmentQueryService.ListAsync(
-            User.ToCurrentUser(), query.Type, query.Status, query.PetId, query.Page, query.PageSize, ct);
+            User.ToCurrentUser(), query.Type, query.Status, query.Date, query.PetId, query.ParsedSort, query.Page, query.PageSize, ct);
         return Ok(result);
     }
 

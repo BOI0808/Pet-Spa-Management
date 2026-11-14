@@ -547,10 +547,17 @@ paths:
           schema: { $ref: '#/components/schemas/AppointmentStatus' }
         - name: date
           in: query
+          description: "Lọc theo ngày hẹn (định dạng YYYY-MM-DD). Lịch Spa: theo giờ bắt đầu (slotStart); Lịch Lưu trú: có ngày nhận (plannedCheckIn) hoặc ngày trả (plannedCheckOut/actualCheckOut) trong ngày."
           schema: { type: string, format: date }
         - name: petId
           in: query
           schema: { type: string, format: uuid }
+        - name: sort
+          in: query
+          description: "Thứ tự sắp xếp. Giá trị hợp lệ: time_asc, time_desc, created_desc, created_asc. Mặc định: theo giờ hẹn tăng dần (time_asc) khi có date hoặc xem các lịch đang xử lý; giảm dần (time_desc) khi xem lịch sử hoàn tất hoặc đã hủy; mới tạo trước (created_desc) khi xem danh sách chung."
+          schema:
+            type: string
+            enum: [time_asc, time_desc, created_desc, created_asc]
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PageSize' }
       responses:
