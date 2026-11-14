@@ -9896,6 +9896,1072 @@
           "description": "### Kiểm thử lưu trú: đặt lịch, gán chuồng, xác nhận, từ chối (FR-HTL-04, FR-HTL-05, FR-HTL-06)\n\nChạy theo thứ tự 06.H.0 → 06.H.5. Điều kiện: backend đang chạy, đã chạy folder 03.0 trong vòng 15 phút để có token.\n\nCa hết chỗ dùng chuột lang nhóm Small: không được có chuồng GuineaPig/Small đang sử dụng trong CSDL.  \nNgày nhận, trả được tạo ngẫu nhiên ở xa trong tương lai ở request đầu của 06.H.0 để mỗi lần chạy không trùng dữ liệu lần trước."
         },
         {
+          "name": "06.S Spa: đặt lịch, xác nhận, phân công (task 165)",
+          "item": [
+            {
+              "name": "06.S.0 Chuẩn bị dữ liệu spa (task 165)",
+              "item": [
+                {
+                  "name": "POST /auth/login – quản lý (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"managerToken\", body.accessToken);",
+                          "        pm.variables.set(\"managerToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (!pm.variables.get(\"managerUserName\") && pm.variables.get(\"managerPhone\")) {",
+                          "    pm.variables.set(\"managerUserName\", pm.variables.get(\"managerPhone\"));",
+                          "}",
+                          "if (!pm.variables.get(\"managerPhone\") && pm.variables.get(\"managerUserName\")) {",
+                          "    pm.variables.set(\"managerPhone\", pm.variables.get(\"managerUserName\"));",
+                          "}",
+                          "",
+                          "// Task 165: ngày thử ngẫu nhiên, múi giờ +07:00",
+                          "const day = 24 * 60 * 60 * 1000;",
+                          "const offset = 200 + Math.floor(Math.random() * 2800);",
+                          "const date = new Date(Date.now() + 7 * 60 * 60 * 1000 + offset * day).toISOString().slice(0, 10);",
+                          "const at = (hhmm) => `${date}T${hhmm}:00+07:00`;",
+                          "",
+                          "pm.environment.set(\"spaDate\", date);",
+                          "pm.environment.set(\"spaSlot0900\", at(\"09:00\"));",
+                          "pm.environment.set(\"spaSlot0930\", at(\"09:30\"));",
+                          "pm.environment.set(\"spaSlot1300\", at(\"13:00\"));",
+                          "pm.environment.set(\"spaSlot1400\", at(\"14:00\"));",
+                          "pm.environment.set(\"spaSlot1700\", at(\"17:00\"));",
+                          "pm.environment.set(\"spaShiftStart\", at(\"08:00\"));",
+                          "pm.environment.set(\"spaShiftEnd\", at(\"20:00\"));",
+                          "pm.environment.set(\"spaShiftBEnd\", at(\"12:00\"));",
+                          "pm.environment.set(\"spaRunId\", Date.now().toString(36).toUpperCase());",
+                          "",
+                          "// Số điện thoại 2 nhân viên spa mới (userName = số điện thoại)",
+                          "const phone = () => \"09\" + String(Math.floor(Math.random() * 1e8)).padStart(8, \"0\");",
+                          "const phoneA = phone();",
+                          "let phoneB = phone();",
+                          "while (phoneB === phoneA) phoneB = phone();",
+                          "pm.environment.set(\"spaStaffAPhone\", phoneA);",
+                          "pm.environment.set(\"spaStaffBPhone\", phoneB);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{managerUserName}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – khách hàng thử 1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"customerToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000101\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – khách hàng thử 2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"customer2Token\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000102\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – lễ tân thử (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"receptionistToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000201\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – nhân viên spa thử (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "    });",
+                          "    pm.environment.set(\"spaStaffToken\", body.accessToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"0900000202\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /customers – lễ tân tìm khách thử 1, lấy customerId (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    if (body && Array.isArray(body.items)) {",
+                          "        const customer = body.items.find((c) => c.phone === \"0900000101\");",
+                          "        pm.test(\"Tìm thấy khách hàng thử 1\", function () {",
+                          "            pm.expect(customer).to.be.an(\"object\");",
+                          "        });",
+                          "        if (customer && customer.customerId) {",
+                          "            pm.environment.set(\"customerId\", customer.customerId);",
+                          "        }",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/customers?search=0900000101",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "customers"
+                      ],
+                      "query": [
+                        {
+                          "key": "search",
+                          "value": "0900000101"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /customers – lễ tân tìm khách thử 2, lấy customerId2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    if (body && Array.isArray(body.items)) {",
+                          "        const customer = body.items.find((c) => c.phone === \"0900000102\");",
+                          "        pm.test(\"Tìm thấy khách hàng thử 2\", function () {",
+                          "            pm.expect(customer).to.be.an(\"object\");",
+                          "        });",
+                          "        if (customer && customer.customerId) {",
+                          "            pm.environment.set(\"customerId2\", customer.customerId);",
+                          "        }",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/customers?search=0900000102",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "customers"
+                      ],
+                      "query": [
+                        {
+                          "key": "search",
+                          "value": "0900000102"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff – tạo nhân viên spa A (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có staffId dạng GUID\", function () {",
+                          "        pm.expect(body.staffId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.environment.set(\"spaStaffAId\", body.staffId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{spaStaffAPhone}}\",\n  \"fullName\": \"Postman Spa A {{spaRunId}}\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff – tạo nhân viên spa B (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có staffId dạng GUID\", function () {",
+                          "        pm.expect(body.staffId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.environment.set(\"spaStaffBId\", body.staffId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{spaStaffBPhone}}\",\n  \"fullName\": \"Postman Spa B {{spaRunId}}\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /work-shifts – ca của nhân viên spa A (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có shiftId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().shiftId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffId\": \"{{spaStaffAId}}\",\n  \"shiftStart\": \"{{spaShiftStart}}\",\n  \"shiftEnd\": \"{{spaShiftEnd}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/work-shifts",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "work-shifts"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /work-shifts – ca của nhân viên spa B (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có shiftId dạng GUID\", function () {",
+                          "        pm.expect(body.shiftId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.environment.set(\"spaShiftBId\", body.shiftId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffId\": \"{{spaStaffBId}}\",\n  \"shiftStart\": \"{{spaShiftStart}}\",\n  \"shiftEnd\": \"{{spaShiftEnd}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/work-shifts",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "work-shifts"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /services – dịch vụ spa 1, tắm 90 phút (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có serviceId dạng GUID\", function () {",
+                          "        pm.expect(body.serviceId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.environment.set(\"spaService1Id\", body.serviceId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Tắm {{spaRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 165\",\n  \"latestStartTime\": \"12:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 120,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 250000,\n      \"durationMinutes\": 150,\n      \"staffRequired\": 2\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /services – dịch vụ spa 2, cắt tỉa 60 phút (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có serviceId dạng GUID\", function () {",
+                          "        pm.expect(body.serviceId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.environment.set(\"spaService2Id\", body.serviceId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Cắt tỉa {{spaRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 165\",\n  \"latestStartTime\": \"18:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 100000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 130000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 160000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /pets – khách 1 tạo chó Small bình thường (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có petId dạng GUID\", function () {",
+                          "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                          "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                          "    });",
+                          "    pm.environment.set(\"spaPet1Id\", body.petId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Chó 1\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 165)\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/pets",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "pets"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /pets – khách 1 tạo chó Small khó tính (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có petId dạng GUID\", function () {",
+                          "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                          "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                          "    });",
+                          "    pm.environment.set(\"spaPet2Id\", body.petId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Chó 2\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Difficult\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 165)\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/pets",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "pets"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /pets – khách 2 tạo chó Small (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có petId dạng GUID\", function () {",
+                          "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                          "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                          "    });",
+                          "    pm.environment.set(\"spaPet3Id\", body.petId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Chó 3\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 165)\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/pets",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "pets"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /pets – khách 1 tạo chuột lang Small (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có petId dạng GUID\", function () {",
+                          "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                          "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                          "    });",
+                          "    pm.environment.set(\"spaPet4Id\", body.petId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Postman Spa Chuột lang\",\n  \"species\": \"GuineaPig\",\n  \"breed\": \"Chuột lang Mỹ\",\n  \"weightKg\": 0.9,\n  \"notes\": \"Test data created by Postman (task 165)\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/pets",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "pets"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Chuẩn bị dữ liệu cho đặt lịch, xác nhận và phân công spa (task 165)\n\nChạy folder này đầu tiên, theo thứ tự từ trên xuống. Nếu quá 15 phút (token hết hạn) thì chạy lại.\n\nMỗi lần chạy sinh ra:\n\n- một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác,\n- 2 nhân viên spa mới (A, B), mỗi người một ca 08:00 đến 20:00 vào ngày thử,\n- 2 dịch vụ spa mới (dịch vụ 1 tắm 90 phút, dịch vụ 2 cắt tỉa 60 phút),\n- 4 thú cưng: chó Small bình thường, chó Small khó tính (cần 2 nhân viên), chó của khách 2, chuột lang.\n\nCác request đăng nhập và tìm khách được sao chép từ folder 06.H.0."
+            },
+            {
+              "name": "06.S.1 Xem khung giờ spa – FR-BOOK-01, FR-BOOK-02",
+              "item": []
+            },
+            {
+              "name": "06.S.2 Đặt lịch spa – FR-BOOK-03",
+              "item": []
+            },
+            {
+              "name": "06.S.3 Khách bị khóa đặt lịch – chạy từng request, xen bước SQL (xem hướng dẫn)",
+              "item": []
+            },
+            {
+              "name": "06.S.4 Danh sách chờ xác nhận và đề xuất nhân viên – FR-ASG-01",
+              "item": []
+            },
+            {
+              "name": "06.S.5 Xác nhận và điều chỉnh nhân viên – FR-ASG-02, FR-ASG-03",
+              "item": []
+            },
+            {
+              "name": "06.S.6 Từ chối lịch spa – FR-ASG-04",
+              "item": []
+            },
+            {
+              "name": "06.S.7 Dọn dữ liệu thử (task 165)",
+              "item": []
+            }
+          ]
+        },
+        {
           "name": "/spa/slots",
           "request": {
             "method": "GET",
