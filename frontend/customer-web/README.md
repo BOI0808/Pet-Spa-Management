@@ -55,3 +55,15 @@ Theo đề xuất ở Frontend-Architecture mục 6 (R-01):
 - Kết quả tức thời: `useToast().showSuccess(...)` (tự ẩn) hoặc `useToast().showError(error)` (giữ đến khi đóng).
 - Lỗi của ô nhập (React Hook Form): `<FieldError id="..." message={errors.field?.message} />`.
 - TanStack Query không thử lại lỗi 4xx.
+
+## Đổi, hủy lịch hẹn (CW-09 vùng 8, CW-10)
+
+- Khách chỉ tự đổi/hủy lịch `Pending`/`Confirmed` (BR-14). Hạn tự đổi/hủy cấu hình 60–120 phút trước giờ hẹn (BR-08)
+  nhưng khách không đọc được `GET /config` (UI-Screens G-03), nên `features/appointments/change-window.ts`:
+  - còn dưới 60 phút trước giờ hẹn → khóa trước ở web (quá hạn với mọi cấu hình);
+  - từ 60 phút trở lên → bật nút; backend trả 409 `CHANGE_WINDOW_CLOSED` thì khóa và hiện lý do hotline (FR-CHG-02).
+- Lịch đã biết quá hạn nhờ 409 được ghi ở `lib/queries/appointment-changes.ts` (bộ nhớ truy vấn + `sessionStorage`,
+  chỉ là cờ hiển thị) để CW-09 và CW-10 cùng khóa, kể cả khi tải lại trang.
+- `GET /spa/slots` và `GET /hotel/availability` vẫn tính chỗ chính lịch đang đổi: CW-10 cho chọn lại mốc giờ hiện tại
+  của lịch spa, và với lịch lưu trú báo “Chưa chắc còn chỗ” (vẫn cho gửi) khi thời gian mới trùng các đêm hiện tại.
+  Hết chỗ thật thì backend trả 409 `SLOT_FULL` / `NO_CAPACITY`.
