@@ -8,9 +8,11 @@ namespace PetSpa.Application.Services.Assignment;
 public sealed class CheckInService(
     IAssignmentRepository assignments,
     IConcurrencyGuard concurrencyGuard,
-    ShopTimeZone shopTimeZone)
+    ShopTimeZone shopTimeZone,
+    WeightCheckService weightCheckService)
 {
-    public async Task<AppointmentStatus> CheckInSpaAsync(Guid appointmentId, CancellationToken ct = default)
+    public async Task<SpaCheckInResult> CheckInSpaAsync(
+        Guid appointmentId, decimal actualWeightKg, CancellationToken ct = default)
     {
         return await concurrencyGuard.RunAsync(async () =>
         {
@@ -36,7 +38,9 @@ public sealed class CheckInService(
 
             appointment.Receive();
 
-            return appointment.Status;
+            var weightCheck = await weightCheckService.RecordForSpaAsync(appointment, actualWeightKg, ct);
+
+            return new SpaCheckInResult(appointment.Status, weightCheck);
         }, ct);
     }
 }

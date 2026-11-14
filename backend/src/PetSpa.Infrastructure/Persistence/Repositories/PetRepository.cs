@@ -23,6 +23,13 @@ public sealed class PetRepository(AppDbContext db) : IPetRepository
             .Where(r => r.Species == species)
             .ToListAsync(ct);
 
+
+    public async Task<IReadOnlyList<WeightTolerance>> GetWeightTolerancesAsync(Species species, CancellationToken ct = default) =>
+        await db.Set<WeightTolerance>()
+            .AsNoTracking()
+            .Where(t => t.Species == species)
+            .ToListAsync(ct);
+
     public async Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, bool asNoTracking = false, CancellationToken ct = default)
     {
         var petsQuery = asNoTracking ? db.Set<Pet>().AsNoTracking() : db.Set<Pet>();
