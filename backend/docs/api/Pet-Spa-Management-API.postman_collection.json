@@ -11468,7 +11468,841 @@
             },
             {
               "name": "06.S.2 Đặt lịch spa – FR-BOOK-03",
-              "item": []
+              "item": [
+                {
+                  "name": "POST /appointments/spa – khách 1 đặt dịch vụ 1 lúc 09:00 (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch ở trạng thái Pending, loại Spa, nhóm Small, cần 1 nhân viên\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "        pm.expect(body.type).to.eql(\"Spa\");",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                          "        pm.expect(body.staffRequired).to.eql(1);",
+                          "    });",
+                          "    pm.test(\"Giờ bắt đầu đúng khung đã chọn, giờ kết thúc sau 90 phút\", function () {",
+                          "        const start = new Date(body.slotStart).getTime();",
+                          "        const end = new Date(body.slotEnd).getTime();",
+                          "        pm.expect(start).to.eql(new Date(pm.environment.get(\"spaSlot0900\")).getTime());",
+                          "        pm.expect(end - start).to.eql(90 * 60 * 1000);",
+                          "    });",
+                          "    pm.test(\"Tạm tính 150000 (giá dịch vụ 1 cho chó Small)\", function () {",
+                          "        pm.expect(body.estimatedAmount).to.eql(150000);",
+                          "    });",
+                          "    pm.environment.set(\"spaApptSingle1Id\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService1Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot0900}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – lễ tân đặt thay cho khách 1 dịch vụ 2 lúc 09:00 (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch Pending, cần 1 nhân viên, giờ kết thúc sau 60 phút\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(body.staffRequired).to.eql(1);",
+                          "        const start = new Date(body.slotStart).getTime();",
+                          "        pm.expect(new Date(body.slotEnd).getTime() - start).to.eql(60 * 60 * 1000);",
+                          "    });",
+                          "    pm.test(\"Tạm tính 100000 (giá dịch vụ 2 cho chó Small)\", function () {",
+                          "        pm.expect(body.estimatedAmount).to.eql(100000);",
+                          "    });",
+                          "    pm.environment.set(\"spaApptSingle2Id\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot0900}}\",\n  \"customerId\": \"{{customerId}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – khung 09:00 đã hết nhân viên (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SLOT_FULL\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SLOT_FULL\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot0900}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – khách 1 đặt chó khó tính, cần 2 nhân viên, lúc 14:00 (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Chó khó tính nên cần 2 nhân viên, lịch Pending\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(body.staffRequired).to.eql(2);",
+                          "    });",
+                          "    pm.test(\"Tạm tính 100000\", function () {",
+                          "        pm.expect(body.estimatedAmount).to.eql(100000);",
+                          "    });",
+                          "    pm.environment.set(\"spaApptDoubleId\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet2Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1400}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – khung 14:00 đã hết nhân viên (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SLOT_FULL\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SLOT_FULL\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1400}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /spa/slots – sau khi đặt, 09:00 và 14:00 đã Full (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "const slot = (time) => body.slots.find((s) => s.time === time);",
+                          "",
+                          "pm.test(\"09:00 và 14:00 đã Full vì đủ nhân viên bị giữ chỗ\", function () {",
+                          "    pm.expect(slot(\"09:00\").status).to.eql(\"Full\");",
+                          "    pm.expect(slot(\"14:00\").status).to.eql(\"Full\");",
+                          "});",
+                          "",
+                          "pm.test(\"17:00 vẫn Available\", function () {",
+                          "    pm.expect(slot(\"17:00\").status).to.eql(\"Available\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/spa/slots?date={{spaDate}}&petId={{spaPet1Id}}&serviceIds={{spaService2Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "spa",
+                        "slots"
+                      ],
+                      "query": [
+                        {
+                          "key": "date",
+                          "value": "{{spaDate}}"
+                        },
+                        {
+                          "key": "petId",
+                          "value": "{{spaPet1Id}}"
+                        },
+                        {
+                          "key": "serviceIds",
+                          "value": "{{spaService2Id}}"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – dịch vụ 1 lúc 13:00 muộn hơn giờ bắt đầu muộn nhất (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SLOT_FULL\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SLOT_FULL\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService1Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1300}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – thiếu giờ bắt đầu (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService1Id}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – giờ không phải mốc cấu hình 09:30 (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService1Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot0930}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – dịch vụ không áp dụng cho chuột lang (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet4Id}}\",\n  \"serviceIds\": [\n    \"{{spaService1Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot0900}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – lễ tân thiếu customerId (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – lễ tân chọn khách không sở hữu thú cưng (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\",\n  \"customerId\": \"{{customerId2}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – khách 2 đặt cho thú cưng của khách 1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – nhân viên spa không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{spaStaffToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet1Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Đặt lịch spa – FR-BOOK-03, BR-01, BR-02, BR-13\n\n`POST /api/v1/appointments/spa` (khách hàng tự đặt, hoặc lễ tân đặt thay có `customerId`).\n\nBackend tự tính nhóm kích cỡ, số nhân viên cần, giờ kết thúc và tạm tính tiền. Lịch mới luôn ở trạng thái `Pending` (chờ xác nhận) và chưa gán nhân viên nào.\n\nKịch bản dùng lại ngày thử và dữ liệu của 06.S.0:\n\n- Lịch 1: khách 1, chó Small, dịch vụ 1, 09:00.\n- Lịch 2: lễ tân đặt thay cho khách 1, dịch vụ 2, 09:00 (khung 09:00 đầy sau lịch này).\n- Lịch 3: khách 1, chó khó tính, dịch vụ 2, 14:00, chiếm 2 nhân viên (khung 14:00 đầy).\n\nCác id lịch được lưu để dùng ở 06.S.4, 06.S.5, 06.S.6. Chạy 06.S.2 một lần cho mỗi lần chạy 06.S.0."
             },
             {
               "name": "06.S.3 Khách bị khóa đặt lịch – chạy từng request, xen bước SQL (xem hướng dẫn)",
