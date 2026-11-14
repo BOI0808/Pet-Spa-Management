@@ -13,8 +13,9 @@ export function usePets(params: PetListParams) {
   return useQuery({ queryKey: petKeys.list(params), queryFn: () => listPets(params) });
 }
 
-export function usePet(petId: string) {
-  return useQuery({ queryKey: petKeys.detail(petId), queryFn: () => getPet(petId) });
+/** `enabled: false` khi chưa biết `petId` (SW-02, SW-03 lấy `petId` từ lịch hẹn). */
+export function usePet(petId: string, { enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: petKeys.detail(petId), queryFn: () => getPet(petId), enabled });
 }
 
 // Tạo/sửa thú cưng: làm mới mọi khóa `pets` (Frontend-Architecture 5.1), kể cả khi lỗi 403/404
