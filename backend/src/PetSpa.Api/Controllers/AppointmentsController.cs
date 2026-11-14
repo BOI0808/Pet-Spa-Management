@@ -135,19 +135,20 @@ public sealed class AppointmentsController(
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Policy = AuthorizationPolicies.Customer)]
-    [EndpointSummary("Khách hàng tự hủy lịch hẹn trong hạn")]
-    [EndpointDescription("Chỉ khách hàng, không có body; lý do CustomerCancelled do backend đặt. Lịch của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Lịch không ở Chờ xác nhận hoặc Đã xác nhận trả 409 INVALID_TRANSITION. Quá hạn tự hủy trả 409 CHANGE_WINDOW_CLOSED (liên hệ hotline).")]
-    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
+    [EndpointSummary("Khách hàng tự hủy lịch hẹn trong hạn, quản lý hủy lịch hẹn kèm lý do")]
+    [EndpointDescription("Khách hàng: không có body; lý do CustomerCancelled do backend đặt; chỉ hủy lịch của mình ở Chờ xác nhận hoặc Đã xác nhận, trong hạn tự hủy. Quản lý: bắt buộc body { reason } là StoreUnable hoặc CustomerBeyondDeadline; hủy được lịch ở mọi trạng thái trước Hoàn tất, không giới hạn hạn tự hủy; thiếu hoặc gửi lý do khác trả 400 VALIDATION_ERROR. Lịch của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Lịch không hủy được ở trạng thái hiện tại trả 409 INVALID_TRANSITION. Khách quá hạn tự hủy trả 409 CHANGE_WINDOW_CLOSED (liên hệ hotline).")]
+    public async Task<IActionResult> Cancel(
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CancelAppointmentRequest? request, CancellationToken ct)
     {
-        var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, ct);
+        var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, request?.Reason, ct);
         return Ok(new AppointmentStatusResponse(status));
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = AuthorizationPolicies.Customer)]
-    [EndpointSummary("Khách hàng tự đổi lịch hẹn trong hạn")]
-    [EndpointDescription("Chỉ khách hàng. Spa: slotStart, petId, serviceIds. Lưu trú: plannedCheckIn, plannedCheckOut, petId. Thành công: lịch về Chờ xác nhận, phân công nhân viên/chuồng bị bỏ (BR-26). Lịch hoặc thú cưng của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Thiếu trường hoặc dịch vụ không áp dụng cho loài trả 400 VALIDATION_ERROR. Quá hạn tự đổi trả 409 CHANGE_WINDOW_CLOSED; lịch sai trạng thái trả 409 INVALID_TRANSITION; mốc giờ đã kín trả 409 SLOT_FULL; hết chuồng trả 409 NO_CAPACITY.")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
+    [EndpointSummary("Khách hàng tự đổi lịch hẹn trong hạn, quản lý đổi lịch hẹn")]
+    [EndpointDescription("Spa: slotStart, petId, serviceIds. Lưu trú: plannedCheckIn, plannedCheckOut, petId. Khách hàng: chỉ đổi lịch của mình trong hạn tự đổi; thành công lịch về Chờ xác nhận, phân công nhân viên/chuồng bị bỏ (BR-26). Quản lý: đổi lịch Chờ xác nhận hoặc Đã xác nhận, không giới hạn hạn tự đổi, trạng thái giữ nguyên, thú cưng phải thuộc khách của lịch hẹn; lịch Đã xác nhận giữ nhân viên/chuồng hiện tại hoặc đổi bằng staffIds (spa, tùy chọn confirmOutOfShift) / cageId (lưu trú), kiểm tra lại BR-13, BR-04, BR-21 theo giá trị mới; lịch Chờ xác nhận bỏ qua staffIds, cageId. Lịch hoặc thú cưng của khách khác (khách đổi) trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Thiếu trường, dịch vụ không áp dụng cho loài, thú cưng không thuộc khách của lịch hẹn hoặc nhân viên không phải nhân viên spa đang hoạt động trả 400 VALIDATION_ERROR. Khách quá hạn tự đổi trả 409 CHANGE_WINDOW_CLOSED; lịch sai trạng thái trả 409 INVALID_TRANSITION; mốc giờ đã kín trả 409 SLOT_FULL; hết chuồng trả 409 NO_CAPACITY. Quản lý: số nhân viên không khớp trả 409 STAFF_COUNT_MISMATCH; nhân viên trùng khung giờ trả 409 STAFF_CONFLICT; nhân viên ngoài ca mà chưa gửi confirmOutOfShift = true trả 409 STAFF_OUT_OF_SHIFT; trùng chuồng trả 409 CAGE_CONFLICT.")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAppointmentRequest request, CancellationToken ct)
     {
         if (request is null)

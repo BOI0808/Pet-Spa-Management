@@ -61,4 +61,42 @@ public class SpaAppointment : Appointment
         BusyUntil = busyUntil;
         StaffRequired = staffRequired;
     }
+
+    public void ChangeByManager(
+        Guid petId, SizeGroup sizeGroup, DateTimeOffset slotStart, DateTimeOffset slotEnd,
+        DateTimeOffset busyUntil, short staffRequired)
+    {
+        MarkChangedByManager();
+
+        PetId = petId;
+        SizeGroup = sizeGroup;
+        SlotStart = slotStart;
+        SlotEnd = slotEnd;
+        BusyUntil = busyUntil;
+        StaffRequired = staffRequired;
+    }
+
+    public IReadOnlyList<AppointmentStaff> ReplaceStaff(IReadOnlyCollection<Guid> staffIds)
+    {
+        if (Status != AppointmentStatus.Confirmed)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
+        var distinctIds = staffIds.Distinct().ToList();
+        if (distinctIds.Count != StaffRequired)
+            throw new BusinessException(ErrorCodes.StaffCountMismatch);
+
+        var assignedAt = DateTimeOffset.UtcNow;
+
+        return distinctIds
+            .Select(staffId => new AppointmentStaff
+            {
+                AppointmentId = AppointmentId,
+                StaffId = staffId,
+                BusyFrom = SlotStart,
+                BusyUntil = BusyUntil,
+                IsHolding = true,
+                AssignedAt = assignedAt,
+            })
+            .ToList();
+    }
 }

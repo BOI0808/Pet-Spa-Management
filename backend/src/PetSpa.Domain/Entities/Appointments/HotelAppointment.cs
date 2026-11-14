@@ -50,4 +50,26 @@ public class HotelAppointment : Appointment
         PlannedCheckIn = plannedCheckIn;
         PlannedCheckOut = plannedCheckOut;
     }
+
+    public void ChangeByManager(
+        Guid petId, SizeGroup sizeGroup, DateTimeOffset plannedCheckIn, DateTimeOffset plannedCheckOut)
+    {
+        MarkChangedByManager();
+
+        PetId = petId;
+        SizeGroup = sizeGroup;
+        PlannedCheckIn = plannedCheckIn;
+        PlannedCheckOut = plannedCheckOut;
+    }
+
+    public void ReplaceCage(Cage cage, Species petSpecies)
+    {
+        if (Status != AppointmentStatus.Confirmed)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
+        if (!cage.IsActive || cage.Species != petSpecies || cage.SizeGroup != SizeGroup)
+            throw new BusinessException(ErrorCodes.CageConflict);
+
+        CageId = cage.CageId;
+    }
 }
