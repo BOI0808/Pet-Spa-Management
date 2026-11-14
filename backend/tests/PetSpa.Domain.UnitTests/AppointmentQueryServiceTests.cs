@@ -23,6 +23,8 @@ public class AppointmentQueryServiceTests
         public AppointmentType? LastType { get; private set; }
         public AppointmentStatus? LastStatus { get; private set; }
         public Guid? LastPetId { get; private set; }
+        public DateOnly? LastDate { get; private set; }
+        public AppointmentSort? LastSort { get; private set; }
         public int LastPage { get; private set; }
         public int LastPageSize { get; private set; }
         public PagedResult<AppointmentListItem> ListResult { get; set; } = new([], 1, 20, 0);
@@ -32,25 +34,29 @@ public class AppointmentQueryServiceTests
         public bool IsAssignedResult { get; set; }
 
         public Task<PagedResult<AppointmentListItem>> ListByCustomerUserAsync(
-            Guid customerUserId, AppointmentType? type, AppointmentStatus? status, Guid? petId, int page, int pageSize,
-            CancellationToken ct = default)
+            Guid customerUserId, AppointmentType? type, AppointmentStatus? status, Guid? petId, DateOnly? date,
+            AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default)
         {
             LastCustomerUserId = customerUserId;
             LastType = type;
             LastStatus = status;
             LastPetId = petId;
+            LastDate = date;
+            LastSort = sort;
             LastPage = page;
             LastPageSize = pageSize;
             return Task.FromResult(ListResult);
         }
 
         public Task<PagedResult<AppointmentListItem>> ListBySpaStaffUserAsync(
-            Guid staffUserId, AppointmentType? type, AppointmentStatus? status, int page, int pageSize,
-            CancellationToken ct = default)
+            Guid staffUserId, AppointmentType? type, AppointmentStatus? status, DateOnly? date,
+            AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default)
         {
             LastSpaStaffUserId = staffUserId;
             LastType = type;
             LastStatus = status;
+            LastDate = date;
+            LastSort = sort;
             LastPage = page;
             LastPageSize = pageSize;
             return Task.FromResult(SpaStaffListResult);
@@ -68,16 +74,20 @@ public class AppointmentQueryServiceTests
         public int ListAppointmentsCalls { get; private set; }
         public AppointmentType? LastType { get; private set; }
         public AppointmentStatus? LastStatus { get; private set; }
+        public DateOnly? LastDate { get; private set; }
+        public AppointmentSort? LastSort { get; private set; }
         public int LastPage { get; private set; }
         public int LastPageSize { get; private set; }
         public PagedResult<AppointmentListItem> StoreWideResult { get; set; } = new([], 1, 20, 0);
 
         public Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
-            AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default)
+            AppointmentType? type, AppointmentStatus? status, DateOnly? date, AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default)
         {
             ListAppointmentsCalls++;
             LastType = type;
             LastStatus = status;
+            LastDate = date;
+            LastSort = sort;
             LastPage = page;
             LastPageSize = pageSize;
             return Task.FromResult(StoreWideResult);
@@ -272,6 +282,48 @@ public class AppointmentQueryServiceTests
         Assert.Equal(2, repo.LastPage);
         Assert.Equal(10, repo.LastPageSize);
         Assert.Equal(0, bookings.ListAppointmentsCalls);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithDateAndSort_WhenCustomer_ForwardsDateAndSort()
+    {
+        var repo = new FakeAppointmentQueryRepository();
+        var sut = CreateSut(repo);
+        var date = new DateOnly(2026, 11, 14);
+
+        await sut.ListAsync(CustomerUser, AppointmentType.Spa, AppointmentStatus.Confirmed, date, null, AppointmentSort.TimeAsc, 1, 20);
+
+        Assert.Equal(CustomerUserId, repo.LastCustomerUserId);
+        Assert.Equal(date, repo.LastDate);
+        Assert.Equal(AppointmentSort.TimeAsc, repo.LastSort);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithDateAndSort_WhenManager_ForwardsDateAndSort()
+    {
+        var bookings = new FakeBookingRepository();
+        var sut = CreateSut(bookings: bookings);
+        var manager = new CurrentUser(Guid.NewGuid(), UserRole.Manager);
+        var date = new DateOnly(2026, 11, 14);
+
+        await sut.ListAsync(manager, AppointmentType.Spa, AppointmentStatus.Completed, date, null, AppointmentSort.TimeDesc, 1, 20);
+
+        Assert.Equal(date, bookings.LastDate);
+        Assert.Equal(AppointmentSort.TimeDesc, bookings.LastSort);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithDateAndSort_WhenSpaStaff_ForwardsDateAndSort()
+    {
+        var repo = new FakeAppointmentQueryRepository();
+        var sut = CreateSut(repo, staffRole: StaffRole.SpaStaff);
+        var staff = new CurrentUser(Guid.NewGuid(), UserRole.Staff);
+        var date = new DateOnly(2026, 11, 14);
+
+        await sut.ListAsync(staff, AppointmentType.Spa, AppointmentStatus.Confirmed, date, null, AppointmentSort.TimeAsc, 1, 20);
+
+        Assert.Equal(date, repo.LastDate);
+        Assert.Equal(AppointmentSort.TimeAsc, repo.LastSort);
     }
 
     [Fact]

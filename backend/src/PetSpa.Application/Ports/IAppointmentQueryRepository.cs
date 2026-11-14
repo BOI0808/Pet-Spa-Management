@@ -21,18 +21,18 @@ public sealed record AppointmentDetailData(
 // Port đọc lịch hẹn (UC-11). Chỉ đọc, không ghi.
 public interface IAppointmentQueryRepository
 {
-    // Lịch hẹn của khách hàng có tài khoản (Customer.UserId = customerUserId), mới tạo trước.
+    // Lịch hẹn của khách hàng có tài khoản (Customer.UserId = customerUserId).
     // petId: chỉ lấy lịch của thú cưng này (xem lịch sử sử dụng dịch vụ).
     Task<PagedResult<AppointmentListItem>> ListByCustomerUserAsync(
-        Guid customerUserId, AppointmentType? type, AppointmentStatus? status, Guid? petId, int page, int pageSize,
-        CancellationToken ct = default);
+        Guid customerUserId, AppointmentType? type, AppointmentStatus? status, Guid? petId, DateOnly? date,
+        AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default);
 
     // Chi tiết một lịch hẹn theo id; null nếu không có. Lịch lưu trú trả hai danh sách rỗng.
     Task<AppointmentDetailData?> FindDetailAsync(Guid appointmentId, CancellationToken ct = default);
 
     Task<PagedResult<AppointmentListItem>> ListBySpaStaffUserAsync(
-        Guid staffUserId, AppointmentType? type, AppointmentStatus? status, int page, int pageSize,
-        CancellationToken ct = default);
+        Guid staffUserId, AppointmentType? type, AppointmentStatus? status, DateOnly? date,
+        AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default);
 
     Task<bool> IsAssignedToSpaStaffAsync(Guid appointmentId, Guid staffUserId, CancellationToken ct = default);
 }

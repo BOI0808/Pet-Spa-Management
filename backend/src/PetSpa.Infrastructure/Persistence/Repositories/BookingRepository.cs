@@ -9,7 +9,7 @@ using PetSpa.Domain.Services;
 namespace PetSpa.Infrastructure.Persistence.Repositories;
 
 // Cài đặt IBookingRepository. Mọi mốc thời gian nhận vào đã ở UTC.
-public sealed class BookingRepository(AppDbContext db) : IBookingRepository
+public sealed class BookingRepository(AppDbContext db, ShopTimeZone shopTimeZone) : IBookingRepository
 {
     public async Task<IReadOnlyList<BookableService>> FindBookableServicesAsync(
         IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default)
@@ -97,7 +97,7 @@ public sealed class BookingRepository(AppDbContext db) : IBookingRepository
             .FirstOrDefaultAsync(ct);
 
     public async Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
-        AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default)
+        AppointmentType? type, AppointmentStatus? status, DateOnly? date, AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default)
     {
         var appointments = db.Set<Appointment>().AsNoTracking();
 
@@ -106,15 +106,17 @@ public sealed class BookingRepository(AppDbContext db) : IBookingRepository
 
         if (status is not null) appointments = appointments.Where(a => a.Status == status.Value);
 
+        appointments = AppointmentQueryHelper.FilterByDate(appointments, date, shopTimeZone);
+
         // Tên khách và tên thú cưng để hiển thị danh sách.
         var query = from a in appointments
                     join c in db.Set<Customer>().AsNoTracking() on a.CustomerId equals c.CustomerId
                     join p in db.Set<Pet>().AsNoTracking() on a.PetId equals p.PetId
-                    select new { Appointment = a, CustomerName = c.FullName, PetName = p.Name };
+                    select new AppointmentQueryRow { Appointment = a, CustomerName = c.FullName, PetName = p.Name };
 
         var total = await query.CountAsync(ct);
-        var rows = await query
-            .OrderBy(x => x.Appointment.CreatedAt).ThenBy(x => x.Appointment.AppointmentId)
+        var effectiveSort = AppointmentQueryHelper.ResolveEffectiveSort(sort, date, status);
+        var rows = await AppointmentQueryHelper.ApplySort(query, effectiveSort)
             .Skip((page - 1) * pageSize).Take(pageSize)
             .ToListAsync(ct);
 

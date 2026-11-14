@@ -102,7 +102,7 @@ public sealed class WeightCheckServiceTests
             throw new NotImplementedException();
 
         public Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
-            AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
+            AppointmentType? type, AppointmentStatus? status, DateOnly? date, AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default) =>
             throw new NotImplementedException();
     }
 

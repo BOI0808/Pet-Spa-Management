@@ -44,8 +44,9 @@ public interface IBookingRepository
     // Kiểm tra cờ khóa đặt lịch của khách hàng.
     Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default);
 
-    // Danh sách lịch hẹn toàn cửa hàng, lọc tùy chọn theo loại và trạng thái; lịch tạo sớm nhất trước (rồi theo AppointmentId).
+    // Danh sách lịch hẹn toàn cửa hàng, lọc tùy chọn theo loại, trạng thái và ngày; sắp xếp theo sort hoặc mặc định.
     Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
-        AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default);
+        AppointmentType? type, AppointmentStatus? status, DateOnly? date, AppointmentSort? sort, int page, int pageSize,
+        CancellationToken ct = default);
 }
 

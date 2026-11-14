@@ -13,21 +13,26 @@ public sealed class AppointmentQueryService(
     IStaffRoleReader staffRoles)
 {
     public async Task<PagedResult<AppointmentListItem>> ListAsync(
-        CurrentUser user, AppointmentType? type, AppointmentStatus? status, Guid? petId, int page, int pageSize,
-        CancellationToken ct = default)
+        CurrentUser user, AppointmentType? type, AppointmentStatus? status, DateOnly? date, Guid? petId,
+        AppointmentSort? sort, int page, int pageSize, CancellationToken ct = default)
     {
         if (user.Role == UserRole.Customer)
-            return await ListForCustomerAsync(user, type, status, petId, page, pageSize, ct);
+            return await ListForCustomerAsync(user, type, status, petId, date, sort, page, pageSize, ct);
 
         if (user.Role == UserRole.Manager)
-            return await bookings.ListAppointmentsAsync(type, status, page, pageSize, ct);
+            return await bookings.ListAppointmentsAsync(type, status, date, sort, page, pageSize, ct);
 
         var staffRole = await RequireStaffRoleAsync(user, ct);
         if (staffRole == StaffRole.Receptionist)
-            return await bookings.ListAppointmentsAsync(type, status, page, pageSize, ct);
+            return await bookings.ListAppointmentsAsync(type, status, date, sort, page, pageSize, ct);
 
-        return await appointments.ListBySpaStaffUserAsync(user.UserId, type, status, page, pageSize, ct);
+        return await appointments.ListBySpaStaffUserAsync(user.UserId, type, status, date, sort, page, pageSize, ct);
     }
+
+    public Task<PagedResult<AppointmentListItem>> ListAsync(
+        CurrentUser user, AppointmentType? type, AppointmentStatus? status, Guid? petId, int page, int pageSize,
+        CancellationToken ct = default) =>
+        ListAsync(user, type, status, null, petId, null, page, pageSize, ct);
 
     public async Task<AppointmentDetailData> GetAsync(
         CurrentUser user, Guid appointmentId, CancellationToken ct = default)
@@ -53,8 +58,8 @@ public sealed class AppointmentQueryService(
     }
 
     private async Task<PagedResult<AppointmentListItem>> ListForCustomerAsync(
-        CurrentUser user, AppointmentType? type, AppointmentStatus? status, Guid? petId, int page, int pageSize,
-        CancellationToken ct)
+        CurrentUser user, AppointmentType? type, AppointmentStatus? status, Guid? petId, DateOnly? date,
+        AppointmentSort? sort, int page, int pageSize, CancellationToken ct)
     {
         if (petId is { } requestedPetId)
         {
@@ -64,7 +69,7 @@ public sealed class AppointmentQueryService(
             OwnershipGuard.EnsureOwner(user, pet.OwnerUserId);
         }
 
-        return await appointments.ListByCustomerUserAsync(user.UserId, type, status, petId, page, pageSize, ct);
+        return await appointments.ListByCustomerUserAsync(user.UserId, type, status, petId, date, sort, page, pageSize, ct);
     }
 
     private async Task<StaffRole> RequireStaffRoleAsync(CurrentUser user, CancellationToken ct) =>
