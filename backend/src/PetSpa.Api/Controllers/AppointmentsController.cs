@@ -135,12 +135,13 @@ public sealed class AppointmentsController(
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Policy = AuthorizationPolicies.Customer)]
-    [EndpointSummary("Khách hàng tự hủy lịch hẹn trong hạn")]
-    [EndpointDescription("Chỉ khách hàng, không có body; lý do CustomerCancelled do backend đặt. Lịch của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Lịch không ở Chờ xác nhận hoặc Đã xác nhận trả 409 INVALID_TRANSITION. Quá hạn tự hủy trả 409 CHANGE_WINDOW_CLOSED (liên hệ hotline).")]
-    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    [Authorize(Policy = AuthorizationPolicies.CustomerOrManager)]
+    [EndpointSummary("Khách hàng tự hủy lịch hẹn trong hạn, quản lý hủy lịch hẹn kèm lý do")]
+    [EndpointDescription("Khách hàng: không có body; lý do CustomerCancelled do backend đặt; chỉ hủy lịch của mình ở Chờ xác nhận hoặc Đã xác nhận, trong hạn tự hủy. Quản lý: bắt buộc body { reason } là StoreUnable hoặc CustomerBeyondDeadline; hủy được lịch ở mọi trạng thái trước Hoàn tất, không giới hạn hạn tự hủy; thiếu hoặc gửi lý do khác trả 400 VALIDATION_ERROR. Lịch của khách khác trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND. Lịch không hủy được ở trạng thái hiện tại trả 409 INVALID_TRANSITION. Khách quá hạn tự hủy trả 409 CHANGE_WINDOW_CLOSED (liên hệ hotline).")]
+    public async Task<IActionResult> Cancel(
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CancelAppointmentRequest? request, CancellationToken ct)
     {
-        var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, ct);
+        var status = await appointmentChangeService.CancelAsync(User.ToCurrentUser(), id, request?.Reason, ct);
         return Ok(new AppointmentStatusResponse(status));
     }
 

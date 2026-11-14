@@ -9,7 +9,7 @@ using PetSpa.Domain.Services;
 namespace PetSpa.Application.Services.Booking;
 
 // UC-14 (FR-CHG-01, FR-CHG-02): khách hàng tự đổi hoặc hủy lịch hẹn của mình trong hạn tự phục vụ (BR-08).
-// Quản lý đổi/hủy là việc của ID 76 nên service này không nhận vai trò khác Customer.
+// UC-15 (FR-CHG-03): quản lý đổi hoặc hủy lịch hẹn khi cần can thiệp, không giới hạn hạn tự phục vụ (BR-08 chỉ áp dụng cho khách).
 public sealed class AppointmentChangeService(
     IAppointmentChangeRepository changes,
     IPetRepository pets,
@@ -20,9 +20,41 @@ public sealed class AppointmentChangeService(
     ShopTimeZone shopTimeZone,
     IConcurrencyGuard concurrency)
 {
-    // Khách tự hủy: Đã hủy, lý do CustomerCancelled do backend đặt (khách không gửi lý do).
     public async Task<AppointmentStatus> CancelAsync(
-        CurrentUser user, Guid appointmentId, CancellationToken ct = default)
+        CurrentUser user, Guid appointmentId, CancelReason? reason = null, CancellationToken ct = default)
+    {
+        if (user.Role == UserRole.Manager)
+            return await CancelByManagerAsync(appointmentId, reason, ct);
+
+        return await CancelByCustomerAsync(user, appointmentId, ct);
+    }
+
+    private async Task<AppointmentStatus> CancelByManagerAsync(
+        Guid appointmentId, CancelReason? reason, CancellationToken ct)
+    {
+        if (reason is not (CancelReason.StoreUnable or CancelReason.CustomerBeyondDeadline))
+            throw new BusinessException(
+                ErrorCodes.ValidationError, "Quản lý phải gửi lý do hủy là StoreUnable hoặc CustomerBeyondDeadline.");
+
+        return await concurrency.RunAsync(async () =>
+        {
+            await concurrency.LockAppointmentAsync(appointmentId, ct);
+
+            var fresh = await changes.FindWithOwnerAsync(appointmentId, asNoTracking: false, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+
+            var appointment = fresh.Appointment;
+            appointment.Cancel(reason.Value);
+
+            if (appointment is SpaAppointment)
+                await changes.ReleaseStaffHoldsAsync(appointmentId, ct);
+
+            return appointment.Status;
+        }, ct);
+    }
+
+    private async Task<AppointmentStatus> CancelByCustomerAsync(
+        CurrentUser user, Guid appointmentId, CancellationToken ct)
     {
         EnsureCustomer(user);
 
@@ -234,7 +266,6 @@ public sealed class AppointmentChangeService(
         return new SpaPlan(distinctIds, duration, staffRequired, latestStart, buffer);
     }
 
-    // Khách chỉ đổi/hủy lịch của chính mình; việc của quản lý nằm ở ID 76.
     private static void EnsureCustomer(CurrentUser user)
     {
         if (user.Role != UserRole.Customer) throw new BusinessException(ErrorCodes.Forbidden);

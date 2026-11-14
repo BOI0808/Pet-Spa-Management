@@ -24,6 +24,7 @@ public class AppointmentChangeServiceTests
 
     private static readonly CurrentUser CustomerUser = new(CustomerUserId, UserRole.Customer);
     private static readonly CurrentUser ManagerUser = new(Guid.NewGuid(), UserRole.Manager);
+    private static readonly CurrentUser StaffUser = new(Guid.NewGuid(), UserRole.Staff);
 
     // Thời điểm UTC: daysFromNow ngày sau hôm nay, lúc hour giờ UTC.
     private static DateTimeOffset Utc(int daysFromNow, int hour) =>
@@ -329,12 +330,121 @@ public class AppointmentChangeServiceTests
     }
 
     [Fact]
-    public async Task Cancel_ByManager_ThrowsForbidden()
+    public async Task Cancel_ByStaff_ThrowsForbidden()
     {
         var f = new Fixture();
         f.Changes.Stored = SpaAt(Slot(5, 10));
 
-        await AssertErrorAsync(ErrorCodes.Forbidden, () => f.Service.CancelAsync(ManagerUser, AppointmentId));
+        await AssertErrorAsync(ErrorCodes.Forbidden, () => f.Service.CancelAsync(StaffUser, AppointmentId));
+    }
+
+    [Fact]
+    public async Task Cancel_ByCustomerSendingReason_StillUsesCustomerCancelled()
+    {
+        var f = new Fixture();
+        var spa = SpaAt(Slot(5, 10));
+        f.Changes.Stored = spa;
+
+        await f.Service.CancelAsync(CustomerUser, AppointmentId, CancelReason.StoreUnable);
+
+        Assert.Equal(CancelReason.CustomerCancelled, spa.CancelReason);
+    }
+
+    [Theory]
+    [InlineData(CancelReason.StoreUnable)]
+    [InlineData(CancelReason.CustomerBeyondDeadline)]
+    public async Task Cancel_ByManagerPastCustomerDeadline_CancelsWithGivenReasonAndReleasesStaff(CancelReason reason)
+    {
+        var f = new Fixture();
+        var spa = SpaAt(DateTimeOffset.UtcNow.AddMinutes(30));
+        f.Changes.Stored = spa;
+
+        var status = await f.Service.CancelAsync(ManagerUser, AppointmentId, reason);
+
+        Assert.Equal(AppointmentStatus.Cancelled, status);
+        Assert.Equal(reason, spa.CancelReason);
+        Assert.NotNull(spa.CancelledAt);
+        Assert.True(f.Changes.StaffReleased);
+    }
+
+    [Fact]
+    public async Task Cancel_ByManagerSpaInProgress_Cancels()
+    {
+        var f = new Fixture();
+        var spa = SpaAt(DateTimeOffset.UtcNow.AddHours(-1), AppointmentStatus.InProgress);
+        f.Changes.Stored = spa;
+
+        var status = await f.Service.CancelAsync(ManagerUser, AppointmentId, CancelReason.StoreUnable);
+
+        Assert.Equal(AppointmentStatus.Cancelled, status);
+        Assert.True(f.Changes.StaffReleased);
+    }
+
+    [Fact]
+    public async Task Cancel_ByManagerHotelInStay_CancelsWithoutTouchingStaff()
+    {
+        var f = new Fixture();
+        var stay = StayAt(Utc(-1, 7), Utc(1, 5), AppointmentStatus.InStay);
+        f.Changes.Stored = stay;
+
+        var status = await f.Service.CancelAsync(ManagerUser, AppointmentId, CancelReason.CustomerBeyondDeadline);
+
+        Assert.Equal(AppointmentStatus.Cancelled, status);
+        Assert.Equal(CancelReason.CustomerBeyondDeadline, stay.CancelReason);
+        Assert.False(f.Changes.StaffReleased);
+    }
+
+    [Fact]
+    public async Task Cancel_ByManagerWithoutReason_ThrowsValidationErrorAndKeepsStatus()
+    {
+        var f = new Fixture();
+        var spa = SpaAt(Slot(5, 10));
+        f.Changes.Stored = spa;
+
+        await AssertErrorAsync(ErrorCodes.ValidationError, () => f.Service.CancelAsync(ManagerUser, AppointmentId));
+
+        Assert.Equal(AppointmentStatus.Confirmed, spa.Status);
+        Assert.False(f.Changes.StaffReleased);
+    }
+
+    [Theory]
+    [InlineData(CancelReason.CustomerCancelled)]
+    [InlineData(CancelReason.NoShow)]
+    [InlineData(CancelReason.CostNotConfirmed)]
+    public async Task Cancel_ByManagerWithReasonOutsideManagerList_ThrowsValidationError(CancelReason reason)
+    {
+        var f = new Fixture();
+        var spa = SpaAt(Slot(5, 10));
+        f.Changes.Stored = spa;
+
+        await AssertErrorAsync(ErrorCodes.ValidationError, () => f.Service.CancelAsync(ManagerUser, AppointmentId, reason));
+
+        Assert.Equal(AppointmentStatus.Confirmed, spa.Status);
+    }
+
+    [Theory]
+    [InlineData(AppointmentStatus.Completed)]
+    [InlineData(AppointmentStatus.Cancelled)]
+    public async Task Cancel_ByManagerFinishedAppointment_ThrowsInvalidTransition(AppointmentStatus status)
+    {
+        var f = new Fixture();
+        f.Changes.Stored = SpaAt(Slot(5, 10), status);
+
+        await AssertErrorAsync(
+            ErrorCodes.InvalidTransition,
+            () => f.Service.CancelAsync(ManagerUser, AppointmentId, CancelReason.StoreUnable));
+
+        Assert.False(f.Changes.StaffReleased);
+    }
+
+    [Fact]
+    public async Task Cancel_ByManagerNotFound_ThrowsNotFound()
+    {
+        var f = new Fixture();
+
+        await AssertErrorAsync(
+            ErrorCodes.NotFound,
+            () => f.Service.CancelAsync(ManagerUser, AppointmentId, CancelReason.StoreUnable));
     }
 
     // --- Đổi lịch spa (FR-CHG-01, BR-13, BR-26) ---
