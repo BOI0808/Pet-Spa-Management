@@ -37,6 +37,18 @@ public abstract class Appointment
             throw new BusinessException(ErrorCodes.InvalidTransition);
     }
 
+    public void EnsureManagerCanChange()
+    {
+        if (Status is not (AppointmentStatus.Pending or AppointmentStatus.Confirmed))
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+    }
+
+    protected void MarkChangedByManager()
+    {
+        EnsureManagerCanChange();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     // Khách tự đổi lịch (BR-26): lịch Đã xác nhận quay về Chờ xác nhận để quản lý duyệt lại;
     // lịch đang Chờ xác nhận giữ nguyên trạng thái.
     protected void MarkChangedByCustomer()
