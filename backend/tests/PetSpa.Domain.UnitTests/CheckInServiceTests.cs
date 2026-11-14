@@ -12,6 +12,7 @@ namespace PetSpa.Domain.UnitTests;
 public class CheckInServiceTests
 {
     private static readonly Guid AppointmentId = Guid.NewGuid();
+    private const decimal ActualWeightKg = 4m;
 
     private sealed class FakeAssignmentRepository : IAssignmentRepository
     {
@@ -48,6 +49,102 @@ public class CheckInServiceTests
 
         public void AddStaffAssignments(IReadOnlyList<AppointmentStaff> assignments) =>
             throw new NotImplementedException();
+    }
+
+    private sealed class FakePetRepository(Pet pet) : IPetRepository
+    {
+        public Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult<PetWithOwner?>(new PetWithOwner(pet, null));
+
+        public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(Species species, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SizeRule>>(
+                [new SizeRule { Species = Species.Cat, Criterion = SizeCriterion.Weight, SmallUpper = 3m, MediumUpper = 5m }]);
+
+        public Task<IReadOnlyList<WeightTolerance>> GetWeightTolerancesAsync(Species species, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<WeightTolerance>>([]);
+
+        public Task<Guid?> FindCustomerIdByUserIdAsync(Guid userId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<(IReadOnlyList<Pet> Items, int Total)> ListActiveByCustomerAsync(Guid customerId, int page, int pageSize, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> IsAssignedToStaffAsync(Guid petId, Guid staffUserId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> HasAppointmentsAsync(Guid petId, CancellationToken ct = default) => throw new NotImplementedException();
+        public void Add(Pet pet) => throw new NotImplementedException();
+        public void Remove(Pet pet) => throw new NotImplementedException();
+        public Task SaveChangesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakePaymentAmountRepository : IPaymentAmountRepository
+    {
+        public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<SpaAmountSnapshot?>(null);
+
+        public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<StayAmountSnapshot?>(null);
+
+        public Task<LateFeeConfig> GetLateFeeConfigAsync(CancellationToken ct = default) =>
+            Task.FromResult(new LateFeeConfig(15, 60, 50000m));
+    }
+
+    private sealed class FakeBookingRepository : IBookingRepository
+    {
+        public Task<IReadOnlyList<BookableService>> FindBookableServicesAsync(
+            IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<int> GetBufferMinutesAsync(CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<StaffShift>> ListSpaStaffShiftsAsync(
+            DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<HeldBooking>> ListHeldBookingsAsync(
+            DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<ServicePricing>> ListPricingAsync(
+            IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ServicePricing>>([]);
+
+        public void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds) =>
+            throw new NotImplementedException();
+
+        public Task<bool> IsBookingLockedAsync(Guid customerId, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<PagedResult<AppointmentListItem>> ListAppointmentsAsync(
+            AppointmentType? type, AppointmentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+    }
+
+    private sealed class FakeHotelAssignmentRepository : IHotelAssignmentRepository
+    {
+        public Task<Appointment?> FindAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult<Appointment?>(null);
+
+        public Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
+            Task.FromResult<HotelAppointmentWithSpecies?>(null);
+
+        public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeHotelCatalogRepository : IHotelCatalogRepository
+    {
+        public Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default) =>
+            Task.FromResult(new HotelPricingSnapshot([], 50000m));
+
+        public Task AddCageAsync(Cage cage, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeStoreTimeZoneProvider : IStoreTimeZoneProvider
+    {
+        public TimeZoneInfo GetStoreTimeZone() => TimeZoneInfo.Utc;
     }
 
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard
@@ -89,7 +186,21 @@ public class CheckInServiceTests
         };
         var guard = new FakeConcurrencyGuard();
         var shopTimeZone = new ShopTimeZone(TimeZoneInfo.Utc);
-        return (new CheckInService(repo, guard, shopTimeZone), repo, guard);
+        var pet = new Pet { PetId = Guid.NewGuid(), Species = Species.Cat, WeightKg = 4m, SizeGroup = SizeGroup.Medium };
+        var paymentRepo = new FakePaymentAmountRepository();
+        var bookingRepo = new FakeBookingRepository();
+        var hotelAssignRepo = new FakeHotelAssignmentRepository();
+        var hotelCatalogRepo = new FakeHotelCatalogRepository();
+        var timeZoneProvider = new FakeStoreTimeZoneProvider();
+        var weightCheck = new WeightCheckService(
+            new FakePetRepository(pet),
+            paymentRepo,
+            bookingRepo,
+            hotelAssignRepo,
+            hotelCatalogRepo,
+            timeZoneProvider,
+            guard);
+        return (new CheckInService(repo, guard, shopTimeZone, weightCheck), repo, guard);
     }
 
     [Fact]
@@ -98,10 +209,12 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-10));
         var (sut, _, guard) = CreateSut(appointment);
 
-        var status = await sut.CheckInSpaAsync(AppointmentId);
+        var result = await sut.CheckInSpaAsync(AppointmentId, ActualWeightKg);
 
-        Assert.Equal(AppointmentStatus.Received, status);
+        Assert.Equal(AppointmentStatus.Received, result.Status);
         Assert.Equal(AppointmentStatus.Received, appointment.Status);
+        Assert.Equal(WeightCheckResult.OK, result.WeightCheck.Result);
+        Assert.Equal(ActualWeightKg, appointment.ActualWeightKg);
         Assert.Equal(AppointmentId, guard.LockedAppointmentId);
     }
 
@@ -111,9 +224,9 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(30));
         var (sut, _, _) = CreateSut(appointment);
 
-        var status = await sut.CheckInSpaAsync(AppointmentId);
+        var result = await sut.CheckInSpaAsync(AppointmentId, ActualWeightKg);
 
-        Assert.Equal(AppointmentStatus.Received, status);
+        Assert.Equal(AppointmentStatus.Received, result.Status);
     }
 
     [Fact]
@@ -122,7 +235,7 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddDays(1));
         var (sut, _, _) = CreateSut(appointment);
 
-        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId, ActualWeightKg));
 
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
         Assert.Equal(AppointmentStatus.Confirmed, appointment.Status);
@@ -134,10 +247,11 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-30));
         var (sut, _, _) = CreateSut(appointment);
 
-        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId, ActualWeightKg));
 
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
         Assert.Equal(AppointmentStatus.Confirmed, appointment.Status);
+        Assert.Null(appointment.ActualWeightKg);
     }
 
     [Fact]
@@ -146,9 +260,9 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-20));
         var (sut, _, _) = CreateSut(appointment, holdMinutes: 30);
 
-        var status = await sut.CheckInSpaAsync(AppointmentId);
+        var result = await sut.CheckInSpaAsync(AppointmentId, ActualWeightKg);
 
-        Assert.Equal(AppointmentStatus.Received, status);
+        Assert.Equal(AppointmentStatus.Received, result.Status);
     }
 
     [Theory]
@@ -162,7 +276,7 @@ public class CheckInServiceTests
         var appointment = Spa(status, DateTimeOffset.UtcNow.AddMinutes(-5));
         var (sut, _, _) = CreateSut(appointment);
 
-        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId, ActualWeightKg));
 
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
         Assert.Equal(status, appointment.Status);
@@ -173,7 +287,7 @@ public class CheckInServiceTests
     {
         var (sut, _, _) = CreateSut(null);
 
-        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId, ActualWeightKg));
 
         Assert.Equal(ErrorCodes.NotFound, ex.Code);
     }
@@ -184,7 +298,7 @@ public class CheckInServiceTests
         var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-5));
         var (sut, _, _) = CreateSut(appointment, appointmentType: AppointmentType.Hotel);
 
-        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId));
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckInSpaAsync(AppointmentId, ActualWeightKg));
 
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
     }

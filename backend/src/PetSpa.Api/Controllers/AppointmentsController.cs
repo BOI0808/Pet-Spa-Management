@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using PetSpa.Api.Dtos;
 using PetSpa.Api.Security;
 using PetSpa.Application.Common;
@@ -19,7 +20,8 @@ public sealed class AppointmentsController(
     HotelAssignmentService hotelAssignment,
     AppointmentQueryService appointmentQueryService,
     AppointmentChangeService appointmentChangeService,
-    CheckInService checkInService) : ControllerBase
+    CheckInService checkInService,
+    WeightCheckService weightCheckService) : ControllerBase
 {
     [HttpGet]
     [Authorize]
@@ -106,12 +108,30 @@ public sealed class AppointmentsController(
 
     [HttpPost("{id}/check-in")]
     [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
-    [EndpointSummary("Lễ tân hoặc quản lý tiếp nhận thú cưng lịch spa")]
-    [EndpointDescription("Chỉ lễ tân và quản lý, không có body. Lịch spa Đã xác nhận chuyển sang Đã tiếp nhận khi chưa quá Booking.HoldMinutes sau giờ hẹn. Lịch không ở Đã xác nhận hoặc đã quá thời gian giữ chỗ trả 409 INVALID_TRANSITION; không tìm thấy lịch spa trả 404 NOT_FOUND.")]
-    public async Task<IActionResult> CheckIn(Guid id, CancellationToken ct)
+    [EndpointSummary("Lễ tân hoặc quản lý tiếp nhận thú cưng lịch spa và đối chiếu cân nặng")]
+    [EndpointDescription("Chỉ lễ tân và quản lý. Lịch spa: body { actualWeightKg }; lịch Đã xác nhận chuyển sang Đã tiếp nhận khi chưa quá Booking.HoldMinutes sau giờ hẹn, đồng thời ghi nhận và đối chiếu cân nặng thực tế (BR-23). Trả { status, weightCheck } với weightCheck.result là OK, PRICE_DECREASED hoặc NEEDS_CONFIRMATION. Thiếu hoặc sai cân nặng trả 400 VALIDATION_ERROR. Lịch không ở Đã xác nhận hoặc đã quá thời gian giữ chỗ trả 409 INVALID_TRANSITION; không tìm thấy lịch spa trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> CheckIn(
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActualWeightRequest? request, CancellationToken ct)
     {
-        var status = await checkInService.CheckInSpaAsync(id, ct);
-        return Ok(new AppointmentStatusResponse(status));
+        if (request?.ActualWeightKg is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Cân nặng thực tế là bắt buộc khi tiếp nhận lịch spa.");
+
+        var result = await checkInService.CheckInSpaAsync(id, request.ActualWeightKg.Value, ct);
+        return Ok(CheckInResponse.From(result));
+    }
+
+    [HttpPost("{id}/weight-check")]
+    [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
+    [EndpointSummary("Lễ tân hoặc quản lý ghi nhận và đối chiếu cân nặng lịch lưu trú")]
+    [EndpointDescription("Chỉ lễ tân và quản lý. Body { actualWeightKg }. Chỉ áp dụng cho lịch lưu trú Đã xác nhận, thực hiện trước khi thu tiền lưu trú. Trả { weightCheck } với weightCheck.result là OK, PRICE_DECREASED hoặc NEEDS_CONFIRMATION (BR-23). Cân nặng không hợp lệ trả 400 VALIDATION_ERROR; lịch không phải lưu trú hoặc không ở Đã xác nhận trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> WeightCheck(
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActualWeightRequest? request, CancellationToken ct)
+    {
+        if (request?.ActualWeightKg is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Cân nặng thực tế là bắt buộc khi đối chiếu cân nặng lịch lưu trú.");
+
+        var outcome = await weightCheckService.CheckHotelAsync(id, request.ActualWeightKg.Value, ct);
+        return Ok(WeightCheckResponse.From(outcome));
     }
 
     [HttpPost("{id}/cancel")]

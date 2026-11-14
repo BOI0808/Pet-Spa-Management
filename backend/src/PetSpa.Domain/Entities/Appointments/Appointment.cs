@@ -23,6 +23,13 @@ public abstract class Appointment
 
     public virtual void ReturnToPending() => MoveTo(AppointmentStatus.Pending);
 
+    public void RecordWeight(decimal actualWeightKg, SizeGroup? newSizeGroup)
+    {
+        ActualWeightKg = actualWeightKg;
+        if (newSizeGroup is not null) SizeGroup = newSizeGroup.Value;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     // Khách tự đổi hoặc hủy chỉ áp dụng cho lịch Chờ xác nhận hoặc Đã xác nhận (BR-08, BR-14).
     public void EnsureCustomerCanChange()
     {
