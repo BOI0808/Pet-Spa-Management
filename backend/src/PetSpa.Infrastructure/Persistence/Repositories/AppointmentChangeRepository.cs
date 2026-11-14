@@ -54,4 +54,10 @@ public sealed class AppointmentChangeRepository(AppDbContext db) : IAppointmentC
         db.Set<AppointmentStaff>()
             .Where(s => s.AppointmentId == appointmentId && s.IsHolding)
             .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.IsHolding, false), ct);
+
+    public async Task<IReadOnlyList<Guid>> ListHoldingStaffIdsAsync(Guid appointmentId, CancellationToken ct = default) =>
+        await db.Set<AppointmentStaff>().AsNoTracking()
+            .Where(s => s.AppointmentId == appointmentId && s.IsHolding)
+            .Select(s => s.StaffId)
+            .ToListAsync(ct);
 }

@@ -75,6 +75,7 @@ public class AppointmentChangeServiceTests
         public bool ServicesReplaced { get; private set; }
         public bool StaffRemoved { get; private set; }
         public bool StaffReleased { get; private set; }
+        public List<Guid> HoldingStaffIds { get; set; } = [];
 
         public Task<AppointmentWithOwner?> FindWithOwnerAsync(
             Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
@@ -100,6 +101,9 @@ public class AppointmentChangeServiceTests
             StaffReleased = true;
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<Guid>> ListHoldingStaffIdsAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Guid>>(HoldingStaffIds.ToList());
     }
 
     private sealed class FakePetRepository : IPetRepository
