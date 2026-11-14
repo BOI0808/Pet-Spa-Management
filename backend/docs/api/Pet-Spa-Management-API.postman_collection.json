@@ -12737,7 +12737,842 @@
             },
             {
               "name": "06.S.5 Xác nhận và điều chỉnh nhân viên – FR-ASG-02, FR-ASG-03",
-              "item": []
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận lịch 1 với nhân viên A (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                          "    pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle1Id}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle1Id}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – nhân viên A đã giữ chỗ nên không còn được đề xuất (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "",
+                          "pm.test(\"Chỉ còn nhân viên B được đề xuất, không có người dự phòng\", function () {",
+                          "    pm.expect(body.staffRequired).to.eql(1);",
+                          "    pm.expect(body.suggested).to.have.lengthOf(1);",
+                          "    pm.expect(body.suggested[0].staffId).to.eql(pm.environment.get(\"spaStaffBId\"));",
+                          "    pm.expect(body.alternatives).to.have.lengthOf(0);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle2Id}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle2Id}}",
+                        "suggestions"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – nhân viên A đang bận khung giờ chồng lấn (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là STAFF_CONFLICT\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"STAFF_CONFLICT\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle2Id}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle2Id}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận lịch 2 với nhân viên B (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                          "    pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffBId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle2Id}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle2Id}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – lịch cần 2 nhân viên nhưng chỉ chọn 1 (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là STAFF_COUNT_MISMATCH\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"STAFF_COUNT_MISMATCH\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptDoubleId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptDoubleId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /work-shifts/{id} – rút ngắn ca nhân viên B còn 08:00 đến 12:00 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"shiftStart\": \"{{spaShiftStart}}\",\n  \"shiftEnd\": \"{{spaShiftBEnd}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/work-shifts/{{spaShiftBId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "work-shifts",
+                        "{{spaShiftBId}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – nhân viên B hết ca nên không được đề xuất (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const body = pm.response.json();",
+                          "",
+                          "pm.test(\"Lịch cần 2 nhưng chỉ có nhân viên A có ca phù hợp, nên chỉ đề xuất 1 người\", function () {",
+                          "    pm.expect(body.staffRequired).to.eql(2);",
+                          "    pm.expect(body.suggested).to.have.lengthOf(1);",
+                          "    pm.expect(body.suggested[0].staffId).to.eql(pm.environment.get(\"spaStaffAId\"));",
+                          "    pm.expect(body.alternatives).to.have.lengthOf(0);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptDoubleId}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptDoubleId}}",
+                        "suggestions"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – chọn nhân viên B ngoài ca (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là STAFF_OUT_OF_SHIFT\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"STAFF_OUT_OF_SHIFT\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\",\n    \"{{spaStaffBId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptDoubleId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptDoubleId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – quản lý xác nhận ngoài ca (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                          "    pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\",\n    \"{{spaStaffBId}}\"\n  ],\n  \"confirmOutOfShift\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptDoubleId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptDoubleId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – lịch đã xác nhận (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle1Id}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle1Id}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – lịch đã xác nhận (409)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptSingle1Id}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptSingle1Id}}",
+                        "suggestions"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – nhân viên không phải nhân viên spa (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"11111111-1111-1111-1111-111111111111\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptRejectId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptRejectId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – thiếu danh sách nhân viên (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptRejectId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptRejectId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{spaApptRejectId}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{spaApptRejectId}}",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – lịch không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404 Not Found\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{spaStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/11111111-1111-1111-1111-111111111111/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "11111111-1111-1111-1111-111111111111",
+                        "confirm"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Xác nhận và điều chỉnh nhân viên spa – FR-ASG-02, FR-ASG-03, BR-03, BR-04\n\n`POST /api/v1/appointments/{id}/confirm` với `{ \"staffIds\": [...], \"confirmOutOfShift\": false }` (chỉ quản lý).\n\nThứ tự kiểm tra của backend:\n\n1. lịch phải đang `Pending` (409 INVALID_TRANSITION),\n2. số nhân viên đúng bằng số cần (409 STAFF_COUNT_MISMATCH),\n3. là nhân viên spa đang hoạt động (400 VALIDATION_ERROR),\n4. không đang giữ chỗ ở khung giờ chồng lấn (409 STAFF_CONFLICT),\n5. nằm trong ca làm, trừ khi `confirmOutOfShift` là true (409 STAFF_OUT_OF_SHIFT).\n\nThành công thì lịch chuyển sang `Confirmed` và nhân viên được giữ chỗ.\n\nCác request phụ thuộc nhau, phải chạy theo thứ tự. Request 6 rút ngắn ca của nhân viên B (còn 08:00 đến 12:00) để thử trường hợp ngoài ca. Chạy sau 06.S.4."
             },
             {
               "name": "06.S.6 Từ chối lịch spa – FR-ASG-04",
