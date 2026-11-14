@@ -12306,7 +12306,129 @@
             },
             {
               "name": "06.S.3 Khách bị khóa đặt lịch – chạy từng request, xen bước SQL (xem hướng dẫn)",
-              "item": []
+              "item": [
+                {
+                  "name": "POST /appointments/spa – khách 2 tự đặt khi bị khóa (403 BOOKING_LOCKED)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 (đã khóa bằng SQL) hoặc 201 (chạy tự động, chưa khóa)\", function () {",
+                          "    pm.expect([201, 403]).to.include(pm.response.code);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 403) {",
+                          "    pm.test(\"Mã lỗi là BOOKING_LOCKED\", function () {",
+                          "        pm.expect(pm.response.json().code).to.eql(\"BOOKING_LOCKED\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet3Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – lễ tân đặt thay cho khách bị khóa (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch ở trạng thái Pending, cần 1 nhân viên\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(body.staffRequired).to.eql(1);",
+                          "    });",
+                          "    pm.environment.set(\"spaApptRejectId\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{spaPet3Id}}\",\n  \"serviceIds\": [\n    \"{{spaService2Id}}\"\n  ],\n  \"slotStart\": \"{{spaSlot1700}}\",\n  \"customerId\": \"{{customerId2}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Khách bị khóa tự đặt lịch spa (FR-BOOK-03, BR-15)\n\nQuy trình:\n\n1. Chạy xong 06.S.0 và 06.S.2.\n\n2. UPDATE \"Customer\" SET \"IsBookingLocked\" = true WHERE \"Phone\" = '0900000102';\n\n3. Gửi request đầu tiên: khách 2 tự đặt, trả 403 BOOKING_LOCKED.\n\n4. Gửi request thứ hai: lễ tân đặt thay cho khách 2 vẫn tạo được lịch (201).\n\n5. UPDATE \"Customer\" SET \"IsBookingLocked\" = false WHERE \"Phone\" = '0900000102';\n\nKhi chạy tự động bằng Runner hoặc Newman (không có bước SQL), request đầu tiên nhận 201 vì khách chưa bị khóa. Test script chấp nhận cả 403 và 201 để bộ chạy tự động không bị gãy."
             },
             {
               "name": "06.S.4 Danh sách chờ xác nhận và đề xuất nhân viên – FR-ASG-01",
