@@ -40,3 +40,6 @@ export function bookForCustomerRoute({
   if (type) params.set("type", type);
   return `${ROUTES.bookForCustomer}?${params.toString()}`;
 }
+
+/** SW-03 Chi tiết lịch hẹn (dưới đường dẫn của SW-02, theo User-Flows 2.2). */
+export const appointmentDetailRoute = (appointmentId: string) => `${ROUTES.appointments}/${appointmentId}`;
