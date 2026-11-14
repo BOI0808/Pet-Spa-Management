@@ -9,7 +9,7 @@ import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { NotFoundState } from "@/components/feedback/not-found-state";
 import { Icon } from "@/components/icons";
-import { PageHeader } from "@/components/layout/page-header";
+import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,15 +78,31 @@ function AppointmentDetailView({
 
   return (
     <>
-      <PageHeader
-        title={title}
-        breadcrumb={[{ label: "Lịch hẹn", href: ROUTES.appointments }, { label: formatAppointmentCode(appointment.appointmentId) }]}
-        description={describeTime(appointment)}
-        actions={<PrimaryAction appointment={appointment} isSpaStaff={isSpaStaff} />}
-      />
-      <div className="-mt-3 mb-4 flex flex-wrap items-center gap-3">
-        {pet ? <PetAvatar species={pet.species} /> : <Skeleton className="size-11 rounded-[14px]" />}
-        <StatusBadge status={appointment.status} size="lg" />
+      {/* Vùng 1 như ui-demo SW-03: hình bé lớn bên trái, tiêu đề kèm badge, thao tác chính bên phải. Không dùng
+          PageHeader vì nó không có chỗ cho hình và badge cạnh tiêu đề. */}
+      <nav aria-label="Đường dẫn" className="mb-2">
+        <ol className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+          <li>
+            <Link href={ROUTES.appointments} className="text-muted hover:text-lagoon">
+              Lịch hẹn
+            </Link>
+          </li>
+          <li className="flex items-center gap-1.5">
+            <Icon name="chev-r" className="size-3.5" />
+            <span aria-current="page">{formatAppointmentCode(appointment.appointmentId)}</span>
+          </li>
+        </ol>
+      </nav>
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        {pet ? <PetAvatar species={pet.species} size="xl" /> : <Skeleton className="size-24 rounded-[28px]" />}
+        <div className="min-w-0 flex-1 basis-[260px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="break-words">{title}</h1>
+            <StatusBadge status={appointment.status} size="lg" />
+          </div>
+          <p className="mt-1 text-muted">{describeTime(appointment)}</p>
+        </div>
+        <PrimaryAction appointment={appointment} isSpaStaff={isSpaStaff} />
       </div>
 
       <Card className="mb-4">
