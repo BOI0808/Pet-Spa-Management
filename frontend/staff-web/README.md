@@ -26,6 +26,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/pets` | SW-05 Hồ sơ thú cưng (form, nhóm kích cỡ dự kiến) – phần form chép từ customer-web |
 | `features/booking` | SW-06 Đặt lịch thay khách: tab Lịch spa, tab Lưu trú (phần lưu trú theo CW-07 của customer-web) |
 | `features/services` | SW-14 Danh mục dịch vụ (chỉ xem) |
+| `features/appointments` | SW-02 Lịch hẹn (phần nhân viên spa), SW-03 Chi tiết lịch hẹn – thẻ lịch hẹn chép từ customer-web |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
