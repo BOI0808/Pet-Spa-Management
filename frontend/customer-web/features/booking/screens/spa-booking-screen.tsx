@@ -22,7 +22,13 @@ import { ROUTES } from "@/lib/routes";
 import { addDays, addMinutes, getStoreToday, toStoreDateTime } from "@/lib/time";
 import { BookingSummary } from "../components/booking-summary";
 import { PetPickerCard, ServicePickerCard } from "../components/pet-step";
-import { BookingLockedAlert, BookingNotesCard, BookingReviewCard } from "../components/review-step";
+import { DisabledReason } from "../components/disabled-reason";
+import {
+  BOOKING_LOCKED_REASON,
+  BookingLockedAlert,
+  BookingNotesCard,
+  BookingReviewCard,
+} from "../components/review-step";
 import { DatePickerCard, SlotPickerCard } from "../components/slot-step";
 import {
   BOOKING_STEPS,
@@ -41,7 +47,6 @@ const NO_SERVICE_MESSAGE = "Vui lòng chọn ít nhất một dịch vụ.";
 const NO_SLOT_MESSAGE = "Vui lòng chọn khung giờ.";
 const SLOT_FULL_MESSAGE = "Mốc giờ vừa kín, vui lòng chọn mốc khác.";
 const SLOT_PAST_MESSAGE = "Mốc giờ này đã qua, vui lòng chọn mốc khác.";
-const LOCKED_REASON = "Tài khoản tạm thời không thể tự đặt lịch, vui lòng liên hệ cửa hàng qua hotline.";
 
 function isPastSlot(date: string, time: string, now: number) {
   return Date.parse(toStoreDateTime(date, time)) <= now;
@@ -286,12 +291,7 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
               >
                 Gửi yêu cầu đặt lịch
               </Button>
-              {isLocked && (
-                <p className="flex items-start gap-1.5 text-xs leading-4 text-muted">
-                  <Icon name="lock" className="mt-px size-3.5" />
-                  {LOCKED_REASON}
-                </p>
-              )}
+              {isLocked && <DisabledReason>{BOOKING_LOCKED_REASON}</DisabledReason>}
               {backButton(2)}
               {!isLocked && (
                 <p className="text-center text-[13px] leading-5 text-muted">

@@ -24,13 +24,13 @@ export function SumFact({ label, children }: { label: string; children: ReactNod
   );
 }
 
-/** Tổng tiền + chú thích (`.sum-total` của ui-demo). */
-export function SumTotal({ label, amount, note }: { label: string; amount: number; note?: string }) {
+/** Tổng tiền + chú thích (`.sum-total` của ui-demo); `amount = null` (chưa tính được) hiện “–” thay cho 0đ. */
+export function SumTotal({ label, amount, note }: { label: string; amount: number | null; note?: string }) {
   return (
     <div className="mt-1.5 grid grid-cols-[1fr_auto] items-baseline gap-x-3 border-t border-dashed border-line pt-3.5">
       <div className="font-semibold">{label}</div>
       <span className="whitespace-nowrap text-right text-[22px] font-bold leading-7 tabular-nums">
-        {formatMoney(amount)}
+        {amount === null ? "–" : formatMoney(amount)}
       </span>
       {note && <div className="col-span-full mt-0.5 text-xs leading-4 text-muted">{note}</div>}
     </div>

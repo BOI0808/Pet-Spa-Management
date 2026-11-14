@@ -17,20 +17,26 @@ type PetCardProps = {
   pets: Pet[];
   petId: string | null;
   onSelect: (petId: string) => void;
+  /** Dòng phụ dưới tên; mặc định như CW-06 “Chó Poodle, 9,0 kg, nhóm Nhỏ”. */
+  describe?: (pet: Pet) => string;
+  /** Hiện liên kết “Thêm thú cưng” ở đầu thẻ (CW-06 có, CW-07 theo UI demo thì không). */
+  showAddLink?: boolean;
 };
 
-/** Vùng 2 – chọn một thú cưng. */
-export function PetPickerCard({ pets, petId, onSelect }: PetCardProps) {
+/** Vùng 2 – chọn một thú cưng (CW-06, CW-07). */
+export function PetPickerCard({ pets, petId, onSelect, describe = describePet, showAddLink = true }: PetCardProps) {
   return (
     <Card>
       <CardHeader title="Chọn thú cưng">
-        <Link
-          href={ROUTES.petNewForBooking}
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-lagoon hover:text-lagoon-700"
-        >
-          <Icon name="plus" className="size-3.5" />
-          Thêm thú cưng
-        </Link>
+        {showAddLink && (
+          <Link
+            href={ROUTES.petNewForBooking}
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-lagoon hover:text-lagoon-700"
+          >
+            <Icon name="plus" className="size-3.5" />
+            Thêm thú cưng
+          </Link>
+        )}
       </CardHeader>
       <CardBody>
         <div role="radiogroup" aria-label="Chọn thú cưng" className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
@@ -46,7 +52,7 @@ export function PetPickerCard({ pets, petId, onSelect }: PetCardProps) {
               <PetAvatar species={pet.species} />
               <span className="min-w-0">
                 <span className="block break-words font-semibold">{pet.name}</span>
-                <span className="block break-words text-[13px] leading-[18px] text-muted">{describePet(pet)}</span>
+                <span className="block break-words text-[13px] leading-[18px] text-muted">{describe(pet)}</span>
               </span>
             </ChoiceCard>
           ))}
