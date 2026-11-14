@@ -1,4 +1,4 @@
-import type { SizeGroup, Species, Temperament } from "@/lib/api/types";
+import type { SizeGroup, SlotGroup, Species, Temperament } from "@/lib/api/types";
 
 // Nhãn hiển thị cho giá trị enum của API (UI-Screens 2.4). Không viết lại các chuỗi này trong màn hình.
 
@@ -25,3 +25,12 @@ export const TEMPERAMENT_LABELS: Record<Temperament, string> = {
   Normal: "Bình thường",
   Difficult: "Khó tính, dữ",
 };
+
+/** Nhóm mốc giờ: Morning trước 12:00, Afternoon 12:00 – 14:00, Evening từ 15:00 (SlotService ở backend, SA 2.3.3). */
+export const SLOT_GROUP_LABELS: Record<SlotGroup, string> = {
+  Morning: "Sáng",
+  Afternoon: "Trưa",
+  Evening: "Chiều, tối",
+};
+
+export const SLOT_GROUP_ORDER = Object.keys(SLOT_GROUP_LABELS) as SlotGroup[];

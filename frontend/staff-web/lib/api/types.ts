@@ -97,3 +97,111 @@ export type PetSizeResult = {
   petId?: string;
   sizeGroup: SizeGroup;
 };
+
+// ── Danh mục dịch vụ (SW-14, SW-06) – giống customer-web ──
+/** Giá, thời lượng, số nhân viên của một dịch vụ theo loài và nhóm kích cỡ (BR-11, BR-12). Giá là số nguyên VND. */
+export type PricingRow = {
+  species: Species;
+  sizeGroup: SizeGroup;
+  price: number;
+  durationMinutes: number;
+  staffRequired: number;
+};
+
+export type Service = {
+  serviceId: string;
+  name: string;
+  description?: string | null;
+  /** “HH:mm”. */
+  latestStartTime: string;
+  isActive: boolean;
+  pricing: PricingRow[];
+};
+
+// ── Giá lưu trú (SW-06) ──
+export type HotelPricingRow = {
+  species: Species;
+  sizeGroup: SizeGroup;
+  pricePerNight: number;
+  foodPerNight: number;
+};
+
+export type HotelPricing = {
+  pricing: HotelPricingRow[];
+  /** Phí phạt mỗi lần trả muộn, VND (BR-22). */
+  lateFeePerBlock: number;
+};
+
+// ── Đặt lịch spa (SW-06) ──
+export type SlotGroup = "Morning" | "Afternoon" | "Evening";
+export type SlotStatus = "Available" | "Full" | "NotAccepted";
+export type AppointmentType = "Spa" | "Hotel";
+export type AppointmentStatus =
+  | "Pending"
+  | "Confirmed"
+  | "Received"
+  | "InProgress"
+  | "InStay"
+  | "Completed"
+  | "Cancelled";
+
+export type SlotInfo = {
+  /** “HH:mm”. */
+  time: string;
+  group: SlotGroup;
+  status: SlotStatus;
+};
+
+export type SpaSlots = {
+  durationMinutes: number;
+  staffRequired: number;
+  bufferMinutes: number;
+  slots: SlotInfo[];
+};
+
+/** Không có nhân viên (BR-10), tiền, trạng thái. Lễ tân đặt thay bắt buộc gửi `customerId` (khác customer-web). */
+export type SpaBookingRequest = {
+  petId: string;
+  serviceIds: string[];
+  /** ISO 8601 có độ lệch, ví dụ “2026-10-06T09:00:00+07:00”. */
+  slotStart: string;
+  customerId: string;
+};
+
+export type SpaBookingCreated = {
+  appointmentId: string;
+  type?: AppointmentType;
+  status: AppointmentStatus;
+  sizeGroup?: SizeGroup;
+  slotStart?: string;
+  slotEnd: string;
+  staffRequired: number;
+  /** VND. */
+  estimatedAmount: number;
+};
+
+// ── Đặt lịch lưu trú (SW-06) ──
+export type HotelAvailability = {
+  /** Còn ít nhất một chuồng hợp loài, nhóm kích cỡ, trống trong cả các đêm (BR-21). */
+  available: boolean;
+  nights: number;
+  /** Tiền lưu trú tạm tính, VND (BR-22). */
+  estimatedAmount: number;
+};
+
+/** Lễ tân đặt thay bắt buộc gửi `customerId`. */
+export type HotelBookingRequest = {
+  petId: string;
+  /** ISO 8601 có độ lệch, ví dụ “2026-10-16T09:00:00+07:00”. */
+  plannedCheckIn: string;
+  plannedCheckOut: string;
+  customerId: string;
+};
+
+export type HotelBookingCreated = {
+  appointmentId: string;
+  status: AppointmentStatus;
+  nights: number;
+  /** VND. */
+  estimatedAmount: number;
+};

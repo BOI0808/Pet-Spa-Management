@@ -51,3 +51,53 @@ export function formatDecimal(value: number) {
 export function formatWeight(kg: number) {
   return `${weightFormat.format(kg)} kg`;
 }
+
+// Ngày dạng “YYYY-MM-DD” đã theo múi giờ cửa hàng (lib/time.ts), chỉ cần đọc thứ và tách ngày, tháng.
+const WEEKDAYS = ["chủ nhật", "thứ hai", "thứ ba", "thứ tư", "thứ năm", "thứ sáu", "thứ bảy"];
+const WEEKDAYS_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+function weekdayIndex(date: string) {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+
+/** “2026-10-06” → “T3”. */
+export function formatWeekdayShort(date: string) {
+  return WEEKDAYS_SHORT[weekdayIndex(date)];
+}
+
+/** “2026-10-06” → “06/10”. */
+export function formatDayMonth(date: string) {
+  const [, month, day] = date.split("-");
+  return `${day}/${month}`;
+}
+
+/** “2026-10-06” → “thứ ba”. */
+export function formatWeekday(date: string) {
+  return WEEKDAYS[weekdayIndex(date)];
+}
+
+/** “2026-10-06” → “06/10/2026”. */
+export function formatDate(date: string) {
+  return `${formatDayMonth(date)}/${date.slice(0, 4)}`;
+}
+
+/** “2026-10-06” → “thứ ba 06/10”. */
+export function formatWeekdayDayMonth(date: string) {
+  return `${WEEKDAYS[weekdayIndex(date)]} ${formatDayMonth(date)}`;
+}
+
+/** “2026-10-06” → “Thứ ba 06/10/2026”. */
+export function formatFullDate(date: string) {
+  const weekday = WEEKDAYS[weekdayIndex(date)];
+  return `${weekday.charAt(0).toLocaleUpperCase("vi-VN")}${weekday.slice(1)} ${formatDayMonth(date)}/${date.slice(0, 4)}`;
+}
+
+/** 120 → “2 giờ”; 75 → “75 phút”. */
+export function formatDuration(minutes: number) {
+  return minutes % 60 === 0 ? `${minutes / 60} giờ` : `${minutes} phút`;
+}
+
+/** Mã lịch hẹn ngắn “LH-” + 8 ký tự đầu của uuid, viết hoa (UI-Screens G-01). */
+export function formatAppointmentCode(appointmentId: string) {
+  return `LH-${appointmentId.slice(0, 8).toUpperCase()}`;
+}
