@@ -83,3 +83,11 @@ export function validateHeightCm(value: string, required: boolean) {
   if (!fitsPrecision(value, 4, 1)) return "Chiều cao tối đa 4 chữ số nguyên và 1 chữ số thập phân.";
   return true;
 }
+
+/** Cân nặng thực tế khi tiếp nhận (SW-07 vùng 4, UI-Screens “Kiểm tra dữ liệu nhập”); cùng độ chính xác với hồ sơ. */
+export function validateActualWeightKg(value: string) {
+  const weight = parseDecimal(value);
+  if (weight === null || weight <= 0) return "Vui lòng nhập cân nặng thực tế lớn hơn 0.";
+  if (!fitsPrecision(value, 3, 2)) return "Cân nặng tối đa 3 chữ số nguyên và 2 chữ số thập phân.";
+  return true;
+}
