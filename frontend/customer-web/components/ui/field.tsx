@@ -128,6 +128,21 @@ export function Input({ prefixIcon, suffix, className = "", ...rest }: InputProp
   );
 }
 
+/** `.select` của ui-demo: như `.input`, mũi tên xuống bên phải thay cho mũi tên của trình duyệt. */
+export function Select({ className = "", children, ...rest }: ComponentProps<"select">) {
+  return (
+    <div className="relative">
+      <select
+        className={`h-[42px] cursor-pointer appearance-none pl-3 pr-9 ${controlBaseClass} ${stateClass(rest["aria-invalid"])} ${className}`}
+        {...rest}
+      >
+        {children}
+      </select>
+      <Icon name="chev-d" className="pointer-events-none absolute right-3 top-[13px] size-4 text-muted" />
+    </div>
+  );
+}
+
 /** `.textarea` của ui-demo: cao tối thiểu 84px, kéo giãn theo chiều dọc. */
 export function Textarea({ className = "", ...rest }: ComponentProps<"textarea">) {
   return (

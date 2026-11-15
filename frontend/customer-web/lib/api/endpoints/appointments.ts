@@ -8,6 +8,8 @@ import type {
   SpaBookingCreated,
   SpaBookingRequest,
   SpaSlots,
+  StatusResult,
+  UpdateAppointmentRequest,
 } from "@/lib/api/types";
 
 export type SpaSlotParams = { date: string; petId: string; serviceIds: string[] };
@@ -50,5 +52,23 @@ export async function getAppointment(appointmentId: string) {
 /** GET /appointments/{id}/payments – FR-PAY-04. Spa có 1 khoản; lưu trú tối đa 2 khoản (Stay, LateFee). */
 export async function listAppointmentPayments(appointmentId: string) {
   const { data } = await apiClient.get<Payment[]>(`/appointments/${encodeURIComponent(appointmentId)}/payments`);
+  return data;
+}
+
+/**
+ * PUT /appointments/{id} – FR-CHG-01. Khách đổi trong hạn: lịch về Chờ xác nhận, phân công/chuồng bị bỏ (BR-26).
+ * 409 `CHANGE_WINDOW_CLOSED` khi quá hạn tự đổi (FR-CHG-02), `SLOT_FULL` / `NO_CAPACITY` khi hết chỗ.
+ */
+export async function updateAppointment(appointmentId: string, body: UpdateAppointmentRequest) {
+  const { data } = await apiClient.put<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}`, body);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/cancel – FR-CHG-01. Khách không gửi body, backend đặt lý do `CustomerCancelled`.
+ * 409 `CHANGE_WINDOW_CLOSED` khi quá hạn tự hủy (FR-CHG-02).
+ */
+export async function cancelAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/cancel`);
   return data;
 }

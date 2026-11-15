@@ -19,7 +19,7 @@ import { useCreateSpaAppointment, useSpaSlots } from "@/lib/queries/appointments
 import { usePets } from "@/lib/queries/pets";
 import { useServices } from "@/lib/queries/services";
 import { ROUTES } from "@/lib/routes";
-import { addDays, addMinutes, getStoreToday, toStoreDateTime } from "@/lib/time";
+import { addMinutes, getStoreToday, toStoreDateTime } from "@/lib/time";
 import { BookingSummary } from "../components/booking-summary";
 import { PetPickerCard, ServicePickerCard } from "../components/pet-step";
 import { DisabledReason } from "../components/disabled-reason";
@@ -32,25 +32,21 @@ import {
 import { DatePickerCard, SlotPickerCard } from "../components/slot-step";
 import {
   BOOKING_STEPS,
+  NO_PET_MESSAGE,
+  NO_SERVICE_MESSAGE,
+  NO_SLOT_MESSAGE,
+  SLOT_FULL_MESSAGE,
+  SLOT_PAST_MESSAGE,
+  bookingDates,
   earliestLatestStart,
   estimateBooking,
+  isPastSlot,
   parseStep,
   toPricedServices,
   type BookingStep,
 } from "../spa-booking";
 
 const PET_LIST_PARAMS = { page: 1, pageSize: 50 };
-const DATE_COUNT = 7;
-
-const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
-const NO_SERVICE_MESSAGE = "Vui lòng chọn ít nhất một dịch vụ.";
-const NO_SLOT_MESSAGE = "Vui lòng chọn khung giờ.";
-const SLOT_FULL_MESSAGE = "Mốc giờ vừa kín, vui lòng chọn mốc khác.";
-const SLOT_PAST_MESSAGE = "Mốc giờ này đã qua, vui lòng chọn mốc khác.";
-
-function isPastSlot(date: string, time: string, now: number) {
-  return Date.parse(toStoreDateTime(date, time)) <= now;
-}
 
 /** Vùng 1 → 9 khi đã có danh sách thú cưng. */
 function SpaBookingFlow({ pets }: { pets: Pet[] }) {
@@ -62,7 +58,7 @@ function SpaBookingFlow({ pets }: { pets: Pet[] }) {
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [dates] = useState(() => {
     const today = getStoreToday();
-    return Array.from({ length: DATE_COUNT }, (_, index) => addDays(today, index));
+    return bookingDates(today);
   });
   const [date, setDate] = useState(dates[0]);
   const [slotTime, setSlotTime] = useState<string | null>(null);
