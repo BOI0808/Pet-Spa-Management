@@ -13,7 +13,7 @@ import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isForbiddenError } from "@/lib/api/errors";
+import { isForbiddenError, type ApiError } from "@/lib/api/errors";
 import type { AppointmentDetail, Pet } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/use-session";
 import { formatAppointmentCode } from "@/lib/format";
@@ -64,15 +64,24 @@ function PrimaryAction({ appointment, isSpaStaff }: { appointment: AppointmentDe
   );
 }
 
+type AppointmentDetailViewProps = {
+  appointment: AppointmentDetail;
+  pet: Pet | null;
+  /** Đang tải hồ sơ bé (hiện khung xương); lỗi thì `petError` có giá trị. */
+  petPending: boolean;
+  petError: ApiError | null;
+  onRetryPet: () => void;
+  isSpaStaff: boolean;
+};
+
 function AppointmentDetailView({
   appointment,
   pet,
+  petPending,
+  petError,
+  onRetryPet,
   isSpaStaff,
-}: {
-  appointment: AppointmentDetail;
-  pet: Pet | null;
-  isSpaStaff: boolean;
-}) {
+}: AppointmentDetailViewProps) {
   const petName = appointment.petName ?? pet?.name ?? "thú cưng";
   const title = appointment.type === "Spa" ? `Lịch spa của ${petName}` : `Lịch lưu trú của ${petName}`;
 
@@ -94,7 +103,7 @@ function AppointmentDetailView({
         </ol>
       </nav>
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        {pet ? <PetAvatar species={pet.species} size="xl" /> : <Skeleton className="size-24 rounded-[28px]" />}
+        {petPending ? <Skeleton className="size-24 rounded-[28px]" /> : <PetAvatar species={pet?.species ?? null} size="xl" />}
         <div className="min-w-0 flex-1 basis-[260px]">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="break-words">{title}</h1>
@@ -113,7 +122,7 @@ function AppointmentDetailView({
 
       <div className={splitClass}>
         <div className="flex min-w-0 flex-col gap-4">
-          <PetProfileCard pet={pet} isSpaStaff={isSpaStaff} />
+          <PetProfileCard pet={pet} error={petError} onRetry={onRetryPet} isSpaStaff={isSpaStaff} />
           {appointment.type === "Spa" ? (
             <SpaServicesCard appointment={appointment} pet={pet} />
           ) : (
@@ -149,8 +158,9 @@ export function AppointmentDetailSkeleton() {
 export function AppointmentDetailScreen() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const { me } = useSession();
-  const appointment = useAppointment(appointmentId);
-  // Backend cho nhân viên spa xem hồ sơ bé của lịch được phân công (BR-16). Lỗi thì vẫn hiện lịch, hồ sơ để khung xương.
+  const appointment = useAppointment(appointmentId, { live: true });
+  // Backend cho nhân viên spa xem hồ sơ bé của lịch được phân công (BR-16). Lỗi thì vẫn hiện lịch; thẻ hồ sơ báo lỗi
+  // kèm nút Thử lại, giá dịch vụ không tra được (cần loài) nên Tạm tính hiện “—”.
   const petId = appointment.data?.petId ?? "";
   const petQuery = usePet(petId, { enabled: petId !== "" });
 
@@ -179,6 +189,9 @@ export function AppointmentDetailScreen() {
     <AppointmentDetailView
       appointment={appointment.data}
       pet={petQuery.data ?? null}
+      petPending={petQuery.isPending}
+      petError={petQuery.error}
+      onRetryPet={() => void petQuery.refetch()}
       isSpaStaff={me.staffRole === "SpaStaff"}
     />
   );

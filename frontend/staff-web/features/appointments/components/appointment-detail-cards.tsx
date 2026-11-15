@@ -10,6 +10,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { DescriptionList, KeyValue } from "@/components/ui/key-value";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag } from "@/components/ui/tag";
+import type { ApiError } from "@/lib/api/errors";
 import type { AppointmentDetail, Payment, Pet } from "@/lib/api/types";
 import { formatDuration, formatMoney, formatWeight, getInitials } from "@/lib/format";
 import { PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, SIZE_GROUP_LABELS, SPECIES_LABELS, TEMPERAMENT_LABELS } from "@/lib/labels";
@@ -33,12 +34,27 @@ function useSpaPricing(appointment: AppointmentDetail, pet: Pet | null) {
  * Vùng 3 – hồ sơ thú cưng, chỉ xem (FR-PET-02: nhân viên spa chỉ xem hồ sơ của lịch được phân công). Liên kết
  * “Sửa hồ sơ” của lễ tân để thẻ 125: SW-05 cần khách đang phục vụ có số điện thoại mà lịch hẹn chưa trả (G-05).
  */
-export function PetProfileCard({ pet, isSpaStaff }: { pet: Pet | null; isSpaStaff: boolean }) {
+type PetProfileCardProps = {
+  pet: Pet | null;
+  /** Lỗi khi tải hồ sơ bé; có lỗi thì hiện ErrorAlert và nút Thử lại thay cho khung xương. */
+  error: ApiError | null;
+  onRetry: () => void;
+  isSpaStaff: boolean;
+};
+
+export function PetProfileCard({ pet, error, onRetry, isSpaStaff }: PetProfileCardProps) {
   return (
     <Card>
       <CardHeader title="Hồ sơ thú cưng">{isSpaStaff && <Tag>Chỉ xem</Tag>}</CardHeader>
       <CardBody>
-        {pet ? (
+        {error ? (
+          <div className="flex flex-col items-start gap-3">
+            <ErrorAlert error={error} className="w-full" />
+            <Button size="sm" onClick={onRetry}>
+              Thử lại
+            </Button>
+          </div>
+        ) : pet ? (
           <DescriptionList
             items={[
               { label: "Loài, giống", value: `${SPECIES_LABELS[pet.species]} ${pet.breed}` },
