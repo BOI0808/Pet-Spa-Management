@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using PetSpa.Infrastructure.Identity;
 using PetSpa.Infrastructure.Persistence;
 using PetSpa.Infrastructure.Persistence.Repositories;
 using PetSpa.Infrastructure.Services;
+using PetSpa.Infrastructure.Storage;
 
 namespace PetSpa.Infrastructure;
 
@@ -93,6 +95,20 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IAppointmentQueryRepository, AppointmentQueryRepository>();
         services.AddScoped<IAppointmentChangeRepository, AppointmentChangeRepository>();
+        services.AddScoped<IPhotoRepository, PhotoRepository>();
+
+        var storage = config.GetSection("Storage").Get<StorageOptions>() ?? new StorageOptions();
+        if (string.IsNullOrWhiteSpace(storage.Url)
+            || string.IsNullOrWhiteSpace(storage.ServiceKey)
+            || string.IsNullOrWhiteSpace(storage.Bucket))
+            throw new InvalidOperationException("Thiếu biến môi trường Storage__Url, Storage__ServiceKey hoặc Storage__Bucket.");
+        services.AddSingleton(storage);
+        services.AddHttpClient<IPhotoStorage, SupabasePhotoStorage>(client =>
+        {
+            client.BaseAddress = new Uri(storage.Url.TrimEnd('/') + "/storage/v1/");
+            client.DefaultRequestHeaders.Add("apikey", storage.ServiceKey);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", storage.ServiceKey);
+        });
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
         return services;
