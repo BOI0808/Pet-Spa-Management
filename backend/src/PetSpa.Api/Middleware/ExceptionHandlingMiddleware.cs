@@ -28,6 +28,8 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             BusinessException business => ErrorCatalog.Create(business.Code, business.Detail),
             ValidationException validation => ErrorCatalog.Create(ErrorCodes.ValidationError, JoinMessages(validation)),
+            BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } =>
+                ErrorCatalog.Create(ErrorCodes.ValidationError, "Tệp ảnh tối đa 50 MB."),
             _ => null,
         };
 
