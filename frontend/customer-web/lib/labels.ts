@@ -2,6 +2,7 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CancelReason,
+  NotificationType,
   PaymentKind,
   PaymentMethod,
   PaymentStatus,
@@ -85,4 +86,17 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   Cash: "Tiền mặt",
   BankQR: "Chuyển khoản QR",
   Online: "Trực tuyến",
+};
+
+/**
+ * Dòng đậm của thông báo (UI-Screens CW-12 – Đề xuất): API chỉ có `message` nên tiêu đề lấy theo `type`,
+ * nội dung chi tiết nằm ở `message`.
+ */
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  BookingReceived: "Đã nhận yêu cầu đặt lịch",
+  ConfirmedAssigned: "Lịch hẹn đã được xác nhận",
+  StatusChanged: "Lịch hẹn có cập nhật trạng thái",
+  Cancelled: "Lịch hẹn đã hủy",
+  PaymentRecorded: "Đã ghi nhận thanh toán",
+  CostConfirmation: "Cần xác nhận chi phí mới",
 };
