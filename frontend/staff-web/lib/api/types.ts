@@ -297,3 +297,44 @@ export type Payment = {
   receivedAmount?: number | null;
   paidAt?: string | null;
 };
+
+// ── Tiếp nhận (SW-07) ──
+export type WeightCheckResult = "OK" | "PRICE_DECREASED" | "NEEDS_CONFIRMATION";
+
+/** Kết quả đối chiếu cân nặng thực tế với hồ sơ (BR-23). */
+export type WeightCheck = {
+  result: WeightCheckResult;
+  newSizeGroup?: SizeGroup;
+  /** VND. */
+  oldAmount?: number;
+  newAmount?: number;
+  /** Hạn khách phản hồi chi phí mới; chỉ có khi `result` = NEEDS_CONFIRMATION. */
+  expiresAt?: string;
+};
+
+/** Phản hồi POST /appointments/{id}/check-in. `weightCheck` chỉ có ở lịch spa. */
+export type CheckInResult = {
+  status: AppointmentStatus;
+  weightCheck?: WeightCheck;
+};
+
+// ── Chuồng (SW-02: mã chuồng của lịch lưu trú) ──
+export type CageOccupant = {
+  petId: string;
+  petName: string;
+  customerId: string;
+  customerName: string;
+  plannedCheckOut: string;
+};
+
+export type Cage = {
+  cageId: string;
+  code: string;
+  species: Species;
+  sizeGroup: SizeGroup;
+  isActive: boolean;
+  /** null = chuồng trống. */
+  occupant?: CageOccupant | null;
+};
+
+export type CagePage = Page<Cage>;
