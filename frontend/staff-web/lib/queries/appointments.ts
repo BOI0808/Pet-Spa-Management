@@ -1,10 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createSpaAppointment, getSpaSlots, type SpaSlotParams } from "@/lib/api/endpoints/appointments";
+import {
+  createSpaAppointment,
+  getAppointment,
+  getSpaSlots,
+  listAppointmentPayments,
+  listAppointments,
+  type AppointmentListParams,
+  type SpaSlotParams,
+} from "@/lib/api/endpoints/appointments";
 
-// Cùng khóa với customer-web. Danh sách, chi tiết lịch hẹn (SW-02, SW-03) thêm ở thẻ 125.
+// Cùng khóa với customer-web.
 export const appointmentKeys = {
   all: ["appointments"] as const,
+  list: (params: AppointmentListParams) => ["appointments", "list", params] as const,
+  detail: (appointmentId: string) => ["appointments", "detail", appointmentId] as const,
+  payments: (appointmentId: string) => ["appointments", "detail", appointmentId, "payments"] as const,
 };
+
+// Lịch trong ngày đổi theo tiến độ ở cửa hàng: tải lại 60 giây/lần (UI-Screens SW-02, Đề xuất).
+const APPOINTMENT_REFETCH_MS = 60_000;
+
+type QueryToggle = { enabled?: boolean };
 
 export const spaSlotKeys = {
   all: ["spa-slots"] as const,
@@ -35,5 +51,36 @@ export function useCreateSpaAppointment() {
     onError: (error) => {
       if (error.code === "SLOT_FULL") void queryClient.invalidateQueries({ queryKey: spaSlotKeys.all });
     },
+  });
+}
+
+/** Danh sách lịch hẹn; tự tải lại 60 giây/lần để thấy lịch mới được giao, lịch vừa đổi trạng thái. */
+export function useAppointments(params: AppointmentListParams) {
+  return useQuery({
+    queryKey: appointmentKeys.list(params),
+    queryFn: () => listAppointments(params),
+    refetchInterval: APPOINTMENT_REFETCH_MS,
+  });
+}
+
+type AppointmentQueryOptions = QueryToggle & {
+  /** Tự tải lại 60 giây/lần: chỉ bật ở SW-03. Phiếu ở SW-02 không bật để mỗi phút không gọi thêm một request mỗi phiếu. */
+  live?: boolean;
+};
+
+export function useAppointment(appointmentId: string, { enabled = true, live = false }: AppointmentQueryOptions = {}) {
+  return useQuery({
+    queryKey: appointmentKeys.detail(appointmentId),
+    queryFn: () => getAppointment(appointmentId),
+    enabled,
+    refetchInterval: live ? APPOINTMENT_REFETCH_MS : false,
+  });
+}
+
+export function useAppointmentPayments(appointmentId: string, { enabled = true }: QueryToggle = {}) {
+  return useQuery({
+    queryKey: appointmentKeys.payments(appointmentId),
+    queryFn: () => listAppointmentPayments(appointmentId),
+    enabled,
   });
 }
