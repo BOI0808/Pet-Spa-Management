@@ -13,16 +13,33 @@ import { Field, Input } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppointmentDetail, Pet, WeightCheck } from "@/lib/api/types";
 import { formatAppointmentCode, formatMoney, formatWeight } from "@/lib/format";
-import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
+import { SIZE_GROUP_LABELS } from "@/lib/labels";
 import { useCheckInSpa } from "@/lib/queries/appointments";
 import { useServices } from "@/lib/queries/services";
 import { ROUTES } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
 import { parseDecimal, validateActualWeightKg } from "@/lib/validation";
-import { findPricing, formatSlotRange, serviceNames, staffNames } from "@/features/appointments/appointments";
+import {
+  findPricing,
+  formatSlotRange,
+  serviceNames,
+  speciesAndBreed,
+  staffNames,
+} from "@/features/appointments/appointments";
+
+/** “Chó Poodle” → “chó Poodle” cho tiêu đề “Bông, chó Poodle” như ui-demo. */
+function lowerFirst(text: string) {
+  return text.charAt(0).toLocaleLowerCase("vi-VN") + text.slice(1);
+}
 
 /** Kết quả của lần tiếp nhận vừa làm, giữ ở màn cha để còn hiện sau khi chi tiết lịch tải lại (đã Đã tiếp nhận). */
-export type CheckInOutcome = { appointmentId: string; actualWeightKg: number; weightCheck?: WeightCheck };
+export type CheckInOutcome = {
+  appointmentId: string;
+  actualWeightKg: number;
+  /** Cân khai báo lúc gửi; lưu lại vì sau khi tiếp nhận hồ sơ có thể đã cập nhật sang cân thực tế. */
+  declaredWeightKg: number | null;
+  weightCheck?: WeightCheck;
+};
 
 type SpaCheckInCardProps = {
   appointment: AppointmentDetail;
@@ -47,38 +64,38 @@ function InfoBox({ label, value, note }: { label: string; value: string; note?: 
  * SW-07 vùng 5 sau khi gửi: câu theo kết quả đối chiếu. Cần khách xác nhận (tăng nhóm) chỉ hiện cảnh báo và hạn phản
  * hồi; đồng hồ đếm ngược và hộp “Ghi nhận phản hồi của khách” (vùng 7, SW-07·D1) làm ở thẻ 126.
  */
-function WeightCheckAlert({
-  outcome,
-  appointment,
-  pet,
-}: {
-  outcome: CheckInOutcome;
-  appointment: AppointmentDetail;
-  pet: Pet | null;
-}) {
+function WeightCheckAlert({ outcome, appointment }: { outcome: CheckInOutcome; appointment: AppointmentDetail }) {
   const { weightCheck, actualWeightKg } = outcome;
   const weight = formatWeight(actualWeightKg);
+  // “Chênh 0,8 kg” như ui-demo SW-07; làm tròn 2 chữ số để tránh số lẻ của phép trừ số thực.
+  const difference =
+    outcome.declaredWeightKg === null
+      ? ""
+      : ` (chênh ${formatWeight(Math.round(Math.abs(actualWeightKg - outcome.declaredWeightKg) * 100) / 100)})`;
   const staff = staffNames(appointment);
   const handOver = staff.length > 0 ? ` Lịch đã chuyển cho nhân viên spa ${staff.join(", ")}.` : "";
   const oldGroup = SIZE_GROUP_LABELS[appointment.sizeGroup];
   const newGroup = weightCheck?.newSizeGroup ? SIZE_GROUP_LABELS[weightCheck.newSizeGroup] : oldGroup;
   const money = (amount?: number) => (amount === undefined ? "—" : formatMoney(amount));
+  // Backend chưa trả `expiresAt` trong `weightCheck` dù openapi có ghi (review PR #62): lấy từ yêu cầu xác nhận chi phí
+  // của chi tiết lịch, đã được tải lại ngay sau khi tiếp nhận.
+  const expiresAt = weightCheck?.expiresAt ?? appointment.pendingCostConfirmation?.expiresAt;
 
   switch (weightCheck?.result) {
     case "PRICE_DECREASED":
       return (
         <Alert tone="info" title={`Cân nặng giảm, xuống nhóm ${newGroup}`}>
-          Cân thực tế {weight}. Chi phí giảm từ {money(weightCheck.oldAmount)} xuống {money(weightCheck.newAmount)}.
+          Cân thực tế {weight}{difference}. Chi phí giảm từ {money(weightCheck.oldAmount)} xuống {money(weightCheck.newAmount)}.
           Khung giờ giữ nguyên.{handOver}
         </Alert>
       );
     case "NEEDS_CONFIRMATION":
       return (
         <Alert tone="warn" title={`Tăng nhóm kích cỡ: ${oldGroup} → ${newGroup}`}>
-          Cân thực tế {weight}, vượt ngưỡng dung sai so với hồ sơ{pet ? ` (${formatWeight(pet.weightKg)})` : ""}. Chi
+          Cân thực tế {weight}{difference}, vượt ngưỡng dung sai so với hồ sơ. Chi
           phí tăng từ {money(weightCheck.oldAmount)} lên {money(weightCheck.newAmount)}. Đã gửi yêu cầu xác nhận cho
           khách
-          {weightCheck.expiresAt ? `, hạn phản hồi ${toStoreTime(weightCheck.expiresAt)}` : ""}. Nếu là khách vãng lai
+          {expiresAt ? `, hạn phản hồi ${toStoreTime(expiresAt)}` : ""}. Nếu là khách vãng lai
           (không nhận thông báo trên web), hãy hỏi trực tiếp khách.
         </Alert>
       );
@@ -86,7 +103,7 @@ function WeightCheckAlert({
       // OK, hoặc backend không trả `weightCheck`: chi phí không đổi.
       return (
         <Alert tone="success" title="Trong ngưỡng dung sai, chi phí không đổi">
-          Cân thực tế {weight}, vẫn thuộc nhóm {oldGroup}. Hồ sơ cập nhật cân nặng {weight}.{handOver}
+          Cân thực tế {weight}{difference}, vẫn thuộc nhóm {oldGroup}. Hồ sơ cập nhật cân nặng {weight}.{handOver}
         </Alert>
       );
   }
@@ -149,7 +166,12 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
       {
         onSuccess: (result) => {
           showSuccess(`Đã tiếp nhận ${petName}`);
-          onCheckedIn({ appointmentId: appointment.appointmentId, actualWeightKg: weight, weightCheck: result.weightCheck });
+          onCheckedIn({
+            appointmentId: appointment.appointmentId,
+            actualWeightKg: weight,
+            declaredWeightKg: pet?.weightKg ?? null,
+            weightCheck: result.weightCheck,
+          });
         },
       },
     );
@@ -163,7 +185,7 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
         <div className="min-w-0 flex-1 basis-[220px]">
           <h2 className="break-words">
             {petName}
-            {pet && `, ${SPECIES_LABELS[pet.species].toLocaleLowerCase("vi-VN")} ${pet.breed}`}
+            {pet && `, ${lowerFirst(speciesAndBreed(pet))}`}
           </h2>
           <p className="text-[13px] text-muted">
             {formatAppointmentCode(appointment.appointmentId)}. Spa {formatSlotRange(appointment)}.
@@ -225,7 +247,7 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
             </div>
           )}
 
-          {justCheckedIn && <WeightCheckAlert outcome={justCheckedIn} appointment={appointment} pet={pet} />}
+          {justCheckedIn && <WeightCheckAlert outcome={justCheckedIn} appointment={appointment} />}
           {/* Mở lại lịch đang chờ khách xác nhận chi phí: cảnh báo cơ bản; đếm ngược, ghi nhận phản hồi ở thẻ 126. */}
           {!justCheckedIn && appointment.pendingCostConfirmation?.status === "Pending" && (
             <Alert tone="warn" title="Đang chờ khách xác nhận chi phí mới">

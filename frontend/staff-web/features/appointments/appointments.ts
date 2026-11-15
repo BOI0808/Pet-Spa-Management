@@ -47,9 +47,14 @@ export function upcomingItems(appointments: Appointment[], today: string) {
 // ── SW-02 lễ tân ──
 const DATE_PARAM = /^\d{4}-\d{2}-\d{2}$/;
 
-/** `?date=` hợp lệ thì dùng, không thì hôm nay (UI-Screens SW-02: mặc định hôm nay). */
+/**
+ * `?date=` hợp lệ thì dùng, không thì hôm nay (UI-Screens SW-02: mặc định hôm nay). Ngày không tồn tại như 2026-02-30
+ * vẫn qua `Date.parse` (tự lùi sang 02/03, review PR #62) nên định dạng lại ngày vừa đọc và so với chuỗi gốc.
+ */
 export function parseDateParam(value: string | null, today: string) {
-  return value && DATE_PARAM.test(value) && !Number.isNaN(Date.parse(value)) ? value : today;
+  if (!value || !DATE_PARAM.test(value)) return today;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : today;
 }
 
 /**
