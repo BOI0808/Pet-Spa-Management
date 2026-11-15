@@ -36,7 +36,7 @@ function useSpaPricing(appointment: AppointmentDetail, pet: Pet | null) {
  */
 type PetProfileCardProps = {
   pet: Pet | null;
-  /** Lỗi khi tải hồ sơ bé; có lỗi thì hiện ErrorAlert và nút Thử lại thay cho khung xương. */
+  /** Lỗi khi tải hồ sơ bé. Chưa có hồ sơ nào thì hiện ErrorAlert và nút Thử lại thay cho khung xương; đã có bản cũ thì giữ bản cũ. */
   error: ApiError | null;
   onRetry: () => void;
   isSpaStaff: boolean;
@@ -47,7 +47,7 @@ export function PetProfileCard({ pet, error, onRetry, isSpaStaff }: PetProfileCa
     <Card>
       <CardHeader title="Hồ sơ thú cưng">{isSpaStaff && <Tag>Chỉ xem</Tag>}</CardHeader>
       <CardBody>
-        {error ? (
+        {error && !pet ? (
           <div className="flex flex-col items-start gap-3">
             <ErrorAlert error={error} className="w-full" />
             <Button size="sm" onClick={onRetry}>
