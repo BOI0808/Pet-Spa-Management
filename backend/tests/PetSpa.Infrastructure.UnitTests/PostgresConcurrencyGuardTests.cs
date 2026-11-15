@@ -162,7 +162,10 @@ public class PostgresConcurrencyGuardTests
             ["Jwt:SigningKey"] = "12345678901234567890123456789012",
             ["Jwt:AccessTokenMinutes"] = "15",
             ["Jwt:RefreshTokenDays"] = "7",
-            ["App:TimeZone"] = "Asia/Ho_Chi_Minh"
+            ["App:TimeZone"] = "Asia/Ho_Chi_Minh",
+            ["Storage:Url"] = "https://example.supabase.co",
+            ["Storage:ServiceKey"] = "dummy-service-key",
+            ["Storage:Bucket"] = "dummy-bucket"
         }).Build();
 
         services.AddInfrastructure(config);
