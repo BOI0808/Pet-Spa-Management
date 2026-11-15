@@ -18,7 +18,13 @@ import { useChangeWindowClosed } from "@/lib/queries/appointment-changes";
 import { useAppointment } from "@/lib/queries/appointments";
 import { usePet, usePets } from "@/lib/queries/pets";
 import { ROUTES } from "@/lib/routes";
-import { CHANGE_LOCKED_MESSAGE, getChangeAccess, useNow } from "../change-window";
+import {
+  CHANGE_LOCKED_MESSAGE,
+  changeDeadlineBase,
+  getChangeAccess,
+  selfServiceLockAt,
+  useTimeReached,
+} from "../change-window";
 import { HotelChangeForm } from "../components/hotel-change-form";
 import { SpaChangeForm } from "../components/spa-change-form";
 
@@ -42,10 +48,14 @@ export function ChangeAppointmentScreen() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const router = useRouter();
   const { showError } = useToast();
-  const now = useNow();
-  const knownClosed = useChangeWindowClosed(appointmentId);
   const appointment = useAppointment(appointmentId);
   const pets = usePets(PET_LIST_PARAMS);
+  // Hẹn giờ đúng tới mốc tự khóa (60 phút trước giờ hẹn), không chạy timer định kỳ.
+  const lockReached = useTimeReached(appointment.data ? selfServiceLockAt(appointment.data) : null);
+  const knownClosed = useChangeWindowClosed(
+    appointmentId,
+    appointment.data ? changeDeadlineBase(appointment.data) : null,
+  );
   const petId = appointment.data?.petId ?? "";
   const currentPet = usePet(petId, { enabled: petId !== "" });
 
@@ -63,7 +73,7 @@ export function ChangeAppointmentScreen() {
     router.replace(ROUTES.appointmentDetail(appointmentId));
   }
 
-  if (appointment.isPending || pets.isPending) return <ChangeAppointmentSkeleton />;
+  if (appointment.isPending) return <ChangeAppointmentSkeleton />;
 
   if (appointment.isError) {
     if (isForbiddenError(appointment.error)) return <ForbiddenState />;
@@ -86,18 +96,6 @@ export function ChangeAppointmentScreen() {
     );
   }
 
-  if (pets.isError) {
-    return (
-      <>
-        {header}
-        <div className="flex flex-col items-start gap-3">
-          <ErrorAlert error={pets.error} className="w-full" />
-          <Button onClick={() => void pets.refetch()}>Thử lại</Button>
-        </div>
-      </>
-    );
-  }
-
   const detail = appointment.data;
   const backToDetail = (
     <ButtonLink href={ROUTES.appointmentDetail(appointmentId)} variant="secondary">
@@ -106,7 +104,8 @@ export function ChangeAppointmentScreen() {
   );
 
   // Mở thẳng đường dẫn khi lịch không còn đổi được (đã tiếp nhận, đã hủy, quá hạn): không hiện form (FR-CHG-02).
-  const access = getChangeAccess(detail, now, knownClosed);
+  // Xét ngay khi có lịch hẹn, trước danh sách thú cưng, để lỗi tải thú cưng không che lý do không đổi được.
+  const access = getChangeAccess(detail, lockReached, knownClosed);
   if (access !== "open") {
     const message =
       access === "hidden"
@@ -119,6 +118,20 @@ export function ChangeAppointmentScreen() {
           {message}
         </Alert>
         {backToDetail}
+      </>
+    );
+  }
+
+  if (pets.isPending) return <ChangeAppointmentSkeleton />;
+
+  if (pets.isError) {
+    return (
+      <>
+        {header}
+        <div className="flex flex-col items-start gap-3">
+          <ErrorAlert error={pets.error} className="w-full" />
+          <Button onClick={() => void pets.refetch()}>Thử lại</Button>
+        </div>
       </>
     );
   }

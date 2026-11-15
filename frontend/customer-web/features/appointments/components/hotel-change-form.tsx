@@ -7,33 +7,35 @@ import { ErrorAlert } from "@/components/feedback/error-alert";
 import { useToast } from "@/components/feedback/toast";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { KeyValue } from "@/components/ui/key-value";
-import { getErrorMessage, type ApiError } from "@/lib/api/errors";
+import { getErrorMessage } from "@/lib/api/errors";
 import type { AppointmentDetail, Pet } from "@/lib/api/types";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useUpdateAppointment } from "@/lib/queries/appointment-changes";
 import { useHotelAvailability } from "@/lib/queries/hotel-booking";
 import { useHotelPricing } from "@/lib/queries/hotel-pricing";
 import { ROUTES } from "@/lib/routes";
-import { daysBetween, getStoreToday, toStoreDate, toStoreTime } from "@/lib/time";
-import { StayTimeCard, type AvailabilityView } from "@/features/booking/components/hotel-stay";
+import { getStoreToday, toStoreDate, toStoreTime } from "@/lib/time";
+import { StayTimeCard } from "@/features/booking/components/hotel-stay";
 import {
+  AVAILABILITY_DELAY_MS,
   CHECK_OUT_BEFORE_MESSAGE,
+  STAY_FULL_REASON,
+  buildAvailabilityView,
   checkInAt,
   checkOutAt,
+  estimateStay,
   findStayPrice,
   formatStayMoment,
-  stayFieldOfBadRequest,
+  stayFieldOfError,
   validateStay,
   type StayErrors,
   type StayField,
   type StayTimes,
 } from "@/features/booking/hotel-booking";
+import { NO_PET_MESSAGE } from "@/features/booking/spa-booking";
 import { rangesOverlap, sameInstant } from "../change-appointment";
 import { ChangeSummary, CurrentAppointmentBox, PetSelect } from "./change-summary";
 
-const AVAILABILITY_DELAY_MS = 400;
-const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
-const FULL_REASON = "Hết chỗ trong thời gian đã chọn.";
 const SUCCESS_MESSAGE = "Đã gửi yêu cầu đổi lịch. Lịch đang chờ cửa hàng duyệt lại.";
 
 function initialTimes(appointment: AppointmentDetail): StayTimes {
@@ -45,16 +47,6 @@ function initialTimes(appointment: AppointmentDetail): StayTimes {
     checkOutDate: toStoreDate(plannedCheckOut),
     checkOutTime: toStoreTime(plannedCheckOut),
   };
-}
-
-/** Ô nhận lỗi 400 (như CW-07); `null` khi không phải 400 hoặc không xác định được ô. */
-function badRequestField(error: ApiError | null) {
-  return error?.status === 400 ? stayFieldOfBadRequest(error.detail) : null;
-}
-
-/** Thử lại có ích khi mất mạng, quá tải (429) hoặc lỗi server (như CW-07). */
-function isRetryable(error: ApiError) {
-  return error.kind !== "http" || error.status === 429 || (error.status ?? 0) >= 500;
 }
 
 type HotelChangeFormProps = {
@@ -97,7 +89,7 @@ export function HotelChangeForm({ appointment, pets, currentPet, onWindowClosed 
   const isSettled = params !== null && debouncedKey === paramsKey;
   const availability = useHotelAvailability(params ?? { from: "", to: "", petId: "" }, { enabled: isSettled });
   const hotelPricing = useHotelPricing();
-  const update = useUpdateAppointment(appointment.appointmentId);
+  const update = useUpdateAppointment(appointment.appointmentId, appointment.plannedCheckIn);
 
   // Gửi bị 409 `NO_CAPACITY` thì lần kiểm tra lại (đã invalidate) quyết định, như CW-07.
   const noCapacity = update.error?.code === "NO_CAPACITY";
@@ -107,8 +99,12 @@ export function HotelChangeForm({ appointment, pets, currentPet, onWindowClosed 
   // `GET /hotel/availability` vẫn tính chuồng lịch này đang giữ. Nếu báo hết chỗ mà thời gian mới trùng các đêm hiện tại
   // và bé cùng loài, cùng nhóm kích cỡ với lịch (cùng nhóm chuồng) thì chưa chắc hết chỗ: vẫn cho gửi để backend quyết.
   // Backend đã trả `NO_CAPACITY` thì hết chỗ thật.
+  // Lịch không có trường loài: lấy từ hồ sơ (`GET /pets/{id}`, hoặc danh sách thú cưng). Chưa biết được (đang tải, lỗi,
+  // hồ sơ đã gỡ) thì không kết luận hết chỗ mà coi như có thể cùng nhóm chuồng, để backend quyết khi gửi.
+  const currentSpecies =
+    currentPet?.species ?? pets.find((item) => item.petId === appointment.petId)?.species ?? null;
   const sameCageGroup =
-    pet !== null && currentPet !== null && pet.species === currentPet.species && pet.sizeGroup === appointment.sizeGroup;
+    pet !== null && pet.sizeGroup === appointment.sizeGroup && (currentSpecies === null || pet.species === currentSpecies);
   const overlapsCurrent =
     params !== null &&
     Boolean(plannedCheckIn && plannedCheckOut) &&
@@ -118,39 +114,32 @@ export function HotelChangeForm({ appointment, pets, currentPet, onWindowClosed 
 
   // 400 của kiểm tra còn chỗ: hiện dưới ô liên quan; không xác định được ô thì alert (như CW-07).
   const availabilityError = isSettled ? availability.error : null;
-  const availabilityField = badRequestField(availabilityError);
+  const availabilityField = stayFieldOfError(availabilityError);
   if (availabilityError && availabilityField) shownErrors[availabilityField] = getErrorMessage(availabilityError);
 
-  let availabilityView: AvailabilityView = { kind: "idle" };
-  if (params) {
-    if (isFull) availabilityView = { kind: "full" };
-    else if (isOwnHold) availabilityView = { kind: "own-hold" };
-    else if (!isSettled || availability.isPending) availabilityView = { kind: "checking" };
-    else if (availabilityError && !availabilityField)
-      availabilityView = {
-        kind: "error",
-        error: availabilityError,
-        onRetry: isRetryable(availabilityError) ? () => void availability.refetch() : undefined,
-      };
-    else if (availability.data && !availabilityError)
-      availabilityView = { kind: "available", nights: availability.data.nights };
-  }
+  const availabilityView = buildAvailabilityView({
+    hasParams: params !== null,
+    isSettled,
+    isFull,
+    isOwnHold,
+    isPending: availability.isPending,
+    error: availabilityError,
+    errorField: availabilityField,
+    data: availability.data,
+    refetch: () => void availability.refetch(),
+  });
 
   const price = findStayPrice(hotelPricing.data?.pricing, pet);
-  const apiResult = isSettled ? availability.data : undefined;
-  const datesOk = times.checkInDate && times.checkOutDate && !errors.checkInDate && !errors.checkOutDate;
-  const nights = apiResult?.nights ?? (datesOk ? daysBetween(times.checkInDate, times.checkOutDate) : null);
-  const amount =
-    apiResult?.estimatedAmount ?? (price && nights !== null ? nights * (price.pricePerNight + price.foodPerNight) : null);
+  const { nights, amount } = estimateStay(times, errors, isSettled ? availability.data : undefined, price);
 
   // 400 khi gửi: lỗi dưới đúng ô; không xác định được ô thì ErrorAlert chung ở đầu nội dung (như CW-07).
-  const submitField = badRequestField(update.error);
+  const submitField = stayFieldOfError(update.error);
   if (update.error && submitField) shownErrors[submitField] = getErrorMessage(update.error);
   const submitError =
     update.error && !submitField && !noCapacity && update.error.code !== "CHANGE_WINDOW_CLOSED" ? update.error : null;
 
   let disabledReason: string | null = null;
-  if (isFull) disabledReason = FULL_REASON;
+  if (isFull) disabledReason = STAY_FULL_REASON;
   else if (checkOutTooEarly) disabledReason = CHECK_OUT_BEFORE_MESSAGE;
 
   function selectPet(nextPetId: string) {
@@ -181,7 +170,7 @@ export function HotelChangeForm({ appointment, pets, currentPet, onWindowClosed 
         onError: (error) => {
           if (error.code === "CHANGE_WINDOW_CLOSED") return onWindowClosed(error);
           // Chỉ cuộn lên đầu khi lỗi hiện bằng ErrorAlert ở đầu nội dung.
-          if (error.code !== "NO_CAPACITY" && !badRequestField(error)) window.scrollTo({ top: 0, behavior: "smooth" });
+          if (error.code !== "NO_CAPACITY" && !stayFieldOfError(error)) window.scrollTo({ top: 0, behavior: "smooth" });
         },
       },
     );

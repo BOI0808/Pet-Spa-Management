@@ -16,8 +16,10 @@ import { ROUTES } from "@/lib/routes";
 import {
   CHANGE_LOCKED_MESSAGE,
   MIN_CHANGE_DEADLINE_MINUTES,
+  changeDeadlineBase,
   getChangeAccess,
-  useNow,
+  selfServiceLockAt,
+  useTimeReached,
 } from "../change-window";
 
 /** Lý do nút bị khóa (`.btn-reason` của ui-demo). */
@@ -80,12 +82,14 @@ function CancelDialog({ open, loading, error, onClose, onConfirm }: CancelDialog
 /** Vùng 8: chỉ hiện khi lịch chưa hoàn tất/chưa hủy. */
 export function ChangeCancelCard({ appointment }: { appointment: AppointmentDetail }) {
   const { showSuccess } = useToast();
-  const now = useNow();
-  const knownClosed = useChangeWindowClosed(appointment.appointmentId);
-  const cancel = useCancelAppointment(appointment.appointmentId);
+  const start = changeDeadlineBase(appointment);
+  // Hẹn giờ đúng tới mốc tự khóa; lịch đã hoàn tất/hủy/tiếp nhận thì không đặt hẹn giờ.
+  const lockReached = useTimeReached(selfServiceLockAt(appointment));
+  const knownClosed = useChangeWindowClosed(appointment.appointmentId, start);
+  const cancel = useCancelAppointment(appointment.appointmentId, start);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const access = getChangeAccess(appointment, now, knownClosed);
+  const access = getChangeAccess(appointment, lockReached, knownClosed);
   if (access === "hidden") return null;
 
   function openDialog() {

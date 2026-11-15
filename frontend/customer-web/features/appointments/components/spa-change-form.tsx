@@ -19,23 +19,30 @@ import { useUpdateAppointment } from "@/lib/queries/appointment-changes";
 import { useSpaSlots } from "@/lib/queries/appointments";
 import { useServices } from "@/lib/queries/services";
 import { ROUTES } from "@/lib/routes";
-import { addDays, addMinutes, daysBetween, getStoreToday, toStoreDate, toStoreDateTime, toStoreTime } from "@/lib/time";
-import { earliestLatestStart, estimateBooking, toPricedServices } from "@/features/booking/spa-booking";
+import { addMinutes, getStoreToday, toStoreDate, toStoreDateTime, toStoreTime } from "@/lib/time";
+import {
+  NO_PET_MESSAGE,
+  NO_SERVICE_MESSAGE,
+  NO_SLOT_MESSAGE,
+  SLOT_FULL_MESSAGE,
+  SLOT_PAST_MESSAGE,
+  bookingDates,
+  earliestLatestStart,
+  estimateBooking,
+  isPastSlot,
+  toPricedServices,
+} from "@/features/booking/spa-booking";
+import { joinNames } from "../appointments";
 import { formatNewSlot, sameIds, sameInstant } from "../change-appointment";
 import { ChangeSummary, CurrentAppointmentBox, PetSelect } from "./change-summary";
 
-const MIN_DATE_COUNT = 7;
-
-const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
-const NO_SERVICE_MESSAGE = "Vui lòng chọn ít nhất một dịch vụ.";
-const NO_SLOT_MESSAGE = "Vui lòng chọn khung giờ.";
-const SLOT_FULL_MESSAGE = "Mốc giờ vừa kín, vui lòng chọn mốc khác.";
-const SLOT_PAST_MESSAGE = "Mốc giờ này đã qua, vui lòng chọn mốc khác.";
-
 const SUCCESS_MESSAGE = "Đã gửi yêu cầu đổi lịch. Lịch đang chờ cửa hàng duyệt lại.";
 
-function isPastSlot(date: string, time: string, now: number) {
-  return Date.parse(toStoreDateTime(date, time)) <= now;
+/** Dải 7 ngày từ hôm nay như CW-06; ngày hẹn hiện tại nằm sau khoảng đó thì chèn thêm riêng ngày ấy ở cuối. */
+function changeDates(originalDate: string) {
+  const today = getStoreToday();
+  const dates = bookingDates(today);
+  return originalDate > dates[dates.length - 1] ? [...dates, originalDate] : dates;
 }
 
 type SpaChangeFormProps = {
@@ -63,12 +70,11 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
     pets.some((pet) => pet.petId === appointment.petId) ? appointment.petId : null,
   );
   const [serviceIds, setServiceIds] = useState<string[]>(originalServiceIds);
-  // Dải ngày từ hôm nay, đủ dài để có ngày hẹn hiện tại.
-  const [dates] = useState(() => {
-    const today = getStoreToday();
-    const count = Math.max(MIN_DATE_COUNT, daysBetween(today, originalDate) + 1);
-    return Array.from({ length: count }, (_, index) => addDays(today, index));
-  });
+  // Khách đã đổi sang bé khác ít nhất một lần.
+  const [petTouched, setPetTouched] = useState(false);
+  // Mốc vừa bị backend trả 409 `SLOT_FULL` (“YYYY-MM-DD HH:mm”): không mở lại mốc này.
+  const [slotFullAt, setSlotFullAt] = useState<string | null>(null);
+  const [dates] = useState(() => changeDates(originalDate));
   const [date, setDate] = useState(() => (dates.includes(originalDate) ? originalDate : dates[0]));
   const [slotTime, setSlotTime] = useState<string | null>(() => (dates.includes(originalDate) ? originalTime : null));
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
@@ -81,24 +87,36 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
   );
   const selectedServices = pricedServices.filter((service) => serviceIds.includes(service.serviceId));
   const selectedIds = selectedServices.map((service) => service.serviceId);
-  // Đổi thú cưng chỉ bỏ dịch vụ không áp dụng cho bé mới (như CW-06): chờ danh sách của bé mới rồi mới lọc.
-  if (pet && services.isSuccess && selectedIds.length !== serviceIds.length) setServiceIds(selectedIds);
+  // Đổi sang bé khác thì bỏ dịch vụ không áp dụng cho bé mới (như CW-06): chờ danh sách của bé mới rồi mới lọc. Chỉ lọc
+  // sau khi khách đổi bé; lúc vừa mở form thì giữ nguyên để báo dịch vụ hiện tại không còn áp dụng (bên dưới).
+  if (petTouched && pet && services.isSuccess && selectedIds.length !== serviceIds.length) setServiceIds(selectedIds);
+  // Dịch vụ của lịch hiện tại không còn trong `GET /services` của bé (đã ngừng, hoặc bé đổi nhóm kích cỡ sau khi cân):
+  // không gửi được nên báo rõ tên, thay vì bỏ chọn âm thầm.
+  const unavailableServices =
+    !petTouched && pet && services.isSuccess
+      ? (appointment.services ?? []).filter(
+          (item) => serviceIds.includes(item.serviceId) && !pricedServices.some((s) => s.serviceId === item.serviceId),
+        )
+      : [];
   const estimate = estimateBooking(selectedServices, pet);
 
   const canPickSlot = pet !== null && selectedServices.length > 0;
   const slots = useSpaSlots({ date, petId: pet?.petId ?? "", serviceIds: selectedIds }, { enabled: canPickSlot });
-  const update = useUpdateAppointment(appointment.appointmentId);
+  const update = useUpdateAppointment(appointment.appointmentId, appointment.slotStart);
 
   // `GET /spa/slots` vẫn tính chỗ lịch này đang giữ nên mốc hiện tại có thể hiện “Đã kín”. Backend bỏ lượt giữ chỗ
-  // của chính lịch khi đổi, nên mốc hiện tại vẫn chọn được (đổi dịch vụ mà giữ giờ); hết chỗ thật thì backend trả 409.
+  // của chính lịch khi đổi, nên mở lại mốc hiện tại, nhưng chỉ khi thú cưng và dịch vụ vẫn như lịch hiện tại (cùng
+  // thời lượng, số nhân viên) và mốc chưa bị backend trả `SLOT_FULL`. Đổi thú cưng/dịch vụ thì theo đúng kết quả API.
+  const keepsCurrentPlan = petId === appointment.petId && sameIds(selectedIds, originalServiceIds);
+  const reopenCurrent = keepsCurrentPlan && slotFullAt !== `${originalDate} ${originalTime}`;
   const slotList = useMemo<SlotInfo[] | undefined>(
     () =>
       slots.data?.slots.map((slot) =>
-        date === originalDate && slot.time === originalTime && slot.status === "Full"
+        reopenCurrent && date === originalDate && slot.time === originalTime && slot.status === "Full"
           ? { ...slot, status: "Available" }
           : slot,
       ),
-    [slots.data, date, originalDate, originalTime],
+    [slots.data, reopenCurrent, date, originalDate, originalTime],
   );
 
   const durationMinutes = slots.data?.durationMinutes ?? estimate.durationMinutes;
@@ -118,6 +136,7 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
 
   function selectPet(nextPetId: string) {
     setPetId(nextPetId);
+    setPetTouched(true);
     clearFeedback();
   }
 
@@ -159,7 +178,10 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
         },
         onError: (error) => {
           if (error.code === "CHANGE_WINDOW_CLOSED") return onWindowClosed(error);
-          if (error.code === "SLOT_FULL") setSlotTime(null);
+          if (error.code === "SLOT_FULL") {
+            setSlotFullAt(`${date} ${slotTime}`);
+            setSlotTime(null);
+          }
           window.scrollTo({ top: 0, behavior: "smooth" });
         },
       },
@@ -207,7 +229,6 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
         <p className="mt-3 text-[13px] leading-[18px] text-muted">
           Lịch này cần {slots.data?.staffRequired ?? estimate.staffRequired} nhân viên trong{" "}
           {formatDuration(durationMinutes)}.{limiting && ` ${limiting.name} nhận muộn nhất lúc ${limiting.latestStartTime}.`}
-          {date === originalDate && ` Giờ hiện tại ${originalTime} vẫn chọn được nếu bạn chỉ đổi dịch vụ.`}
         </p>
       </>
     );
@@ -266,6 +287,13 @@ export function SpaChangeForm({ appointment, pets, currentPet, onWindowClosed }:
           <CardHeader title="Thú cưng và dịch vụ" />
           <CardBody className="flex flex-col gap-4">
             <PetSelect pets={pets} value={petId} onChange={selectPet} />
+            {unavailableServices.length > 0 && (
+              <Alert tone="warn" title="Có dịch vụ không còn áp dụng">
+                {joinNames(unavailableServices.map((item) => item.name ?? "Dịch vụ không rõ tên"))} của lịch hiện tại
+                không còn áp dụng cho {pet?.name ?? "bé"} (dịch vụ đã ngừng hoặc bé đã đổi nhóm kích cỡ), nên không có
+                trong lịch sau khi đổi. Bạn có thể chọn dịch vụ khác bên dưới.
+              </Alert>
+            )}
             {serviceContent}
           </CardBody>
         </Card>

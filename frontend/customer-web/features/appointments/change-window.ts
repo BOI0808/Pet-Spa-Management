@@ -26,25 +26,40 @@ export function changeDeadlineBase(appointment: Appointment) {
   return appointment.type === "Spa" ? appointment.slotStart : appointment.plannedCheckIn;
 }
 
-/**
- * `now` truyền vào để hàm thuần khi render. `knownClosed`: backend đã trả 409 `CHANGE_WINDOW_CLOSED` cho lịch này.
- */
-export function getChangeAccess(appointment: Appointment, now: number, knownClosed: boolean): ChangeAccess {
-  if (FINISHED_STATUSES.includes(appointment.status)) return "hidden";
-  if (!CHANGEABLE_STATUSES.includes(appointment.status) || knownClosed) return "locked";
+/** Thời điểm (ms) web tự khóa: `MIN_CHANGE_DEADLINE_MINUTES` phút trước giờ hẹn; `null` khi lịch không đổi được nữa. */
+export function selfServiceLockAt(appointment: Appointment) {
+  if (!CHANGEABLE_STATUSES.includes(appointment.status)) return null;
   const base = changeDeadlineBase(appointment);
-  if (!base) return "locked";
-  return Date.parse(base) - now < MIN_CHANGE_DEADLINE_MINUTES * 60_000 ? "locked" : "open";
+  return base ? Date.parse(base) - MIN_CHANGE_DEADLINE_MINUTES * 60_000 : null;
 }
 
-const NOW_TICK_MS = 30_000;
+/**
+ * `lockReached`: đã qua `selfServiceLockAt` (từ `useTimeReached`). `knownClosed`: backend đã trả 409
+ * `CHANGE_WINDOW_CLOSED` cho lịch này ở giờ hẹn hiện tại.
+ */
+export function getChangeAccess(appointment: Appointment, lockReached: boolean, knownClosed: boolean): ChangeAccess {
+  if (FINISHED_STATUSES.includes(appointment.status)) return "hidden";
+  if (!CHANGEABLE_STATUSES.includes(appointment.status) || knownClosed) return "locked";
+  if (!changeDeadlineBase(appointment)) return "locked";
+  return lockReached ? "locked" : "open";
+}
 
-/** Giờ hiện tại, cập nhật 30 giây/lần để nút tự khóa khi khách để màn mở qua mốc 60 phút. */
-export function useNow(intervalMs = NOW_TICK_MS) {
+// setTimeout chỉ nhận tối đa 2^31 - 1 ms (~24,8 ngày); xa hơn thì không đặt hẹn giờ.
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
+/**
+ * `true` khi đã tới thời điểm `at` (ms). Chỉ đặt một `setTimeout` đúng tới mốc đó, không chạy timer định kỳ;
+ * `at = null` (lịch đã kết thúc, đã tiếp nhận…) thì không đặt gì.
+ */
+export function useTimeReached(at: number | null) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(timer);
-  }, [intervalMs]);
-  return now;
+    if (at === null) return;
+    const delay = at - Date.now();
+    if (delay > MAX_TIMEOUT_MS) return;
+    // Luôn cập nhật bất đồng bộ (kể cả khi đã qua mốc) để `now` không cũ khi `at` đổi sau lúc dựng.
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.max(0, delay) + 50);
+    return () => window.clearTimeout(timer);
+  }, [at]);
+  return at !== null && now >= at;
 }

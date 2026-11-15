@@ -60,10 +60,19 @@ Theo đề xuất ở Frontend-Architecture mục 6 (R-01):
 
 - Khách chỉ tự đổi/hủy lịch `Pending`/`Confirmed` (BR-14). Hạn tự đổi/hủy cấu hình 60–120 phút trước giờ hẹn (BR-08)
   nhưng khách không đọc được `GET /config` (UI-Screens G-03), nên `features/appointments/change-window.ts`:
-  - còn dưới 60 phút trước giờ hẹn → khóa trước ở web (quá hạn với mọi cấu hình);
+  - còn dưới 60 phút trước giờ hẹn → khóa trước ở web (quá hạn với mọi cấu hình); `useTimeReached` đặt một
+    `setTimeout` đúng tới mốc này, không chạy timer định kỳ;
   - từ 60 phút trở lên → bật nút; backend trả 409 `CHANGE_WINDOW_CLOSED` thì khóa và hiện lý do hotline (FR-CHG-02).
-- Lịch đã biết quá hạn nhờ 409 được ghi ở `lib/queries/appointment-changes.ts` (bộ nhớ truy vấn + `sessionStorage`,
-  chỉ là cờ hiển thị) để CW-09 và CW-10 cùng khóa, kể cả khi tải lại trang.
-- `GET /spa/slots` và `GET /hotel/availability` vẫn tính chỗ chính lịch đang đổi: CW-10 cho chọn lại mốc giờ hiện tại
-  của lịch spa, và với lịch lưu trú báo “Chưa chắc còn chỗ” (vẫn cho gửi) khi thời gian mới trùng các đêm hiện tại.
+- Lịch đã biết quá hạn nhờ 409 được ghi ở `lib/queries/appointment-changes.ts` (bộ nhớ truy vấn + `sessionStorage`)
+  kèm giờ hẹn lúc đó, để CW-09 và CW-10 cùng khóa kể cả khi tải lại trang. Chỉ coi là quá hạn khi giờ hẹn hiện tại vẫn
+  như đã lưu: cửa hàng dời lịch (FR-CHG-03) thì lịch mở lại theo giờ mới.
+- `GET /spa/slots` và `GET /hotel/availability` vẫn tính chỗ chính lịch đang đổi:
+  - lịch spa: CW-10 mở lại mốc giờ hiện tại khi thú cưng và dịch vụ vẫn như lịch hiện tại và mốc chưa bị trả 409
+    `SLOT_FULL`;
+  - lịch lưu trú: báo “Chưa chắc còn chỗ” (vẫn cho gửi) khi thời gian mới trùng các đêm hiện tại và bé có thể cùng
+    nhóm chuồng (chưa biết loài của lịch thì cũng coi là có thể).
   Hết chỗ thật thì backend trả 409 `SLOT_FULL` / `NO_CAPACITY`.
+- Dịch vụ của lịch không còn áp dụng cho bé (đã ngừng, bé đổi nhóm kích cỡ): CW-10 không bỏ chọn âm thầm mà hiện alert
+  ghi tên dịch vụ; chỉ lọc dịch vụ theo bé mới khi khách đổi sang bé khác (như CW-06).
+- CW-06, CW-07, CW-10 dùng chung luật đặt lịch: `features/booking/spa-booking.ts` (dải 7 ngày, mốc đã qua, câu lỗi) và
+  `features/booking/hotel-booking.ts` (kiểm tra còn chỗ, lỗi 400 theo ô, số đêm và tiền tạm tính).
