@@ -18,12 +18,6 @@ import { APPOINTMENT_STATUS_LABELS, SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/
 import { countNights, toStoreDate, toStoreTime } from "@/lib/time";
 
 // ── SW-02 nhân viên spa ──
-/**
- * Trạng thái của lịch còn việc với nhân viên spa: chờ tiếp nhận, đã tiếp nhận, đang làm. Hoàn tất, đã hủy là lịch sử
- * (SW-12, thẻ 132); lịch Chờ xác nhận chưa có nhân viên nên không bao giờ thuộc danh sách này.
- */
-export const ASSIGNED_STATUSES: readonly AppointmentStatus[] = ["Confirmed", "Received", "InProgress"];
-
 /** Mốc bắt đầu của lịch: giờ hẹn spa hoặc giờ nhận lưu trú. */
 export function appointmentStart(appointment: Appointment) {
   return appointment.slotStart ?? appointment.plannedCheckIn ?? appointment.createdAt;
@@ -34,24 +28,20 @@ export function appointmentDate(appointment: Appointment) {
   return toStoreDate(appointmentStart(appointment));
 }
 
-/** Backend sắp theo thời điểm tạo (G-06): sắp lại ở web theo giờ hẹn, sớm trước. */
-export function sortByStart(appointments: Appointment[]) {
-  return [...appointments].sort((a, b) => Date.parse(appointmentStart(a)) - Date.parse(appointmentStart(b)));
+/**
+ * Mục Hôm nay (UI-Screens SW-02 vùng 5): backend đã lọc theo ngày và sắp theo giờ (`date`, `sort=time_asc`); web chỉ bỏ
+ * lịch Đã hủy vì nhân viên không còn việc với lịch đó (đã có thông báo hủy – SW-13).
+ */
+export function todayItems(appointments: Appointment[]) {
+  return appointments.filter((item) => item.status !== "Cancelled");
 }
 
 /**
- * Chia lịch được phân công thành Hôm nay và Sắp tới (UI-Screens SW-02 vùng 5, 6). Sắp tới chỉ gồm lịch Đã xác nhận
- * như UI-Screens ghi; lịch đã tiếp nhận hoặc đang làm từ hôm trước (hiếm) vẫn hiện ở Hôm nay để không bị mất.
+ * Mục Sắp tới (vùng 6): lịch Đã xác nhận sắp theo giờ; API không lọc “sau hôm nay” nên bỏ lịch của hôm nay
+ * (đã ở mục Hôm nay) và lịch ngày cũ chưa bị hủy tự động.
  */
-export function splitAssigned(appointments: Appointment[], today: string) {
-  const sorted = sortByStart(appointments.filter((item) => item.type === "Spa"));
-  return {
-    today: sorted.filter((item) => {
-      const date = appointmentDate(item);
-      return date === today || (date < today && item.status !== "Confirmed");
-    }),
-    upcoming: sorted.filter((item) => item.status === "Confirmed" && appointmentDate(item) > today),
-  };
+export function upcomingItems(appointments: Appointment[], today: string) {
+  return appointments.filter((item) => appointmentDate(item) > today);
 }
 
 /** “09:00 – 11:00”. */

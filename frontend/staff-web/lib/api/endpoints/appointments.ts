@@ -29,13 +29,16 @@ export async function createSpaAppointment(body: SpaBookingRequest) {
   return data;
 }
 
-/**
- * Tham số lọc của GET /appointments. Không có `date`: openapi có ghi nhưng backend (AppointmentsController) chưa nhận,
- * và danh sách sắp theo thời điểm tạo, nên web tự lọc, sắp theo giờ hẹn (UI-Screens G-06). `petId` chỉ áp dụng cho khách.
- */
+/** Thứ tự của GET /appointments: theo giờ hẹn (`time_*`) hoặc thời điểm tạo (`created_*`). */
+export type AppointmentSort = "time_asc" | "time_desc" | "created_desc" | "created_asc";
+
+/** Tham số lọc của GET /appointments. `petId` chỉ áp dụng cho khách nên web nhân viên không gửi. */
 export type AppointmentListParams = {
   type?: AppointmentType;
   status?: AppointmentStatus;
+  /** “YYYY-MM-DD” theo múi giờ cửa hàng; lịch spa lọc theo giờ bắt đầu (`slotStart`). */
+  date?: string;
+  sort?: AppointmentSort;
   page?: number;
   pageSize?: number;
 };

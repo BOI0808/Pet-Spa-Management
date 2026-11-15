@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSpaAppointment,
   getAppointment,
@@ -8,7 +8,6 @@ import {
   type AppointmentListParams,
   type SpaSlotParams,
 } from "@/lib/api/endpoints/appointments";
-import type { AppointmentStatus } from "@/lib/api/types";
 
 // Cùng khóa với customer-web.
 export const appointmentKeys = {
@@ -18,7 +17,7 @@ export const appointmentKeys = {
   payments: (appointmentId: string) => ["appointments", "detail", appointmentId, "payments"] as const,
 };
 
-// Lịch trong ngày đổi theo tiến độ ở cửa hàng: danh sách và chi tiết tải lại 60 giây/lần (UI-Screens SW-02, Đề xuất).
+// Lịch trong ngày đổi theo tiến độ ở cửa hàng: tải lại 60 giây/lần (UI-Screens SW-02, Đề xuất).
 const APPOINTMENT_REFETCH_MS = 60_000;
 
 type QueryToggle = { enabled?: boolean };
@@ -55,46 +54,26 @@ export function useCreateSpaAppointment() {
   });
 }
 
-/**
- * Gộp danh sách của nhiều trạng thái (giống customer-web): API chỉ lọc một trạng thái mỗi lần (G-06) nên gọi song song,
- * mỗi trạng thái một trang cỡ `pageSize`. `truncated` khi có trạng thái nhiều hơn một trang (phần dư không tải).
- */
-export function useAppointmentsByStatuses(
-  statuses: readonly AppointmentStatus[],
-  params: Omit<AppointmentListParams, "status" | "page">,
-) {
-  return useQueries({
-    queries: statuses.map((status) => {
-      const listParams = { ...params, status, page: 1 };
-      return {
-        queryKey: appointmentKeys.list(listParams),
-        queryFn: () => listAppointments(listParams),
-        refetchInterval: APPOINTMENT_REFETCH_MS,
-      };
-    }),
-    combine: (results) => {
-      const error = results.find((result) => result.isError)?.error ?? null;
-      const pages = results.map((result) => result.data);
-      const loaded = pages.every((page) => page !== undefined);
-      return {
-        isPending: results.some((result) => result.isPending),
-        error,
-        items: loaded ? pages.flatMap((page) => page?.items ?? []) : [],
-        truncated: pages.some((page) => page !== undefined && page.total > page.items.length),
-        /** Lần tải xong gần nhất, để màn tính “hôm nay” theo cùng nhịp tải lại. */
-        updatedAt: Math.max(0, ...results.map((result) => result.dataUpdatedAt)),
-        refetch: () => results.forEach((result) => void result.refetch()),
-      };
-    },
+/** Danh sách lịch hẹn; tự tải lại 60 giây/lần để thấy lịch mới được giao, lịch vừa đổi trạng thái. */
+export function useAppointments(params: AppointmentListParams) {
+  return useQuery({
+    queryKey: appointmentKeys.list(params),
+    queryFn: () => listAppointments(params),
+    refetchInterval: APPOINTMENT_REFETCH_MS,
   });
 }
 
-export function useAppointment(appointmentId: string, { enabled = true }: QueryToggle = {}) {
+type AppointmentQueryOptions = QueryToggle & {
+  /** Tự tải lại 60 giây/lần: chỉ bật ở SW-03. Phiếu ở SW-02 không bật để mỗi phút không gọi thêm một request mỗi phiếu. */
+  live?: boolean;
+};
+
+export function useAppointment(appointmentId: string, { enabled = true, live = false }: AppointmentQueryOptions = {}) {
   return useQuery({
     queryKey: appointmentKeys.detail(appointmentId),
     queryFn: () => getAppointment(appointmentId),
     enabled,
-    refetchInterval: APPOINTMENT_REFETCH_MS,
+    refetchInterval: live ? APPOINTMENT_REFETCH_MS : false,
   });
 }
 

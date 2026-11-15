@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AppointmentTicket } from "@/components/domain/appointment-ticket";
 import { PetAvatar } from "@/components/domain/pet-avatar";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -25,8 +26,15 @@ type AssignedTicketProps = {
  * Cả phiếu là liên kết sang SW-03; màn thực hiện SW-11 làm ở thẻ 131.
  */
 export function AssignedTicket({ appointment, today, compact = false }: AssignedTicketProps) {
+  // Chi tiết không tự tải lại theo giờ (góp ý review PR #56): danh sách tải lại 60 giây/lần, khi lịch đổi
+  // (`updatedAt` của danh sách khác chi tiết đang giữ) thì mới tải lại chi tiết của riêng phiếu đó.
   const detail = useAppointment(appointment.appointmentId);
   const pet = usePet(appointment.petId);
+  const detailUpdatedAt = detail.data?.updatedAt;
+  const refetchDetail = detail.refetch;
+  useEffect(() => {
+    if (detailUpdatedAt && detailUpdatedAt !== appointment.updatedAt) void refetchDetail();
+  }, [detailUpdatedAt, appointment.updatedAt, refetchDetail]);
 
   const petName = appointment.petName ?? pet.data?.name ?? "Thú cưng";
   const services = detail.data ? serviceNames(detail.data) : [];
@@ -67,7 +75,10 @@ export function AssignedTicket({ appointment, today, compact = false }: Assigned
       <AppointmentTicket
         href={appointmentDetailRoute(appointment.appointmentId)}
         stub={ticketStub(appointment, today)}
-        media={pet.data ? <PetAvatar species={pet.data.species} /> : <Skeleton className="size-11 rounded-[14px]" />}
+        media={
+          // Hồ sơ bé lỗi thì hiện dấu chân thay cho khung xương; phiếu vẫn có tên bé từ danh sách.
+          pet.isPending ? <Skeleton className="size-11 rounded-[14px]" /> : <PetAvatar species={pet.data?.species ?? null} />
+        }
         title={
           <>
             <span className="break-words">{petName}</span>
