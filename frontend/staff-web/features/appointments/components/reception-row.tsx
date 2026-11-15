@@ -6,19 +6,18 @@ import { StatusBadge } from "@/components/domain/status-badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment } from "@/lib/api/types";
-import { SPECIES_LABELS } from "@/lib/labels";
 import { useAppointment } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
 import { appointmentDetailRoute, checkInRoute } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
-import { canCheckInSpa, nightsOf, rowMoment, staffNames } from "../appointments";
+import { canCheckInSpa, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
 
 type ReceptionRowProps = {
   appointment: Appointment;
   /** Ngày đang xem (`?date=`), để biết dòng lưu trú là “nhận” hay “trả”. */
   date: string;
   today: string;
-  /** `cageId` → mã chuồng, tra từ GET /cages (G-05). */
+  /** `cageId` → mã chuồng, tra từ GET /cages (G-05). Rỗng khi API chuồng chưa có (thẻ 88) hoặc tải lỗi. */
   cageCodes: Map<string, string>;
 };
 
@@ -50,9 +49,14 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
     } else {
       assignee = staff.length > 0 ? staff.join(", ") : "—";
     }
+  } else if (appointment.status === "Cancelled") {
+    assignee = <span className="text-muted">—</span>;
+  } else if (appointment.cageId) {
+    // Đã xếp chuồng nhưng chưa tra được mã: GET /cages chưa có trên backend (thẻ 88, đang trả 405).
+    const code = cageCodes.get(appointment.cageId);
+    assignee = code ? `Chuồng ${code}` : "Đã xếp chuồng";
   } else {
-    const code = appointment.cageId ? cageCodes.get(appointment.cageId) : undefined;
-    assignee = code ? `Chuồng ${code}` : <span className="text-muted">Chờ quản lý xếp</span>;
+    assignee = <span className="text-muted">Chờ quản lý xếp</span>;
   }
 
   return (
@@ -61,7 +65,7 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
         {toStoreTime(moment.iso)}
         {moment.label && <div className={`${MUTED} font-normal`}>{moment.label}</div>}
       </td>
-      <td className={CELL}>
+      <td className={`${CELL} min-w-[190px]`}>
         <div className="flex min-w-0 items-center gap-3">
           {pet.isPending ? (
             <Skeleton className="size-[34px] rounded-[11px]" />
@@ -76,9 +80,7 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
               {petName}
             </Link>
             {pet.data && (
-              <div className={MUTED}>
-                {SPECIES_LABELS[pet.data.species]} {pet.data.breed}
-              </div>
+              <div className={MUTED}>{speciesAndBreed(pet.data)}</div>
             )}
           </div>
         </div>

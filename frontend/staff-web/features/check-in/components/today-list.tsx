@@ -29,7 +29,7 @@ function TodayItem({ appointment, today, selected }: { appointment: Appointment;
         replace
         scroll={false}
         aria-current={selected ? "true" : undefined}
-        className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center overflow-hidden rounded-xl border bg-white text-ink transition-colors hover:border-[#9ec4c9] ${
+        className={`grid grid-cols-[64px_minmax(0,1fr)] items-stretch overflow-hidden rounded-xl border bg-white text-ink transition-colors hover:border-[#9ec4c9] ${
           selected ? "border-lagoon shadow-[inset_0_0_0_1px_var(--color-lagoon)]" : "border-line"
         }`}
       >
@@ -52,10 +52,11 @@ function TodayItem({ appointment, today, selected }: { appointment: Appointment;
           <span className="min-w-0">
             <span className="block truncate font-semibold">{appointment.petName ?? pet.data?.name ?? "Thú cưng"}</span>
             <span className="block truncate text-xs text-muted">{appointment.customerName}</span>
+            {/* Badge dưới tên (không để cột riêng): cột danh sách chỉ 340px, để cột riêng thì tên bé bị cắt. */}
+            <span className="mt-1 block">
+              <StatusBadge status={appointment.status} />
+            </span>
           </span>
-        </span>
-        <span className="pr-3">
-          <StatusBadge status={appointment.status} />
         </span>
       </Link>
     </li>

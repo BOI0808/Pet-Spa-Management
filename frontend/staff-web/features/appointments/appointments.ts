@@ -147,9 +147,20 @@ export function nightsOf(appointment: Appointment) {
 }
 
 // ── Thú cưng, dịch vụ, nhân viên ──
+/**
+ * “Chó Poodle”; giống đã bắt đầu bằng tên loài (“Mèo Ta”) thì không lặp thành “Mèo Mèo Ta” – cùng luật với thẻ khách
+ * ở SW-04 (customer-card.tsx).
+ */
+export function speciesAndBreed(pet: Pet) {
+  const species = SPECIES_LABELS[pet.species];
+  return pet.breed.toLocaleLowerCase("vi-VN").startsWith(species.toLocaleLowerCase("vi-VN"))
+    ? pet.breed
+    : `${species} ${pet.breed}`;
+}
+
 /** “Chó Poodle, nhóm Nhỏ” – dòng phụ cạnh tên bé trên phiếu (ui-demo SW-02). */
 export function describePetKind(pet: Pet) {
-  return `${SPECIES_LABELS[pet.species]} ${pet.breed}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
+  return `${speciesAndBreed(pet)}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
 }
 
 export function serviceNames(detail: AppointmentDetail) {

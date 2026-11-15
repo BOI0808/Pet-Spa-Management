@@ -78,8 +78,8 @@ function WeightCheckAlert({
           Cân thực tế {weight}, vượt ngưỡng dung sai so với hồ sơ{pet ? ` (${formatWeight(pet.weightKg)})` : ""}. Chi
           phí tăng từ {money(weightCheck.oldAmount)} lên {money(weightCheck.newAmount)}. Đã gửi yêu cầu xác nhận cho
           khách
-          {weightCheck.expiresAt ? `, hạn phản hồi ${toStoreTime(weightCheck.expiresAt)}` : ""}. Khách vãng lai không nhận
-          thông báo trên web: hãy hỏi trực tiếp khách.
+          {weightCheck.expiresAt ? `, hạn phản hồi ${toStoreTime(weightCheck.expiresAt)}` : ""}. Nếu là khách vãng lai
+          (không nhận thông báo trên web), hãy hỏi trực tiếp khách.
         </Alert>
       );
     default:
