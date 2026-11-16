@@ -198,6 +198,7 @@ public class CheckInServiceTests
             bookingRepo,
             hotelAssignRepo,
             hotelCatalogRepo,
+            new FakeCostConfirmationRepository(),
             timeZoneProvider,
             guard);
         return (new CheckInService(repo, guard, shopTimeZone, weightCheck), repo, guard);

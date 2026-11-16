@@ -110,6 +110,7 @@ public sealed class WeightCheckServiceTests
     {
         public Appointment? Appointment { get; set; }
         public Species Species { get; set; } = Species.Cat;
+        public Cage? Cage { get; set; }
 
         public Task<Appointment?> FindAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
             Task.FromResult(Appointment);
@@ -117,7 +118,7 @@ public sealed class WeightCheckServiceTests
         public Task<HotelAppointmentWithSpecies?> FindHotelAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
             Task.FromResult(Appointment is HotelAppointment stay ? new HotelAppointmentWithSpecies(stay, Species) : null);
 
-        public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => Task.FromResult(Cage);
         public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
     }
@@ -161,18 +162,30 @@ public sealed class WeightCheckServiceTests
 
     private static (WeightCheckService Sut, FakePetRepository Pets, FakePaymentAmountRepository PaymentAmounts,
         FakeBookingRepository Bookings, FakeHotelAssignmentRepository HotelAssignments, FakeConcurrencyGuard Guard)
-        CreateSut(Pet? pet = null, SpaAmountSnapshot? spaSnapshot = null, Appointment? appointment = null)
+        CreateSut(
+            Pet? pet = null,
+            SpaAmountSnapshot? spaSnapshot = null,
+            Appointment? appointment = null,
+            Cage? cage = null,
+            FakeCostConfirmationRepository? costConfirmations = null)
     {
         var pets = new FakePetRepository { Pet = pet };
         var paymentAmounts = new FakePaymentAmountRepository { SpaSnapshot = spaSnapshot };
         var bookings = new FakeBookingRepository();
-        var hotelAssignments = new FakeHotelAssignmentRepository { Appointment = appointment };
+        var hotelAssignments = new FakeHotelAssignmentRepository { Appointment = appointment, Cage = cage };
         var hotelCatalog = new FakeHotelCatalogRepository();
         var timeZoneProvider = new FakeStoreTimeZoneProvider();
         var guard = new FakeConcurrencyGuard();
 
         var sut = new WeightCheckService(
-            pets, paymentAmounts, bookings, hotelAssignments, hotelCatalog, timeZoneProvider, guard);
+            pets,
+            paymentAmounts,
+            bookings,
+            hotelAssignments,
+            hotelCatalog,
+            costConfirmations ?? new FakeCostConfirmationRepository(),
+            timeZoneProvider,
+            guard);
 
         return (sut, pets, paymentAmounts, bookings, hotelAssignments, guard);
     }
@@ -290,6 +303,27 @@ public sealed class WeightCheckServiceTests
 
         var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.RecordForSpaAsync(appt, 3.4m));
         Assert.Equal(ErrorCodes.NotFound, ex.Code);
+    }
+
+    [Fact]
+    public async Task RecordForSpaAsync_WhenNewSizeGroupPriceMissing_ThrowsValidationError()
+    {
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var appt = new SpaAppointment { AppointmentId = AppointmentId, PetId = PetId, SizeGroup = SizeGroup.Small };
+        var spaSnapshot = new SpaAmountSnapshot(
+            Species.Cat,
+            SizeGroup.Small,
+            AppointmentStatus.Confirmed,
+            [ServiceId],
+            [new ServicePricing { ServiceId = ServiceId, Species = Species.Cat, SizeGroup = SizeGroup.Small, Price = 100000m }]);
+
+        var (sut, _, _, bookings, _, _) = CreateSut(pet: pet, spaSnapshot: spaSnapshot);
+        // Do not provide pricing for SizeGroup.Medium
+        bookings.PricingByGroup[SizeGroup.Medium] = [];
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.RecordForSpaAsync(appt, 3.4m));
+        Assert.Equal(ErrorCodes.ValidationError, ex.Code);
+        Assert.Equal("Có dịch vụ không áp dụng cho nhóm kích cỡ mới của thú cưng.", ex.Message);
     }
 
     #endregion
@@ -424,6 +458,168 @@ public sealed class WeightCheckServiceTests
 
         var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckHotelAsync(AppointmentId, 3.2m));
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
+    }
+
+    #endregion
+
+    #region Cost Confirmation Tests
+
+    private static HotelAppointment ConfirmedStay(SizeGroup sizeGroup, Guid? cageId = null)
+    {
+        var checkIn = DateTimeOffset.UtcNow.AddDays(1);
+        return new HotelAppointment
+        {
+            AppointmentId = AppointmentId,
+            PetId = PetId,
+            Status = AppointmentStatus.Confirmed,
+            SizeGroup = sizeGroup,
+            PlannedCheckIn = checkIn,
+            PlannedCheckOut = checkIn.AddDays(2),
+            CageId = cageId
+        };
+    }
+
+    private static Cage CatCage(SizeGroup sizeGroup) => new()
+    {
+        CageId = Guid.NewGuid(),
+        Code = "A1",
+        Species = Species.Cat,
+        SizeGroup = sizeGroup,
+        IsActive = true
+    };
+
+    [Fact]
+    public async Task RecordForSpaAsync_WhenNeedsConfirmation_CreatesPendingConfirmationWithExpiry()
+    {
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var appt = new SpaAppointment { AppointmentId = AppointmentId, PetId = PetId, SizeGroup = SizeGroup.Small };
+        var spaSnapshot = new SpaAmountSnapshot(
+            Species.Cat,
+            SizeGroup.Small,
+            AppointmentStatus.Received,
+            [ServiceId],
+            [new ServicePricing { ServiceId = ServiceId, Species = Species.Cat, SizeGroup = SizeGroup.Small, Price = 100000m }]);
+        var confirmations = new FakeCostConfirmationRepository { TimeoutMinutes = 30 };
+        var (sut, _, _, bookings, _, _) = CreateSut(pet: pet, spaSnapshot: spaSnapshot, costConfirmations: confirmations);
+        bookings.PricingByGroup[SizeGroup.Medium] =
+            [new ServicePricing { ServiceId = ServiceId, Species = Species.Cat, SizeGroup = SizeGroup.Medium, Price = 150000m }];
+
+        var outcome = await sut.RecordForSpaAsync(appt, 3.4m);
+
+        var created = Assert.Single(confirmations.Added);
+        Assert.Equal(AppointmentId, created.AppointmentId);
+        Assert.Equal(3.4m, created.ActualWeightKg);
+        Assert.Equal(SizeGroup.Medium, created.NewSizeGroup);
+        Assert.Equal(100000m, created.OldAmount);
+        Assert.Equal(150000m, created.NewAmount);
+        Assert.Equal(ConfirmationStatus.Pending, created.Status);
+        Assert.Equal(created.CreatedAt.AddMinutes(30), created.ExpiresAt);
+        Assert.Equal(created.ExpiresAt, outcome.ExpiresAt);
+        Assert.Null(outcome.CageSuitable);
+    }
+
+    [Fact]
+    public async Task RecordForSpaAsync_WhenOk_DoesNotCreateConfirmation()
+    {
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var appt = new SpaAppointment { AppointmentId = AppointmentId, PetId = PetId, SizeGroup = SizeGroup.Small };
+        var confirmations = new FakeCostConfirmationRepository();
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, costConfirmations: confirmations);
+
+        var outcome = await sut.RecordForSpaAsync(appt, 2.9m);
+
+        Assert.Empty(confirmations.Added);
+        Assert.Null(outcome.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenNeedsConfirmation_CreatesPendingConfirmationAndSkipsCageCheck()
+    {
+        var stay = ConfirmedStay(SizeGroup.Small);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var confirmations = new FakeCostConfirmationRepository();
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, appointment: stay, costConfirmations: confirmations);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 3.4m);
+
+        var created = Assert.Single(confirmations.Added);
+        Assert.Equal(ConfirmationStatus.Pending, created.Status);
+        Assert.Equal(SizeGroup.Medium, created.NewSizeGroup);
+        Assert.Equal(240000m, created.OldAmount);
+        Assert.Equal(360000m, created.NewAmount);
+        Assert.Equal(created.ExpiresAt, outcome.ExpiresAt);
+        Assert.Null(outcome.CageSuitable);
+        Assert.Equal(SizeGroup.Small, stay.SizeGroup);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenPendingConfirmationExists_ThrowsCostConfirmationPendingAndChangesNothing()
+    {
+        var stay = ConfirmedStay(SizeGroup.Small);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var confirmations = new FakeCostConfirmationRepository();
+        confirmations.Added.Add(new CostConfirmation
+        {
+            ConfirmationId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Status = ConfirmationStatus.Pending,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10)
+        });
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, appointment: stay, costConfirmations: confirmations);
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.CheckHotelAsync(AppointmentId, 3.4m));
+
+        Assert.Equal(ErrorCodes.CostConfirmationPending, ex.Code);
+        Assert.Single(confirmations.Added);
+        Assert.Null(stay.ActualWeightKg);
+        Assert.Equal(2.8m, pet.WeightKg);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenPriceDecreasedAndAssignedCageHasOldGroup_ReturnsCageSuitableFalse()
+    {
+        var cage = CatCage(SizeGroup.Medium);
+        var stay = ConfirmedStay(SizeGroup.Medium, cage.CageId);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 4.0m, SizeGroup = SizeGroup.Medium };
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, appointment: stay, cage: cage);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 2.9m);
+
+        Assert.Equal(WeightCheckResult.PRICE_DECREASED, outcome.Result);
+        Assert.False(outcome.CageSuitable);
+        Assert.Null(outcome.ExpiresAt);
+        Assert.Equal(SizeGroup.Small, stay.SizeGroup);
+        Assert.Equal(cage.CageId, stay.CageId);
+        Assert.Equal(AppointmentStatus.Confirmed, stay.Status);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenPriceDecreasedAndAssignedCageMatchesNewGroup_ReturnsCageSuitableTrue()
+    {
+        var cage = CatCage(SizeGroup.Small);
+        var stay = ConfirmedStay(SizeGroup.Medium, cage.CageId);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 4.0m, SizeGroup = SizeGroup.Medium };
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, appointment: stay, cage: cage);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 2.9m);
+
+        Assert.True(outcome.CageSuitable);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenOk_DoesNotCheckCageNorCreateConfirmation()
+    {
+        var stay = ConfirmedStay(SizeGroup.Small);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var confirmations = new FakeCostConfirmationRepository();
+        var (sut, _, _, _, _, _) = CreateSut(pet: pet, appointment: stay, costConfirmations: confirmations);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 3.2m);
+
+        Assert.Equal(WeightCheckResult.OK, outcome.Result);
+        Assert.Null(outcome.CageSuitable);
+        Assert.Null(outcome.ExpiresAt);
+        Assert.Empty(confirmations.Added);
     }
 
     #endregion

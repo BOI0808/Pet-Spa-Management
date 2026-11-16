@@ -95,6 +95,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IAppointmentQueryRepository, AppointmentQueryRepository>();
         services.AddScoped<IAppointmentChangeRepository, AppointmentChangeRepository>();
+        services.AddScoped<ICostConfirmationRepository, CostConfirmationRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
 
         var storage = config.GetSection("Storage").Get<StorageOptions>() ?? new StorageOptions();

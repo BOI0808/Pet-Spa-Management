@@ -10,10 +10,17 @@ public sealed record WeightCheckDetailResponse(
     WeightCheckResult Result,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SizeGroup? NewSizeGroup,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? OldAmount,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? NewAmount)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? NewAmount,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateTimeOffset? ExpiresAt,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? CageSuitable)
 {
     public static WeightCheckDetailResponse From(WeightCheckOutcome outcome) => new(
-        outcome.Result, outcome.NewSizeGroup, (long?)outcome.OldAmount, (long?)outcome.NewAmount);
+        outcome.Result,
+        outcome.NewSizeGroup,
+        (long?)outcome.OldAmount,
+        (long?)outcome.NewAmount,
+        outcome.ExpiresAt,
+        outcome.CageSuitable);
 }
 
 public sealed record WeightCheckResponse(WeightCheckDetailResponse WeightCheck)
