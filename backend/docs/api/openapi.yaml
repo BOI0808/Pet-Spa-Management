@@ -775,7 +775,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: "INVALID_TRANSITION."
+          description: "INVALID_TRANSITION; COST_CONFIRMATION_PENDING (lịch đang có yêu cầu xác nhận chi phí chờ phản hồi)."
           content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
   /appointments/{id}/cost-confirmation/respond:
     post:
@@ -797,7 +797,7 @@ paths:
           description: Đã ghi nhận phản hồi.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/StatusResult' }
+              schema: { $ref: '#/components/schemas/CostConfirmationRespondResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1970,6 +1970,12 @@ components:
       required: [status]
       properties:
         status: { $ref: '#/components/schemas/AppointmentStatus' }
+    CostConfirmationRespondResult:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/AppointmentStatus' }
+        cageSuitable: { type: boolean, x-proposal: true, description: "Chỉ lịch lưu trú khi accept = true: chuồng đã gán còn phù hợp nhóm kích cỡ mới. false → quản lý gán chuồng khác hoặc từ chối (FR-EXE-10, BR-21)." }
     RejectResult:
       type: object
       required: [status, reason]
@@ -2025,6 +2031,7 @@ components:
         oldAmount: { type: integer }
         newAmount: { type: integer }
         expiresAt: { type: string, format: date-time, description: Hạn phản hồi (+ CostConfirm.TimeoutMinutes); khi result = NEEDS_CONFIRMATION. }
+        cageSuitable: { type: boolean, x-proposal: true, description: "Chỉ lịch lưu trú, khi nhóm kích cỡ của lịch đổi (result = PRICE_DECREASED): chuồng đã gán còn phù hợp loài và nhóm mới. false → quản lý gán chuồng khác hoặc từ chối (FR-EXE-10, BR-21). Không có khi OK hoặc NEEDS_CONFIRMATION." }
     CheckInResult:
       type: object
       required: [status]

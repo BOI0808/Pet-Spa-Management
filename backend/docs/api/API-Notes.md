@@ -87,6 +87,7 @@
 - `NEEDS_CONFIRMATION`: tạo `CostConfirmation` Pending, hạn `CostConfirm.TimeoutMinutes`; lịch giữ nguyên trạng thái; chặn `/start` (spa) và `/check-in` (lưu trú) bằng 409 `COST_CONFIRMATION_PENDING`; với lịch lưu trú chặn thêm việc ghi nhận khoản `Stay` ở `POST /payments/{id}/counter` bằng 409 `COST_CONFIRMATION_PENDING` (FR-EXE-10, BR-23).
 - `POST /cost-confirmation/respond { accept }`: `true` → cập nhật hồ sơ thú cưng, lịch tiếp tục; `false` hoặc quá hạn → `Cancelled`, lý do `CostNotConfirmed`. Phản hồi sau `ExpiresAt` → 409 `COST_CONFIRMATION_EXPIRED`; không có yêu cầu Pending → 404.
 - Khi nhóm kích cỡ đổi: lịch spa giữ nguyên thời lượng, khung giờ, số nhân viên; lịch lưu trú kiểm tra chuồng đã gán còn phù hợp.
+- Kiểm tra chuồng (lịch lưu trú, FR-EXE-10, BR-21): khi nhóm kích cỡ của lịch đổi — `/weight-check` trả `PRICE_DECREASED`, hoặc `/cost-confirmation/respond` với `accept = true` — response kèm `cageSuitable` (Đề xuất). `false`: quản lý gán chuồng khác hoặc từ chối `StoreUnable` (ID 76); backend không tự đổi `CageId` hay trạng thái. `/weight-check` khi lịch đang có yêu cầu `Pending` → 409 `COST_CONFIRMATION_PENDING` (Đề xuất).
 
 **Thực hiện spa**
 - `/start`: cần ảnh `Before` hợp lệ (ảnh gần nhất của thú cưng, tải lên trong `Photo.ValidityDays` ngày) và không chờ xác nhận chi phí → 409 `PHOTO_REQUIRED` / `COST_CONFIRMATION_PENDING`.
@@ -197,7 +198,7 @@ Chỉ chuyển đúng trình tự tiến; `Cancelled` từ mọi trạng thái t
 | 409 | `CHANGE_WINDOW_CLOSED` | `PUT /appointments/{id}`, `/cancel` |
 | 409 | `PHOTO_REQUIRED` | `/start`, `/complete` |
 | 409 | `SERVICES_INCOMPLETE` | `/complete` |
-| 409 | `COST_CONFIRMATION_PENDING` | `/start`, `/check-in`, `/payments/{id}/counter` (khoản `Stay`) |
+| 409 | `COST_CONFIRMATION_PENDING` | `/start`, `/check-in`, `/weight-check` (lưu trú), `/payments/{id}/counter` (khoản `Stay`) |
 | 409 | `PAYMENT_NOT_DUE` | `/check-in` (lưu trú), `/check-out`, `/payments/{id}/counter`, `/payments/{id}/online` |
 | 409 | `AMOUNT_MISMATCH` | `/payments/{id}/counter` |
 | 409 | `SHIFT_OVERLAP`, `SHIFT_HAS_APPOINTMENTS` | `/work-shifts` |
@@ -228,6 +229,7 @@ SA 5.1.3 và các nguồn không quy định các điểm dưới đây; `openap
 | 16 | BC 4.2 ghi lý do chọn khi “từ chối hoặc hủy (`/reject`, `/cancel`)”; SA và UC-13 cho `/reject` không body, luôn `StoreUnable`. | Theo SA: `/reject` không body. |
 | 17 | SA UC-23 và SA 5.1.3 không nêu việc chặn ghi nhận tiền lưu trú khi lịch đang chờ xác nhận chi phí mới, trong khi Requirements FR-EXE-10 và SA UC-30 yêu cầu. | Chặn `POST /payments/{id}/counter` (khoản `Stay`) bằng 409 `COST_CONFIRMATION_PENDING`. |
 | 18 | SA 5.4 không ghi lý do hủy khi `InProgress`/`InStay` và chỉ cho `Received` lý do (b), (e), trong khi `/cancel` của QL không giới hạn theo trạng thái. | QL gửi `StoreUnable` hoặc `CustomerBeyondDeadline` ở mọi trạng thái trước `Completed` (SA 5.4 cập nhật tương ứng). |
+| 19 | Requirements, SA, BC không nêu kết quả kiểm tra chuồng được trả ở đâu khi nhóm kích cỡ đổi; `/weight-check` khi đã có `CostConfirmation` Pending chưa quy định. | Thêm `cageSuitable` (bool, tùy chọn) vào `weightCheck` (lưu trú, `PRICE_DECREASED`) và phản hồi của `/cost-confirmation/respond` (lưu trú, `accept = true`); `/weight-check` khi còn yêu cầu Pending → 409 `COST_CONFIRMATION_PENDING`. |
 
 ## 9. Kiểm tra đã thực hiện
 
