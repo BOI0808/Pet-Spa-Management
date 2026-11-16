@@ -1,6 +1,7 @@
 import type { Pet, Service } from "@/lib/api/types";
 import { formatWeight } from "@/lib/format";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
+import { addDays, toStoreDateTime } from "@/lib/time";
 
 export const BOOKING_STEPS = ["Thú cưng & dịch vụ", "Chọn khung giờ", "Xác nhận"] as const;
 
@@ -53,4 +54,24 @@ export function earliestLatestStart(services: PricedService[]) {
 /** “Chó Poodle, 9,0 kg, nhóm Nhỏ”. */
 export function describePet(pet: Pet) {
   return `${SPECIES_LABELS[pet.species]} ${pet.breed}, ${formatWeight(pet.weightKg)}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
+}
+
+// ── Dùng chung CW-06 (đặt lịch spa) và CW-10 (đổi lịch spa); NO_PET_MESSAGE dùng cả ở CW-07 ──
+/** Dải ngày chọn được: 7 ngày từ hôm nay (UI-Screens CW-06 vùng 5). */
+export const BOOKING_DATE_COUNT = 7;
+
+export const NO_PET_MESSAGE = "Vui lòng chọn thú cưng.";
+export const NO_SERVICE_MESSAGE = "Vui lòng chọn ít nhất một dịch vụ.";
+export const NO_SLOT_MESSAGE = "Vui lòng chọn khung giờ.";
+export const SLOT_FULL_MESSAGE = "Mốc giờ vừa kín, vui lòng chọn mốc khác.";
+export const SLOT_PAST_MESSAGE = "Mốc giờ này đã qua, vui lòng chọn mốc khác.";
+
+/** `BOOKING_DATE_COUNT` ngày từ `today` (“YYYY-MM-DD”). */
+export function bookingDates(today: string) {
+  return Array.from({ length: BOOKING_DATE_COUNT }, (_, index) => addDays(today, index));
+}
+
+/** API chưa loại mốc đã trôi qua trong hôm nay nên web tự khóa mốc có giờ bắt đầu ≤ `now`. */
+export function isPastSlot(date: string, time: string, now: number) {
+  return Date.parse(toStoreDateTime(date, time)) <= now;
 }

@@ -205,3 +205,95 @@ export type HotelBookingCreated = {
   /** VND. */
   estimatedAmount: number;
 };
+
+// ── Lịch hẹn: danh sách, chi tiết ──
+export type CancelReason =
+  | "CustomerCancelled"
+  | "StoreUnable"
+  | "CustomerBeyondDeadline"
+  | "NoShow"
+  | "CostNotConfirmed";
+
+/** Thời điểm là ISO 8601 có độ lệch. Trường của loại lịch kia là null. */
+export type Appointment = {
+  appointmentId: string;
+  type: AppointmentType;
+  customerId: string;
+  petId: string;
+  customerName?: string;
+  petName?: string;
+  status: AppointmentStatus;
+  /** Có giá trị ⇔ status = Cancelled. */
+  cancelReason?: CancelReason | null;
+  cancelledAt?: string | null;
+  sizeGroup: SizeGroup;
+  actualWeightKg?: number | null;
+  /** Chỉ lịch Spa. */
+  slotStart?: string | null;
+  slotEnd?: string | null;
+  staffRequired?: number | null;
+  /** Chỉ lịch Hotel. */
+  plannedCheckIn?: string | null;
+  plannedCheckOut?: string | null;
+  actualCheckOut?: string | null;
+  cageId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AppointmentPage = Page<Appointment>;
+
+export type AppointmentServiceItem = {
+  serviceId: string;
+  name?: string;
+  isDone: boolean;
+  doneAt?: string | null;
+  note?: string | null;
+};
+
+export type AppointmentStaffItem = {
+  staffId: string;
+  fullName?: string;
+  isHolding: boolean;
+  assignedAt?: string;
+};
+
+export type CostConfirmationStatus = "Pending" | "Accepted" | "Rejected" | "Expired";
+
+export type CostConfirmation = {
+  actualWeightKg: number;
+  newSizeGroup: SizeGroup;
+  /** VND. */
+  oldAmount: number;
+  newAmount: number;
+  status: CostConfirmationStatus;
+  createdAt?: string;
+  expiresAt: string;
+  respondedAt?: string | null;
+};
+
+export type AppointmentDetail = Appointment & {
+  /** Chỉ lịch Spa. */
+  services?: AppointmentServiceItem[];
+  /** Chỉ lịch Spa; rỗng khi chưa xác nhận. */
+  staff?: AppointmentStaffItem[];
+  /** Yêu cầu xác nhận chi phí đang Pending (tối đa một mỗi lịch). */
+  pendingCostConfirmation?: CostConfirmation | null;
+};
+
+// ── Thanh toán ──
+export type PaymentKind = "Spa" | "Stay" | "LateFee";
+export type PaymentStatus = "Unpaid" | "Paid";
+export type PaymentMethod = "Cash" | "BankQR" | "Online";
+
+export type Payment = {
+  paymentId: string;
+  appointmentId: string;
+  kind: PaymentKind;
+  /** Số tiền phải trả (VND), do hệ thống tính. */
+  amount: number;
+  status: PaymentStatus;
+  method?: PaymentMethod | null;
+  receivedAmount?: number | null;
+  paidAt?: string | null;
+};

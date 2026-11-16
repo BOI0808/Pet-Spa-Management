@@ -1,4 +1,6 @@
-import type { HotelPricingRow, Pet } from "@/lib/api/types";
+import type { ApiError } from "@/lib/api/errors";
+import type { HotelAvailability, HotelPricingRow, Pet } from "@/lib/api/types";
+import type { AvailabilityView } from "./components/hotel-stay";
 import { formatDayMonth, formatWeekdayShort } from "@/lib/format";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
 import { addDays, daysBetween, toStoreDateTime } from "@/lib/time";
@@ -104,4 +106,68 @@ export function describeCageFit(pet: Pet) {
 export function findStayPrice(pricing: HotelPricingRow[] | undefined, pet: Pet | null) {
   if (!pricing || !pet) return null;
   return pricing.find((row) => row.species === pet.species && row.sizeGroup === pet.sizeGroup) ?? null;
+}
+
+// ── Dùng chung CW-07 (đặt lưu trú) và CW-10 (đổi lịch lưu trú) ──
+/** Tự kiểm tra còn chỗ sau 400ms kể từ lần sửa cuối (UI-Screens CW-07, Đề xuất). */
+export const AVAILABILITY_DELAY_MS = 400;
+export const STAY_FULL_REASON = "Hết chỗ trong thời gian đã chọn.";
+
+/** Ô nhận lỗi 400; `null` khi không phải 400 hoặc không xác định được ô. */
+export function stayFieldOfError(error: ApiError | null) {
+  return error?.status === 400 ? stayFieldOfBadRequest(error.detail) : null;
+}
+
+/** Thử lại có ích khi mất mạng, quá tải (429) hoặc lỗi server; lỗi 4xx khác thử lại vẫn ra như cũ. */
+export function isRetryableError(error: ApiError) {
+  return error.kind !== "http" || error.status === 429 || (error.status ?? 0) >= 500;
+}
+
+/**
+ * Số đêm, tiền lưu trú chỉ để xem: có kết quả `GET /hotel/availability` thì dùng `nights`, `estimatedAmount` của API
+ * (BR-22); chưa có thì tính ở web theo ngày và `GET /hotel/pricing`.
+ */
+export function estimateStay(
+  times: StayTimes,
+  errors: StayErrors,
+  apiResult: HotelAvailability | undefined,
+  price: HotelPricingRow | null,
+) {
+  const datesOk = Boolean(times.checkInDate && times.checkOutDate && !errors.checkInDate && !errors.checkOutDate);
+  const nights = apiResult?.nights ?? (datesOk ? daysBetween(times.checkInDate, times.checkOutDate) : null);
+  const amount =
+    apiResult?.estimatedAmount ?? (price && nights !== null ? nights * (price.pricePerNight + price.foodPerNight) : null);
+  return { nights, amount };
+}
+
+type AvailabilityViewInput = {
+  /** Đủ dữ liệu để kiểm tra (thú cưng + 4 ô hợp lệ). */
+  hasParams: boolean;
+  /** Đã hết thời gian chờ sau lần sửa cuối. */
+  isSettled: boolean;
+  isFull: boolean;
+  /** CW-10: API báo hết chỗ nhưng có thể do chính lịch đang đổi. */
+  isOwnHold?: boolean;
+  isPending: boolean;
+  /** Lỗi của lần kiểm tra (chỉ khi `isSettled`). */
+  error: ApiError | null;
+  /** Ô nhận lỗi 400 của lần kiểm tra; có ô thì lỗi hiện dưới ô, không hiện alert. */
+  errorField: StayField | null;
+  data: HotelAvailability | undefined;
+  refetch: () => void;
+};
+
+/** Kết quả kiểm tra còn chỗ hiện ở thẻ Thời gian (vùng 3 của CW-07, vùng 6 của CW-10). */
+export function buildAvailabilityView(input: AvailabilityViewInput): AvailabilityView {
+  const { hasParams, isSettled, isFull, isOwnHold = false, isPending, error, errorField, data, refetch } = input;
+  if (!hasParams) return { kind: "idle" };
+  if (isFull) return { kind: "full" };
+  if (isOwnHold) return { kind: "own-hold" };
+  if (!isSettled || isPending) return { kind: "checking" };
+  if (error && !errorField) {
+    // 400 không xác định được ô: không có nút thử lại vì gọi lại vẫn ra cùng lỗi.
+    return { kind: "error", error, onRetry: isRetryableError(error) ? refetch : undefined };
+  }
+  if (data && !error) return { kind: "available", nights: data.nights };
+  return { kind: "idle" };
 }
