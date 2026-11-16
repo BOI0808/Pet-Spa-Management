@@ -24,11 +24,17 @@ public class Payment
         if (Status != PaymentStatus.Unpaid)
             throw new BusinessException(ErrorCodes.InvalidTransition);
 
+        if (method == PaymentMethod.Online && Kind != PaymentKind.Spa)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
         if (!IsDue(appointmentStatus))
             throw new BusinessException(ErrorCodes.PaymentNotDue);
 
-        if (!IsAmountEnough(method, receivedAmount))
+        if (receivedAmount <= 0 || !IsAmountEnough(method, receivedAmount))
             throw new BusinessException(ErrorCodes.AmountMismatch);
+
+        if (!IsValidConfirmer(method, confirmedByUserId))
+            throw new BusinessException(ErrorCodes.ValidationError);
 
         Status = PaymentStatus.Paid;
         Method = method;
@@ -47,4 +53,9 @@ public class Payment
 
     private bool IsAmountEnough(PaymentMethod method, decimal receivedAmount) =>
         method == PaymentMethod.Online ? receivedAmount == Amount : receivedAmount >= Amount;
+
+    private static bool IsValidConfirmer(PaymentMethod method, Guid? confirmedByUserId) =>
+        method == PaymentMethod.Online
+            ? confirmedByUserId is null
+            : confirmedByUserId.HasValue && confirmedByUserId.Value != Guid.Empty;
 }

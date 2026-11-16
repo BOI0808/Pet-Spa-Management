@@ -171,4 +171,58 @@ public class PaymentMarkPaidTests
         Assert.Equal(firstConfirmer, payment.ConfirmedByUserId);
         Assert.Equal(firstPaidAt, payment.PaidAt);
     }
+
+    [Theory]
+    [InlineData(PaymentMethod.Cash)]
+    [InlineData(PaymentMethod.BankQR)]
+    public void MarkPaid_AtCounter_WhenConfirmerMissingOrEmpty_ThrowsValidationError(PaymentMethod method)
+    {
+        var payment = NewPayment(PaymentKind.Spa);
+
+        AssertError(ErrorCodes.ValidationError,
+            () => payment.MarkPaid(AppointmentStatus.Completed, method, Due, null));
+        AssertError(ErrorCodes.ValidationError,
+            () => payment.MarkPaid(AppointmentStatus.Completed, method, Due, Guid.Empty));
+
+        Assert.Equal(PaymentStatus.Unpaid, payment.Status);
+    }
+
+    [Fact]
+    public void MarkPaid_Online_WhenConfirmerProvided_ThrowsValidationError()
+    {
+        var payment = NewPayment(PaymentKind.Spa);
+
+        AssertError(ErrorCodes.ValidationError,
+            () => payment.MarkPaid(AppointmentStatus.Completed, PaymentMethod.Online, Due, Guid.NewGuid()));
+
+        Assert.Equal(PaymentStatus.Unpaid, payment.Status);
+    }
+
+    [Theory]
+    [InlineData(PaymentKind.Stay, AppointmentStatus.Confirmed)]
+    [InlineData(PaymentKind.LateFee, AppointmentStatus.InStay)]
+    public void MarkPaid_Online_WhenKindIsNotSpa_ThrowsInvalidTransition(
+        PaymentKind kind, AppointmentStatus appointmentStatus)
+    {
+        var payment = NewPayment(kind);
+
+        AssertError(ErrorCodes.InvalidTransition,
+            () => payment.MarkPaid(appointmentStatus, PaymentMethod.Online, Due, null));
+
+        Assert.Equal(PaymentStatus.Unpaid, payment.Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-100_000)]
+    public void MarkPaid_WhenReceivedAmountZeroOrNegative_ThrowsAmountMismatch(decimal receivedAmount)
+    {
+        var payment = NewPayment(PaymentKind.Spa);
+
+        AssertError(ErrorCodes.AmountMismatch,
+            () => payment.MarkPaid(AppointmentStatus.Completed, PaymentMethod.Cash, receivedAmount, Guid.NewGuid()));
+
+        Assert.Equal(PaymentStatus.Unpaid, payment.Status);
+    }
 }
