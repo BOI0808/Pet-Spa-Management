@@ -53,6 +53,8 @@ public class CheckInServiceTests
 
     private sealed class FakePetRepository(Pet pet) : IPetRepository
     {
+        public IReadOnlyList<WeightTolerance> Tolerances { get; set; } = [];
+
         public Task<PetWithOwner?> FindWithOwnerAsync(Guid petId, bool asNoTracking = false, CancellationToken ct = default) =>
             Task.FromResult<PetWithOwner?>(new PetWithOwner(pet, null));
 
@@ -61,7 +63,7 @@ public class CheckInServiceTests
                 [new SizeRule { Species = Species.Cat, Criterion = SizeCriterion.Weight, SmallUpper = 3m, MediumUpper = 5m }]);
 
         public Task<IReadOnlyList<WeightTolerance>> GetWeightTolerancesAsync(Species species, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<WeightTolerance>>([]);
+            Task.FromResult(Tolerances);
 
         public Task<Guid?> FindCustomerIdByUserIdAsync(Guid userId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken ct = default) => throw new NotImplementedException();
@@ -75,8 +77,10 @@ public class CheckInServiceTests
 
     private sealed class FakePaymentAmountRepository : IPaymentAmountRepository
     {
+        public SpaAmountSnapshot? Snapshot { get; set; }
+
         public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
-            Task.FromResult<SpaAmountSnapshot?>(null);
+            Task.FromResult(Snapshot);
 
         public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult<StayAmountSnapshot?>(null);
@@ -87,6 +91,8 @@ public class CheckInServiceTests
 
     private sealed class FakeBookingRepository : IBookingRepository
     {
+        public Dictionary<SizeGroup, IReadOnlyList<ServicePricing>> Pricing { get; } = [];
+
         public Task<IReadOnlyList<BookableService>> FindBookableServicesAsync(
             IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
             throw new NotImplementedException();
@@ -104,7 +110,7 @@ public class CheckInServiceTests
 
         public Task<IReadOnlyList<ServicePricing>> ListPricingAsync(
             IReadOnlyList<Guid> serviceIds, Species species, SizeGroup sizeGroup, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<ServicePricing>>([]);
+            Task.FromResult(Pricing.TryGetValue(sizeGroup, out var list) ? list : []);
 
         public void AddSpaAppointment(SpaAppointment appointment, IReadOnlyList<Guid> serviceIds) =>
             throw new NotImplementedException();
@@ -217,6 +223,69 @@ public class CheckInServiceTests
         Assert.Equal(WeightCheckResult.OK, result.WeightCheck.Result);
         Assert.Equal(ActualWeightKg, appointment.ActualWeightKg);
         Assert.Equal(AppointmentId, guard.LockedAppointmentId);
+    }
+
+    [Fact]
+    public async Task CheckInSpaAsync_WhenNeedsConfirmation_ReturnsNeedsConfirmationAndExpiresAt()
+    {
+        var serviceId = Guid.NewGuid();
+        var appointment = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-5));
+        appointment.SizeGroup = SizeGroup.Small;
+
+        var repo = new FakeAssignmentRepository
+        {
+            Appointment = appointment,
+            HoldMinutes = 15,
+            AppointmentType = AppointmentType.Spa
+        };
+        var guard = new FakeConcurrencyGuard();
+        var shopTimeZone = new ShopTimeZone(TimeZoneInfo.Utc);
+        var pet = new Pet { PetId = Guid.NewGuid(), Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var paymentRepo = new FakePaymentAmountRepository
+        {
+            Snapshot = new SpaAmountSnapshot(
+                Species.Cat,
+                SizeGroup.Small,
+                AppointmentStatus.Confirmed,
+                [serviceId],
+                [new ServicePricing { ServiceId = serviceId, Species = Species.Cat, SizeGroup = SizeGroup.Small, Price = 100000m }])
+        };
+        var bookingRepo = new FakeBookingRepository();
+        bookingRepo.Pricing[SizeGroup.Medium] =
+            [new ServicePricing { ServiceId = serviceId, Species = Species.Cat, SizeGroup = SizeGroup.Medium, Price = 150000m }];
+
+        var hotelAssignRepo = new FakeHotelAssignmentRepository();
+        var hotelCatalogRepo = new FakeHotelCatalogRepository();
+        var timeZoneProvider = new FakeStoreTimeZoneProvider();
+        var costRepo = new FakeCostConfirmationRepository { TimeoutMinutes = 30 };
+        var petRepo = new FakePetRepository(pet)
+        {
+            Tolerances = [new WeightTolerance { Species = Species.Cat, FromGroup = SizeGroup.Small, ToGroup = SizeGroup.Medium, ToleranceKg = 0.5m }]
+        };
+        var weightCheck = new WeightCheckService(
+            petRepo,
+            paymentRepo,
+            bookingRepo,
+            hotelAssignRepo,
+            hotelCatalogRepo,
+            costRepo,
+            timeZoneProvider,
+            guard);
+
+        var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck);
+
+        // Pet weighs 3.6kg, moves from Small to Medium, exceeding tolerance -> NEEDS_CONFIRMATION
+        var result = await sut.CheckInSpaAsync(AppointmentId, 3.6m);
+
+        Assert.Equal(AppointmentStatus.Received, result.Status);
+        Assert.Equal(WeightCheckResult.NEEDS_CONFIRMATION, result.WeightCheck.Result);
+        Assert.Equal(SizeGroup.Medium, result.WeightCheck.NewSizeGroup);
+        Assert.Equal(100000m, result.WeightCheck.OldAmount);
+        Assert.Equal(150000m, result.WeightCheck.NewAmount);
+        Assert.NotNull(result.WeightCheck.ExpiresAt);
+        Assert.True(result.WeightCheck.ExpiresAt > DateTimeOffset.UtcNow);
+        Assert.Single(costRepo.Added);
+        Assert.Equal(costRepo.Added[0].ExpiresAt, result.WeightCheck.ExpiresAt);
     }
 
     [Fact]
