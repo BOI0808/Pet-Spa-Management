@@ -12,6 +12,7 @@ public sealed class WeightCheckService(
     IBookingRepository bookings,
     IHotelAssignmentRepository hotelAssignments,
     IHotelCatalogRepository hotelCatalog,
+    ICostConfirmationRepository costConfirmations,
     IStoreTimeZoneProvider timeZoneProvider,
     IConcurrencyGuard concurrencyGuard)
 {
@@ -37,7 +38,11 @@ public sealed class WeightCheckService(
                 snapshot.Species, comparison.NewSizeGroup, snapshot.ServiceIds, newPricing);
         }
 
-        return Apply(appointment, context, actualWeightKg, oldAmount, newAmount);
+        var outcome = Apply(appointment, context, actualWeightKg, oldAmount, newAmount);
+
+        return outcome.Result == WeightCheckResult.NEEDS_CONFIRMATION
+            ? await CreateConfirmationAsync(appointment.AppointmentId, actualWeightKg, outcome, ct)
+            : outcome;
     }
 
     public async Task<WeightCheckOutcome> CheckHotelAsync(
@@ -52,6 +57,9 @@ public sealed class WeightCheckService(
 
             if (appointment is not HotelAppointment stay || stay.Status != AppointmentStatus.Confirmed)
                 throw new BusinessException(ErrorCodes.InvalidTransition);
+
+            if (await costConfirmations.HasPendingAsync(appointmentId, ct))
+                throw new BusinessException(ErrorCodes.CostConfirmationPending);
 
             var found = await hotelAssignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: false, ct)
                 ?? throw new BusinessException(ErrorCodes.NotFound);
@@ -73,7 +81,18 @@ public sealed class WeightCheckService(
                 newAmount = PricingService.CalculateStayAmount(nights, found.Species, comparison.NewSizeGroup, hotelPricing.Pricing);
             }
 
-            return Apply(hotelStay, context, actualWeightKg, oldAmount, newAmount);
+            var outcome = Apply(hotelStay, context, actualWeightKg, oldAmount, newAmount);
+
+            if (outcome.Result == WeightCheckResult.NEEDS_CONFIRMATION)
+                return await CreateConfirmationAsync(appointmentId, actualWeightKg, outcome, ct);
+
+            if (outcome.Result == WeightCheckResult.PRICE_DECREASED)
+            {
+                var cageSuitable = await IsCageSuitableAsync(hotelStay, found.Species, ct);
+                return outcome with { CageSuitable = cageSuitable };
+            }
+
+            return outcome;
         }, ct);
     }
 
@@ -89,6 +108,36 @@ public sealed class WeightCheckService(
 
         var comparison = WeightComparisonService.Compare(pet, currentGroup, actualWeightKg, sizeRules, tolerances);
         return new WeightCheckContext(pet, sizeRules, comparison);
+    }
+
+    private async Task<WeightCheckOutcome> CreateConfirmationAsync(
+        Guid appointmentId, decimal actualWeightKg, WeightCheckOutcome outcome, CancellationToken ct)
+    {
+        var timeoutMinutes = await costConfirmations.GetTimeoutMinutesAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+
+        var confirmation = new CostConfirmation
+        {
+            ConfirmationId = Guid.NewGuid(),
+            AppointmentId = appointmentId,
+            ActualWeightKg = actualWeightKg,
+            NewSizeGroup = outcome.NewSizeGroup!.Value,
+            OldAmount = outcome.OldAmount!.Value,
+            NewAmount = outcome.NewAmount!.Value,
+            Status = ConfirmationStatus.Pending,
+            CreatedAt = now,
+            ExpiresAt = now.AddMinutes(timeoutMinutes),
+        };
+
+        costConfirmations.Add(confirmation);
+
+        return outcome with { ExpiresAt = confirmation.ExpiresAt };
+    }
+
+    private async Task<bool> IsCageSuitableAsync(HotelAppointment stay, Species species, CancellationToken ct)
+    {
+        var cage = stay.CageId is { } cageId ? await hotelAssignments.FindCageAsync(cageId, ct) : null;
+        return stay.IsCageSuitable(cage, species);
     }
 
     private static WeightCheckOutcome Apply(

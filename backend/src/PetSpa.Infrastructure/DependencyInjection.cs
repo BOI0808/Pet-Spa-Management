@@ -93,6 +93,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IAppointmentQueryRepository, AppointmentQueryRepository>();
         services.AddScoped<IAppointmentChangeRepository, AppointmentChangeRepository>();
+        services.AddScoped<ICostConfirmationRepository, CostConfirmationRepository>();
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
         return services;
