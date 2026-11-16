@@ -272,6 +272,17 @@ export type UpdateAppointmentRequest = SpaChangeRequest | HotelChangeRequest;
 /** Kết quả `PUT /appointments/{id}`, `POST /appointments/{id}/cancel`. */
 export type StatusResult = { status: AppointmentStatus };
 
+// ── Ảnh minh chứng (FR-EXE-09) ──
+export type PhotoKind = "Before" | "After";
+
+/** Một ảnh trong `GET /appointments/{id}/photos`; `url` là URL tạm thời (backend ký có hạn 1 giờ). */
+export type Photo = {
+  photoId: string;
+  kind: PhotoKind;
+  url: string;
+  uploadedAt: string;
+};
+
 // ── Thanh toán ──
 export type PaymentKind = "Spa" | "Stay" | "LateFee";
 export type PaymentStatus = "Unpaid" | "Paid";
