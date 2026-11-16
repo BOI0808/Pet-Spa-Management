@@ -30,6 +30,13 @@ public class HotelAppointment : Appointment
         Confirm();
     }
 
+    public bool IsCageSuitable(Cage? cage, Species petSpecies) =>
+        cage is not null
+        && cage.CageId == CageId
+        && cage.IsActive
+        && cage.Species == petSpecies
+        && cage.SizeGroup == SizeGroup;
+
     public void CheckIn() => MoveTo(AppointmentStatus.InStay);
 
     public void CheckOut(DateTimeOffset? actualCheckOut = null)
