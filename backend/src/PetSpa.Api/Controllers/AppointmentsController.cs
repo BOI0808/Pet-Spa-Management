@@ -21,7 +21,8 @@ public sealed class AppointmentsController(
     AppointmentQueryService appointmentQueryService,
     AppointmentChangeService appointmentChangeService,
     CheckInService checkInService,
-    WeightCheckService weightCheckService) : ControllerBase
+    WeightCheckService weightCheckService,
+    CostConfirmationService costConfirmationService) : ControllerBase
 {
     [HttpGet]
     [Authorize]
@@ -132,6 +133,20 @@ public sealed class AppointmentsController(
 
         var outcome = await weightCheckService.CheckHotelAsync(id, request.ActualWeightKg.Value, ct);
         return Ok(WeightCheckResponse.From(outcome));
+    }
+
+    [HttpPost("{id}/cost-confirmation/respond")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerOrReceptionist)]
+    [EndpointSummary("Khách hàng hoặc lễ tân xác nhận hay từ chối chi phí mới")]
+    [EndpointDescription("Khách hàng chỉ phản hồi lịch của mình; lễ tân phản hồi thay khách vãng lai hoặc khách phản hồi trực tiếp. Body { accept }. accept = true: cập nhật hồ sơ thú cưng và nhóm kích cỡ của lịch hẹn, lịch tiếp tục theo chi phí mới; lịch lưu trú kèm cageSuitable cho biết chuồng đã gán còn phù hợp nhóm mới hay không. accept = false: lịch chuyển sang Đã hủy với lý do CostNotConfirmed. Thiếu accept trả 400 VALIDATION_ERROR; lịch của khách khác hoặc của khách vãng lai (với khách hàng) trả 403 FORBIDDEN; không tìm thấy lịch hoặc không có yêu cầu đang chờ trả 404 NOT_FOUND; lịch không còn ở trạng thái chờ phản hồi trả 409 INVALID_TRANSITION; quá hạn phản hồi trả 409 COST_CONFIRMATION_EXPIRED.")]
+    public async Task<IActionResult> RespondCostConfirmation(
+        Guid id, [FromBody] CostConfirmationRespondRequest request, CancellationToken ct)
+    {
+        if (request is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
+
+        var result = await costConfirmationService.RespondAsync(User.ToCurrentUser(), id, request.Accept!.Value, ct);
+        return Ok(CostConfirmationRespondResponse.From(result));
     }
 
     [HttpPost("{id}/cancel")]
