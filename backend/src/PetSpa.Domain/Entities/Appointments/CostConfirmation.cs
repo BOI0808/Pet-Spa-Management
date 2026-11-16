@@ -23,6 +23,15 @@ public class CostConfirmation
     public void Reject(Guid respondedByUserId) =>
         Respond(ConfirmationStatus.Rejected, respondedByUserId);
 
+    public void Expire()
+    {
+        if (Status != ConfirmationStatus.Pending)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
+        Status = ConfirmationStatus.Expired;
+        RespondedAt = DateTimeOffset.UtcNow;
+    }
+
     private void Respond(ConfirmationStatus status, Guid respondedByUserId)
     {
         if (Status != ConfirmationStatus.Pending)

@@ -57,10 +57,12 @@ public sealed class AppointmentQueryRepository(AppDbContext db, ShopTimeZone sho
 
         var appointmentItem = ToListItem(row.Appointment, row.CustomerName, row.PetName);
 
-        var pendingCost = await db.Set<CostConfirmation>().AsNoTracking()
-            .Where(c => c.AppointmentId == appointmentId && c.Status == ConfirmationStatus.Pending)
-            .OrderByDescending(c => c.CreatedAt)
-            .FirstOrDefaultAsync(ct);
+        var pendingCost = row.Appointment.Status is not (AppointmentStatus.Cancelled or AppointmentStatus.Completed)
+            ? await db.Set<CostConfirmation>().AsNoTracking()
+                .Where(c => c.AppointmentId == appointmentId && c.Status == ConfirmationStatus.Pending)
+                .OrderByDescending(c => c.CreatedAt)
+                .FirstOrDefaultAsync(ct)
+            : null;
 
         // Dịch vụ và nhân viên chỉ có ở lịch spa.
         if (row.Appointment is not SpaAppointment)

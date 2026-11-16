@@ -14,10 +14,12 @@ public class CostConfirmationServiceTests
     private static readonly Guid PetId = Guid.NewGuid();
     private static readonly Guid CustomerUserId = Guid.NewGuid();
     private static readonly Guid ReceptionistUserId = Guid.NewGuid();
+    private static readonly Guid SpaStaffUserId = Guid.NewGuid();
 
     private static readonly CurrentUser Owner = new(CustomerUserId, UserRole.Customer);
     private static readonly CurrentUser OtherCustomer = new(Guid.NewGuid(), UserRole.Customer);
     private static readonly CurrentUser Receptionist = new(ReceptionistUserId, UserRole.Staff);
+    private static readonly CurrentUser SpaStaff = new(SpaStaffUserId, UserRole.Staff);
     private static readonly CurrentUser Manager = new(Guid.NewGuid(), UserRole.Manager);
 
     private sealed class FakeChangeRepository : IAppointmentChangeRepository
@@ -88,17 +90,27 @@ public class CostConfirmationServiceTests
         public Task LockPaymentAsync(Guid paymentId, CancellationToken ct = default) => Task.CompletedTask;
     }
 
+    private sealed class FakeStaffRoleReader : IStaffRoleReader
+    {
+        public Dictionary<Guid, StaffRole> Roles { get; } = [];
+        public Task<StaffRole?> GetStaffRoleAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult(Roles.TryGetValue(userId, out var role) ? role : (StaffRole?)null);
+    }
+
     private sealed class Fixture
     {
         public FakeChangeRepository Changes { get; } = new();
         public FakeCostConfirmationRepository Confirmations { get; } = new();
         public FakePetRepository Pets { get; } = new();
         public FakeHotelAssignmentRepository Hotel { get; } = new();
+        public FakeStaffRoleReader StaffRoles { get; } = new();
         public CostConfirmationService Service { get; }
 
         public Fixture()
         {
-            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard());
+            StaffRoles.Roles[ReceptionistUserId] = StaffRole.Receptionist;
+            StaffRoles.Roles[SpaStaffUserId] = StaffRole.SpaStaff;
+            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard(), StaffRoles);
         }
     }
 
@@ -296,6 +308,14 @@ public class CostConfirmationServiceTests
     }
 
     [Fact]
+    public async Task Respond_BySpaStaff_ThrowsForbidden()
+    {
+        var f = Create(ReceivedSpa());
+
+        await AssertErrorAsync(ErrorCodes.Forbidden, () => f.Service.RespondAsync(SpaStaff, AppointmentId, accept: true));
+    }
+
+    [Fact]
     public async Task Respond_WhenAppointmentNotFound_ThrowsNotFound()
     {
         var f = new Fixture();
@@ -312,17 +332,17 @@ public class CostConfirmationServiceTests
     }
 
     [Fact]
-    public async Task Respond_WhenExpired_ThrowsExpiredAndKeepsPendingAndAppointment()
+    public async Task Respond_WhenExpired_CancelsAppointmentAndMarksExpired()
     {
         var spa = ReceivedSpa();
         var f = Create(spa, expiresAt: DateTimeOffset.UtcNow.AddMinutes(-1));
 
         await AssertErrorAsync(ErrorCodes.CostConfirmationExpired, () => f.Service.RespondAsync(Owner, AppointmentId, accept: false));
 
-        Assert.Equal(ConfirmationStatus.Pending, f.Confirmations.Added[0].Status);
-        Assert.Equal(AppointmentStatus.Received, spa.Status);
-        Assert.Null(spa.CancelReason);
-        Assert.False(f.Changes.StaffReleased);
+        Assert.Equal(ConfirmationStatus.Expired, f.Confirmations.Added[0].Status);
+        Assert.Equal(AppointmentStatus.Cancelled, spa.Status);
+        Assert.Equal(CancelReason.CostNotConfirmed, spa.CancelReason);
+        Assert.True(f.Changes.StaffReleased);
     }
 
     [Fact]

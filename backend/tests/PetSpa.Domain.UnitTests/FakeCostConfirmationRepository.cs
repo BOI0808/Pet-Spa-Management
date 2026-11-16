@@ -13,7 +13,9 @@ internal sealed class FakeCostConfirmationRepository : ICostConfirmationReposito
         Task.FromResult(TimeoutMinutes);
 
     public Task<bool> HasPendingAsync(Guid appointmentId, CancellationToken ct = default) =>
-        Task.FromResult(Added.Any(c => c.AppointmentId == appointmentId && c.Status == ConfirmationStatus.Pending));
+        Task.FromResult(Added.Any(c => c.AppointmentId == appointmentId
+                                    && c.Status == ConfirmationStatus.Pending
+                                    && c.ExpiresAt > DateTimeOffset.UtcNow));
 
     public Task<CostConfirmation?> FindPendingAsync(Guid appointmentId, CancellationToken ct = default) =>
         Task.FromResult(Added.FirstOrDefault(c => c.AppointmentId == appointmentId && c.Status == ConfirmationStatus.Pending));

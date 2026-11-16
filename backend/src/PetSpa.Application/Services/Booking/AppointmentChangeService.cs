@@ -18,19 +18,20 @@ public sealed class AppointmentChangeService(
     ShopTimeZone shopTimeZone,
     IConcurrencyGuard concurrency,
     IAssignmentRepository assignments,
-    IHotelAssignmentRepository hotelAssignments)
+    IHotelAssignmentRepository hotelAssignments,
+    ICostConfirmationRepository costConfirmations)
 {
     public async Task<AppointmentStatus> CancelAsync(
         CurrentUser user, Guid appointmentId, CancelReason? reason = null, CancellationToken ct = default)
     {
         if (user.Role == UserRole.Manager)
-            return await CancelByManagerAsync(appointmentId, reason, ct);
+            return await CancelByManagerAsync(user, appointmentId, reason, ct);
 
         return await CancelByCustomerAsync(user, appointmentId, ct);
     }
 
     private async Task<AppointmentStatus> CancelByManagerAsync(
-        Guid appointmentId, CancelReason? reason, CancellationToken ct)
+        CurrentUser user, Guid appointmentId, CancelReason? reason, CancellationToken ct)
     {
         if (reason is not (CancelReason.StoreUnable or CancelReason.CustomerBeyondDeadline))
             throw new BusinessException(
@@ -45,6 +46,9 @@ public sealed class AppointmentChangeService(
 
             var appointment = fresh.Appointment;
             appointment.Cancel(reason.Value);
+
+            var pendingCost = await costConfirmations.FindPendingAsync(appointmentId, ct);
+            pendingCost?.Reject(user.UserId);
 
             if (appointment is SpaAppointment)
                 await changes.ReleaseStaffHoldsAsync(appointmentId, ct);
@@ -77,6 +81,9 @@ public sealed class AppointmentChangeService(
             EnsureChangeAllowed(appointment, deadlineMinutes);
 
             appointment.Cancel(CancelReason.CustomerCancelled);
+
+            var pendingCost = await costConfirmations.FindPendingAsync(appointmentId, ct);
+            pendingCost?.Reject(user.UserId);
 
             if (appointment is SpaAppointment)
                 await changes.ReleaseStaffHoldsAsync(appointmentId, ct);

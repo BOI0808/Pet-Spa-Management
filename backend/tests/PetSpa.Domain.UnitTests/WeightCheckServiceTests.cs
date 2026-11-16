@@ -305,6 +305,27 @@ public sealed class WeightCheckServiceTests
         Assert.Equal(ErrorCodes.NotFound, ex.Code);
     }
 
+    [Fact]
+    public async Task RecordForSpaAsync_WhenNewSizeGroupPriceMissing_ThrowsValidationError()
+    {
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var appt = new SpaAppointment { AppointmentId = AppointmentId, PetId = PetId, SizeGroup = SizeGroup.Small };
+        var spaSnapshot = new SpaAmountSnapshot(
+            Species.Cat,
+            SizeGroup.Small,
+            AppointmentStatus.Confirmed,
+            [ServiceId],
+            [new ServicePricing { ServiceId = ServiceId, Species = Species.Cat, SizeGroup = SizeGroup.Small, Price = 100000m }]);
+
+        var (sut, _, _, bookings, _, _) = CreateSut(pet: pet, spaSnapshot: spaSnapshot);
+        // Do not provide pricing for SizeGroup.Medium
+        bookings.PricingByGroup[SizeGroup.Medium] = [];
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => sut.RecordForSpaAsync(appt, 3.4m));
+        Assert.Equal(ErrorCodes.ValidationError, ex.Code);
+        Assert.Equal("Có dịch vụ không áp dụng cho nhóm kích cỡ mới của thú cưng.", ex.Message);
+    }
+
     #endregion
 
     #region Hotel Tests

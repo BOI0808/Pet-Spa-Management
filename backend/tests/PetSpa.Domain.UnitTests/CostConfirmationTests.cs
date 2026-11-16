@@ -73,4 +73,29 @@ public class CostConfirmationTests
         Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
         Assert.Equal(status, confirmation.Status);
     }
+
+    [Fact]
+    public void Expire_WhenPending_SetsExpired()
+    {
+        var confirmation = Confirmation();
+
+        confirmation.Expire();
+
+        Assert.Equal(ConfirmationStatus.Expired, confirmation.Status);
+        Assert.NotNull(confirmation.RespondedAt);
+    }
+
+    [Theory]
+    [InlineData(ConfirmationStatus.Accepted)]
+    [InlineData(ConfirmationStatus.Rejected)]
+    [InlineData(ConfirmationStatus.Expired)]
+    public void Expire_WhenNotPending_ThrowsInvalidTransition(ConfirmationStatus status)
+    {
+        var confirmation = Confirmation(status);
+
+        var ex = Assert.Throws<BusinessException>(() => confirmation.Expire());
+
+        Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
+        Assert.Equal(status, confirmation.Status);
+    }
 }

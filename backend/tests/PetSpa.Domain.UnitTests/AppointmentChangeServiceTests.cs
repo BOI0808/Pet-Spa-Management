@@ -306,6 +306,7 @@ public class AppointmentChangeServiceTests
         public FakeHotelBookingRepository Hotel { get; } = new();
         public FakeAssignmentRepository Assignments { get; } = new();
         public FakeHotelAssignmentRepository HotelAssignments { get; } = new();
+        public FakeCostConfirmationRepository CostConfirmations { get; } = new();
         public AppointmentChangeService Service { get; }
 
         public Fixture()
@@ -316,7 +317,7 @@ public class AppointmentChangeServiceTests
 
             Service = new AppointmentChangeService(
                 Changes, Pets, Bookings, new FakeServiceCatalogRepository(), Hotel,
-                new FakeTimeZoneProvider(StoreTimeZone), Shop, new FakeConcurrencyGuard(), Assignments, HotelAssignments);
+                new FakeTimeZoneProvider(StoreTimeZone), Shop, new FakeConcurrencyGuard(), Assignments, HotelAssignments, CostConfirmations);
         }
     }
 
@@ -445,6 +446,52 @@ public class AppointmentChangeServiceTests
         Assert.Equal(reason, spa.CancelReason);
         Assert.NotNull(spa.CancelledAt);
         Assert.True(f.Changes.StaffReleased);
+    }
+
+    [Fact]
+    public async Task Cancel_ByManagerWithPendingCostConfirmation_RejectsCostConfirmation()
+    {
+        var f = new Fixture();
+        var spa = SpaAt(DateTimeOffset.UtcNow.AddMinutes(30));
+        f.Changes.Stored = spa;
+
+        var confirmation = new CostConfirmation
+        {
+            ConfirmationId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Status = ConfirmationStatus.Pending,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(30),
+        };
+        f.CostConfirmations.Add(confirmation);
+
+        await f.Service.CancelAsync(ManagerUser, AppointmentId, CancelReason.StoreUnable);
+
+        Assert.Equal(ConfirmationStatus.Rejected, confirmation.Status);
+        Assert.Equal(ManagerUser.UserId, confirmation.RespondedByUserId);
+        Assert.NotNull(confirmation.RespondedAt);
+    }
+
+    [Fact]
+    public async Task Cancel_ByCustomerWithPendingCostConfirmation_RejectsCostConfirmation()
+    {
+        var f = new Fixture();
+        var spa = SpaAt(DateTimeOffset.UtcNow.AddMinutes(120));
+        f.Changes.Stored = spa;
+
+        var confirmation = new CostConfirmation
+        {
+            ConfirmationId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Status = ConfirmationStatus.Pending,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(30),
+        };
+        f.CostConfirmations.Add(confirmation);
+
+        await f.Service.CancelAsync(CustomerUser, AppointmentId);
+
+        Assert.Equal(ConfirmationStatus.Rejected, confirmation.Status);
+        Assert.Equal(CustomerUser.UserId, confirmation.RespondedByUserId);
+        Assert.NotNull(confirmation.RespondedAt);
     }
 
     [Fact]

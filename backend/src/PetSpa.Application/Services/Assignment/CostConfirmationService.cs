@@ -11,12 +11,17 @@ public sealed class CostConfirmationService(
     ICostConfirmationRepository costConfirmations,
     IPetRepository pets,
     IHotelAssignmentRepository hotelAssignments,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    IStaffRoleReader staffRoles)
 {
     public async Task<CostConfirmationResult> RespondAsync(
         CurrentUser user, Guid appointmentId, bool accept, CancellationToken ct = default)
     {
         if (user.Role == UserRole.Manager)
+            throw new BusinessException(ErrorCodes.Forbidden);
+
+        if (user.Role == UserRole.Staff
+            && await staffRoles.GetStaffRoleAsync(user.UserId, ct) != StaffRole.Receptionist)
             throw new BusinessException(ErrorCodes.Forbidden);
 
         var found = await appointments.FindWithOwnerAsync(appointmentId, asNoTracking: true, ct)
@@ -25,7 +30,8 @@ public sealed class CostConfirmationService(
         if (user.Role == UserRole.Customer)
             OwnershipGuard.EnsureOwner(user, found.OwnerUserId);
 
-        return await concurrencyGuard.RunAsync(async () =>
+        var isExpired = false;
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -39,12 +45,25 @@ public sealed class CostConfirmationService(
             EnsureAwaitingResponse(appointment);
 
             if (DateTimeOffset.UtcNow > confirmation.ExpiresAt)
-                throw new BusinessException(ErrorCodes.CostConfirmationExpired);
+            {
+                confirmation.Expire();
+                appointment.Cancel(CancelReason.CostNotConfirmed);
+                if (appointment is SpaAppointment)
+                    await appointments.ReleaseStaffHoldsAsync(appointment.AppointmentId, ct);
+
+                isExpired = true;
+                return new CostConfirmationResult(appointment.Status, null);
+            }
 
             return accept
                 ? await AcceptAsync(user, appointment, confirmation, ct)
                 : await RejectAsync(user, appointment, confirmation, ct);
         }, ct);
+
+        if (isExpired)
+            throw new BusinessException(ErrorCodes.CostConfirmationExpired);
+
+        return result;
     }
 
     private async Task<CostConfirmationResult> AcceptAsync(

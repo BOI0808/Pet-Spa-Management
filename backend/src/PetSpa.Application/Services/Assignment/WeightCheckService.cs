@@ -34,8 +34,16 @@ public sealed class WeightCheckService(
 
             oldAmount = PricingService.CalculateSpaAmount(
                 snapshot.Species, appointment.SizeGroup, snapshot.ServiceIds, snapshot.Pricing);
-            newAmount = PricingService.CalculateSpaAmount(
-                snapshot.Species, comparison.NewSizeGroup, snapshot.ServiceIds, newPricing);
+            try
+            {
+                newAmount = PricingService.CalculateSpaAmount(
+                    snapshot.Species, comparison.NewSizeGroup, snapshot.ServiceIds, newPricing);
+            }
+            catch (InvalidOperationException)
+            {
+                throw new BusinessException(
+                    ErrorCodes.ValidationError, "Có dịch vụ không áp dụng cho nhóm kích cỡ mới của thú cưng.");
+            }
         }
 
         var outcome = Apply(appointment, context, actualWeightKg, oldAmount, newAmount);
