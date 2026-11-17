@@ -4,6 +4,7 @@ import type {
   AppointmentPage,
   AppointmentStatus,
   AppointmentType,
+  CancelRequest,
   ConfirmHotelRequest,
   ConfirmSpaRequest,
   HotelSuggestions,
@@ -88,5 +89,17 @@ export async function confirmSpaAppointment({
     staffIds,
     ...(confirmOutOfShift ? { confirmOutOfShift } : {}),
   } satisfies ConfirmSpaRequest);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/cancel – Quản lý hủy lịch hẹn khi cửa hàng không thể đáp ứng hoặc khi khách yêu cầu ngoài thời hạn tự hủy (FR-CHG-03).
+ * Bắt buộc gửi `reason` là StoreUnable hoặc CustomerBeyondDeadline; không gửi trạng thái hay số tiền (hoàn tiền xử lý ngoài hệ thống, BR-24).
+ * Lịch Hoàn tất, đã Đã hủy → 409 INVALID_TRANSITION; không tìm thấy → 404 NOT_FOUND.
+ */
+export async function cancelAppointment({ appointmentId, reason }: { appointmentId: string } & CancelRequest) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/cancel`, {
+    reason,
+  } satisfies CancelRequest);
   return data;
 }

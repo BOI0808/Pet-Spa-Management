@@ -256,7 +256,33 @@ export type AppointmentServiceItem = {
   note?: string | null;
 };
 
-/** GET /appointments/{id} (schema AppointmentDetail). Chỉ khai báo `services` mà MW-04 cần để nêu tên dịch vụ và tính tạm tính. */
+/** Lý do hủy lịch hẹn (schema CancelReason). */
+export type CancelReason = "CustomerCancelled" | "StoreUnable" | "CustomerBeyondDeadline" | "NoShow" | "CostNotConfirmed";
+
+/** Hai lý do Quản lý được gửi ở POST /appointments/{id}/cancel (schema ManagerCancelReason). */
+export type ManagerCancelReason = "StoreUnable" | "CustomerBeyondDeadline";
+
+/** Một nhân viên trong `staff` của GET /appointments/{id} (schema AppointmentStaffItem); lịch spa mới có, rỗng khi chưa xác nhận. */
+export type AppointmentStaffItem = {
+  staffId: string;
+  fullName: string;
+  /** `true` khi nhân viên đang giữ chỗ cho lịch (lịch chưa Hoàn tất, chưa Đã hủy). */
+  isHolding: boolean;
+  assignedAt: string;
+};
+
+/**
+ * GET /appointments/{id} (schema AppointmentDetail). Khai báo `services` (MW-04 nêu tên dịch vụ, tính tạm tính) và các trường
+ * MW-05 dùng để hiển thị đầu trang và để đổi, hủy lịch (thẻ 148).
+ */
 export type AppointmentDetail = Appointment & {
   services?: AppointmentServiceItem[];
+  staff?: AppointmentStaffItem[];
+  cancelReason?: CancelReason | null;
+  cancelledAt?: string | null;
+  /** Số nhân viên cần của lịch spa. */
+  staffRequired?: number | null;
 };
+
+/** Body của POST /appointments/{id}/cancel khi Quản lý gọi: bắt buộc có `reason` (schema CancelRequest). */
+export type CancelRequest = { reason: ManagerCancelReason };
