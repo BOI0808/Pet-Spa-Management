@@ -141,6 +141,23 @@ export function useAppointmentPayments(appointmentId: string, { enabled = true }
 const PHOTO_URL_REUSE_MS = 40 * 60_000;
 const photoUrlCache = new Map<string, { url: string; fetchedAt: number }>();
 
+/** Bỏ các URL đã quá thời gian dùng lại để bộ nhớ không lớn dần khi khách xem nhiều lịch. */
+function pruneExpiredPhotoUrls(now: number) {
+  for (const [photoId, entry] of photoUrlCache) {
+    if (now - entry.fetchedAt >= PHOTO_URL_REUSE_MS) photoUrlCache.delete(photoId);
+  }
+}
+
+/**
+ * Thời gian dữ liệu còn mới tính theo URL cũ nhất trong danh sách, không theo lúc tải lại, vì lần tải lại có thể giữ
+ * URL ký từ trước: URL ký phút 0, tải lại phút 35 thì dữ liệu chỉ còn mới tới phút 40, không phải phút 75.
+ */
+function photoStaleTime(photos: Photo[] | undefined, dataUpdatedAt: number) {
+  if (!photos || photos.length === 0) return PHOTO_URL_REUSE_MS;
+  const oldest = Math.min(...photos.map((photo) => photoUrlCache.get(photo.photoId)?.fetchedAt ?? dataUpdatedAt));
+  return Math.max(0, oldest + PHOTO_URL_REUSE_MS - dataUpdatedAt);
+}
+
 /** Ảnh trước được tải lên khi lịch `Received`, ảnh sau khi `InProgress` (FR-EXE-09). */
 const PHOTO_LIVE_STATUSES: readonly AppointmentStatus[] = ["Received", "InProgress"];
 
@@ -155,7 +172,9 @@ export function useAppointmentPhotos(appointmentId: string, { enabled = true, li
   const query = useQuery({
     queryKey: appointmentKeys.photos(appointmentId),
     queryFn: async () => {
+      // Lấy mốc trước khi gọi: URL được ký sau mốc này nên tính hạn sớm hơn một chút, không bao giờ muộn hơn.
       const now = Date.now();
+      pruneExpiredPhotoUrls(now);
       const photos = await listAppointmentPhotos(appointmentId);
       return sortPhotos(
         photos.map((photo): Photo => {
@@ -167,15 +186,22 @@ export function useAppointmentPhotos(appointmentId: string, { enabled = true, li
       );
     },
     enabled,
-    // Sau 40 phút coi là cũ để lần mở lại màn lấy URL mới trước khi URL hết hạn.
-    staleTime: PHOTO_URL_REUSE_MS,
+    // URL cũ nhất quá 40 phút thì coi là cũ để lần mở lại màn lấy URL mới trước khi URL hết hạn.
+    staleTime: (current) => photoStaleTime(current.state.data, current.state.dataUpdatedAt),
     refetchInterval: liveStatus && PHOTO_LIVE_STATUSES.includes(liveStatus) ? LIVE_DETAIL_REFETCH_MS : false,
   });
 
-  /** Bỏ URL đã nhớ của lịch này rồi tải lại. */
+  /**
+   * Bỏ URL đã nhớ của lịch này rồi tải lại. Nhiều ảnh cùng hết hạn sẽ gọi hàm này gần như cùng lúc:
+   * `cancelRefetch: false` để các lần sau dùng chung lần tải đang chạy thay vì hủy và gửi lại request.
+   * Lần tải đang chạy vẫn ra URL mới vì bộ nhớ URL chỉ được đọc sau khi có phản hồi.
+   */
   function refreshUrls() {
     query.data?.forEach((photo) => photoUrlCache.delete(photo.photoId));
-    void queryClient.invalidateQueries({ queryKey: appointmentKeys.photos(appointmentId), exact: true });
+    void queryClient.invalidateQueries(
+      { queryKey: appointmentKeys.photos(appointmentId), exact: true },
+      { cancelRefetch: false },
+    );
   }
 
   return { ...query, refreshUrls };

@@ -1,7 +1,7 @@
 "use client";
 
 // PhotoTile (`.photo` của ui-demo) – Design-System 4.2: ảnh 4:3, nhãn Trước (trắng) / Sau (Lagoon), dải thời gian.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import type { Photo, PhotoKind } from "@/lib/api/types";
 
@@ -12,8 +12,15 @@ const BACKGROUND: Record<PhotoKind, string> = {
   After: "bg-[linear-gradient(160deg,#E9F7F7,#CBEDEF)]",
 };
 
+// Nhãn nằm trên nền ảnh nên “Trước” là nền trắng; trong PhotoViewer nhãn nằm trên đầu hộp thoại trắng nên “Trước”
+// dùng nền line-soft (PHOTO_VIEWER_LABEL_CLASS).
 const LABEL_CLASS: Record<PhotoKind, string> = {
   Before: "bg-white text-ink",
+  After: "bg-lagoon text-white",
+};
+
+export const PHOTO_VIEWER_LABEL_CLASS: Record<PhotoKind, string> = {
+  Before: "bg-line-soft text-ink",
   After: "bg-lagoon text-white",
 };
 
@@ -24,15 +31,29 @@ type PhotoImageProps = {
   className?: string;
 };
 
+/** Chờ URL mới tối đa 10 giây; quá hạn (vd. tải lại vẫn ra URL cũ) thì coi là không tải được. */
+const RETRY_TIMEOUT_MS = 10_000;
+
 /**
  * Thẻ `img` thường, không qua tối ưu ảnh của Next.js vì URL có hạn (Frontend-Architecture 9).
- * Lỗi lần đầu với một URL → báo `onBroken` để lấy URL mới; URL mới vẫn lỗi → hiện ô “Không tải được ảnh”.
+ * URL lỗi → báo `onBroken` để lấy URL mới, trong lúc chờ chỉ để trống nền ô ảnh; URL mới vẫn lỗi (hoặc không có
+ * `onBroken`, hoặc chờ quá lâu) → hiện ô “Không tải được ảnh”. Ảnh tải được thì lần hết hạn sau lại được thử lại.
  */
 export function PhotoImage({ photo, onBroken, className = "size-full object-cover" }: PhotoImageProps) {
+  const [retryingUrl, setRetryingUrl] = useState<string | null>(null);
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
-  const [retried, setRetried] = useState(false);
+  const url = photo.url;
+  const waiting = retryingUrl === url && brokenUrl !== url;
 
-  if (brokenUrl === photo.url && retried) {
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setTimeout(() => setBrokenUrl(url), RETRY_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [waiting, url]);
+
+  if (waiting) return <span aria-busy="true" aria-label="Đang tải ảnh" className="size-full" />;
+
+  if (brokenUrl === url) {
     return (
       <span className="flex size-full flex-col items-center justify-center gap-1 p-2 text-center text-xs text-muted">
         <Icon name="image" className="size-6" />
@@ -44,17 +65,22 @@ export function PhotoImage({ photo, onBroken, className = "size-full object-cove
   return (
     // eslint-disable-next-line @next/next/no-img-element -- URL tạm thời, không qua next/image
     <img
-      key={photo.url}
-      src={photo.url}
+      key={url}
+      src={url}
       alt={`Ảnh ${PHOTO_KIND_LABEL[photo.kind].toLocaleLowerCase("vi-VN")} chăm sóc`}
       loading="lazy"
       decoding="async"
       className={className}
+      onLoad={() => {
+        if (retryingUrl !== null) setRetryingUrl(null);
+      }}
       onError={() => {
-        setBrokenUrl(photo.url);
-        if (!retried) {
-          setRetried(true);
-          onBroken?.();
+        // Đang chờ URL mới cho một URL trước đó mà URL này cũng lỗi → thôi, không thử tiếp.
+        if (onBroken && retryingUrl === null) {
+          setRetryingUrl(url);
+          onBroken();
+        } else {
+          setBrokenUrl(url);
         }
       }}
     />

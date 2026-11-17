@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/icons";
 import type { Photo } from "@/lib/api/types";
-import { PHOTO_KIND_LABEL, PhotoImage } from "./photo-tile";
+import { PHOTO_KIND_LABEL, PHOTO_VIEWER_LABEL_CLASS, PhotoImage } from "./photo-tile";
 
 type PhotoViewerProps = {
   photos: Photo[];
@@ -47,18 +47,19 @@ export function PhotoViewer({ photos, index, onIndexChange, describe, onBroken }
         if (event.target === event.currentTarget) onIndexChange(null);
       }}
       onKeyDown={(event) => {
-        if (event.key === "ArrowRight") go(1);
-        if (event.key === "ArrowLeft") go(-1);
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+        event.preventDefault();
+        go(event.key === "ArrowRight" ? 1 : -1);
       }}
-      className="m-auto max-h-[calc(100vh-40px)] w-[calc(100%-40px)] max-w-[880px] overflow-auto rounded-2xl bg-white p-0 text-ink shadow-pop backdrop:bg-ink/70 open:animate-pop"
+      className="m-auto max-h-[calc(100vh-40px)] w-[calc(100%-40px)] max-w-[880px] overflow-hidden rounded-2xl bg-white p-0 text-ink shadow-pop backdrop:bg-ink/70 open:animate-pop"
     >
+      {/* Cuộn ở khung trong, không ở chính dialog: bấm thanh cuộn của dialog có target là dialog nên sẽ bị coi là
+          bấm nền mờ và đóng hộp thoại. */}
       {photo && (
-        <div>
+        <div className="max-h-[calc(100vh-40px)] overflow-auto">
           <div className="flex items-center gap-3 px-5 pb-3 pt-4">
             <span
-              className={`rounded-[7px] px-2 py-0.5 text-xs font-semibold ${
-                photo.kind === "After" ? "bg-lagoon text-white" : "bg-line-soft text-ink"
-              }`}
+              className={`rounded-[7px] px-2 py-0.5 text-xs font-semibold ${PHOTO_VIEWER_LABEL_CLASS[photo.kind]}`}
             >
               {PHOTO_KIND_LABEL[photo.kind]}
             </span>

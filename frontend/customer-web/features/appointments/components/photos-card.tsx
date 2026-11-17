@@ -45,10 +45,13 @@ export function PhotosCard({ appointment }: { appointment: AppointmentDetail }) 
     enabled: canHavePhotos,
     liveStatus: appointment.status,
   });
-  const [viewing, setViewing] = useState<number | null>(null);
+  // Nhớ ảnh đang xem theo photoId: tải lại định kỳ có thể chen ảnh mới vào giữa danh sách (ảnh Trước xếp trước ảnh
+  // Sau) nên vị trí cũ có thể trỏ sang ảnh khác; ảnh không còn trong danh sách thì hộp thoại đóng.
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
-  // Lịch đã hủy: chỉ hiện thẻ khi có ảnh (ví dụ hủy sau khi đã tiếp nhận); demo ẩn thẻ ở lịch hủy.
-  if (appointment.status === "Cancelled" && !(photos.data && photos.data.length > 0)) return null;
+  // Lịch đã hủy: demo ẩn thẻ, chỉ hiện khi có ảnh (hủy sau khi đã tiếp nhận) hoặc tải ảnh lỗi. Lúc đang tải không hiện
+  // khung xương vì phần lớn lịch hủy trước khi tiếp nhận, không có ảnh.
+  if (appointment.status === "Cancelled" && !photos.isError && !(photos.data && photos.data.length > 0)) return null;
 
   let body;
   if (!canHavePhotos) {
@@ -73,16 +76,17 @@ export function PhotosCard({ appointment }: { appointment: AppointmentDetail }) 
     body = <EmptyPhotos />;
   } else {
     const list = photos.data;
+    const viewingIndex = list.findIndex((photo) => photo.photoId === viewingId);
     body = (
       <>
         <ul className={gridClass}>
-          {list.map((photo, index) => (
+          {list.map((photo) => (
             <li key={photo.photoId}>
               <PhotoTile
                 photo={photo}
                 meta={photoMeta(photo)}
                 onBroken={photos.refreshUrls}
-                onOpen={() => setViewing(index)}
+                onOpen={() => setViewingId(photo.photoId)}
                 className="w-full"
               />
             </li>
@@ -90,8 +94,8 @@ export function PhotosCard({ appointment }: { appointment: AppointmentDetail }) 
         </ul>
         <PhotoViewer
           photos={list}
-          index={viewing}
-          onIndexChange={setViewing}
+          index={viewingIndex === -1 ? null : viewingIndex}
+          onIndexChange={(next) => setViewingId(next === null ? null : (list[next]?.photoId ?? null))}
           describe={(photo) => `Chụp lúc ${formatDateTime(photo.uploadedAt)}`}
           onBroken={photos.refreshUrls}
         />
