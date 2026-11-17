@@ -26,3 +26,11 @@ export function toStoreDate(iso: string) {
 export function toStoreTime(iso: string) {
   return STORE_TIME_FORMAT.format(new Date(iso));
 }
+
+// Việt Nam không có giờ mùa hè nên độ lệch múi giờ cửa hàng luôn là +07:00.
+const STORE_UTC_OFFSET = "+07:00";
+
+/** Ngày “YYYY-MM-DD” và giờ “HH:mm” theo múi giờ cửa hàng → ISO 8601 gửi lên API: (“2026-10-06”, “14:00”) → “2026-10-06T14:00:00+07:00”. */
+export function toStoreIso(date: string, time: string) {
+  return `${date}T${time}:00${STORE_UTC_OFFSET}`;
+}

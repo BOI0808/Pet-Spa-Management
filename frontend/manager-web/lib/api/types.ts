@@ -286,3 +286,24 @@ export type AppointmentDetail = Appointment & {
 
 /** Body của POST /appointments/{id}/cancel khi Quản lý gọi: bắt buộc có `reason` (schema CancelRequest). */
 export type CancelRequest = { reason: ManagerCancelReason };
+
+/**
+ * Body PUT /appointments/{id} của lịch spa khi Quản lý gọi. Backend bắt buộc đủ `slotStart`, `petId`, `serviceIds` (giá trị cũ nếu không đổi);
+ * `staffIds` chỉ có hiệu lực với lịch Đã xác nhận (bỏ trống thì giữ nhân viên hiện tại); `confirmOutOfShift` chỉ gửi `true` sau khi Quản lý đồng ý.
+ */
+export type UpdateSpaAppointmentRequest = {
+  slotStart: string;
+  petId: string;
+  serviceIds: string[];
+  staffIds?: string[];
+  confirmOutOfShift?: true;
+};
+
+/** Body PUT /appointments/{id} của lịch lưu trú: bắt buộc đủ `plannedCheckIn`, `plannedCheckOut`, `petId`. Không gửi `cageId` thì giữ chuồng hiện tại. */
+export type UpdateHotelAppointmentRequest = {
+  plannedCheckIn: string;
+  plannedCheckOut: string;
+  petId: string;
+};
+
+export type UpdateAppointmentRequest = UpdateSpaAppointmentRequest | UpdateHotelAppointmentRequest;

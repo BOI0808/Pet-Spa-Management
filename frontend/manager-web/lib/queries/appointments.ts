@@ -8,6 +8,7 @@ import {
   getSpaSuggestions,
   listAppointments,
   rejectAppointment,
+  updateAppointment,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
 import type { Appointment } from "@/lib/api/types";
@@ -230,6 +231,20 @@ export function useCancelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: cancelAppointment,
+    onSuccess: () => {
+      void invalidateAppointments(queryClient);
+    },
+    onError: (error) => {
+      if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
+    },
+  });
+}
+
+/** PUT /appointments/{id} (FR-CHG-03). Lỗi 409 (hết chỗ, trùng nhân viên, lịch đã đổi trạng thái…) tải lại để thấy dữ liệu mới nhất. */
+export function useUpdateAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateAppointment,
     onSuccess: () => {
       void invalidateAppointments(queryClient);
     },

@@ -11,9 +11,10 @@ import { formatAppointmentCode } from "@/lib/format";
 import { APPOINTMENT_TYPE_LABELS, CANCEL_REASON_LABELS } from "@/lib/labels";
 import { usePet } from "@/lib/queries/pets";
 import { buildPendingHref } from "@/features/pending/params";
-import { canCancelAppointment } from "../rules";
+import { canCancelAppointment, canChangeAppointment } from "../rules";
 import { formatAppointmentSchedule } from "../schedule";
 import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
+import { ChangeSpaAppointmentDialog } from "./change-spa-appointment-dialog";
 
 type AppointmentHeaderCardProps = { appointment: AppointmentDetail };
 
@@ -22,7 +23,7 @@ type AppointmentHeaderCardProps = { appointment: AppointmentDetail };
  * các vùng còn lại của MW-05 do thẻ 147 (giám sát, ảnh minh chứng) và 149 (cập nhật trạng thái) làm.
  */
 export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProps) {
-  const [dialog, setDialog] = useState<"cancel" | null>(null);
+  const [dialog, setDialog] = useState<"cancel" | "change" | null>(null);
   const pet = usePet(appointment.petId).data;
   const code = formatAppointmentCode(appointment.appointmentId);
   const holdingStaff = (appointment.staff ?? []).filter((member) => member.isHolding);
@@ -39,6 +40,7 @@ export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProp
     .join(" ");
 
   const canCancel = canCancelAppointment(appointment.status);
+  const canChange = canChangeAppointment(appointment.status) && appointment.type === "Spa" && Boolean(appointment.slotStart);
 
   return (
     <Card>
@@ -72,12 +74,21 @@ export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProp
         </div>
         {canCancel && (
           <div className="flex flex-wrap items-center gap-2.5 max-[640px]:w-full">
+            {canChange && (
+              <Button variant="secondary" onClick={() => setDialog("change")}>
+                Đổi lịch
+              </Button>
+            )}
             <Button variant="danger" onClick={() => setDialog("cancel")}>
               Hủy lịch
             </Button>
           </div>
         )}
       </div>
+
+      {dialog === "change" && canChange && appointment.type === "Spa" && (
+        <ChangeSpaAppointmentDialog appointment={appointment} onClose={() => setDialog(null)} onChanged={() => setDialog(null)} />
+      )}
 
       {dialog === "cancel" && canCancel && (
         <CancelAppointmentDialog
