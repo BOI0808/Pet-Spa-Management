@@ -14,6 +14,7 @@ import { buildPendingHref } from "@/features/pending/params";
 import { canCancelAppointment, canChangeAppointment } from "../rules";
 import { formatAppointmentSchedule } from "../schedule";
 import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
+import { ChangeHotelAppointmentDialog } from "./change-hotel-appointment-dialog";
 import { ChangeSpaAppointmentDialog } from "./change-spa-appointment-dialog";
 
 type AppointmentHeaderCardProps = { appointment: AppointmentDetail };
@@ -40,7 +41,8 @@ export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProp
     .join(" ");
 
   const canCancel = canCancelAppointment(appointment.status);
-  const canChange = canChangeAppointment(appointment.status) && appointment.type === "Spa" && Boolean(appointment.slotStart);
+  const hasSchedule = appointment.type === "Spa" ? Boolean(appointment.slotStart) : Boolean(appointment.plannedCheckIn && appointment.plannedCheckOut);
+  const canChange = canChangeAppointment(appointment.status) && hasSchedule;
 
   return (
     <Card>
@@ -88,6 +90,10 @@ export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProp
 
       {dialog === "change" && canChange && appointment.type === "Spa" && (
         <ChangeSpaAppointmentDialog appointment={appointment} onClose={() => setDialog(null)} onChanged={() => setDialog(null)} />
+      )}
+
+      {dialog === "change" && canChange && appointment.type === "Hotel" && (
+        <ChangeHotelAppointmentDialog appointment={appointment} onClose={() => setDialog(null)} onChanged={() => setDialog(null)} />
       )}
 
       {dialog === "cancel" && canCancel && (
