@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import type { Notification } from "@/lib/api/types";
 import { NOTIFICATION_TYPE_LABELS } from "@/lib/labels";
@@ -21,7 +21,7 @@ const rowClass =
 
 /**
  * Một thông báo (UI-Screens CW-12 vùng 3, 4). Có `appointmentId` → cả dòng là liên kết mở CW-09; không có mà chưa
- * đọc → nút chỉ đánh dấu đã đọc; đã đọc và không có lịch → chỉ hiển thị.
+ * đọc → nút chỉ đánh dấu đã đọc (đọc xong vẫn là nút, `aria-disabled`); đã đọc từ trước và không có lịch → chỉ hiển thị.
  */
 export function NotificationItem({ notification, today, onRead }: NotificationItemProps) {
   const { notificationId, type, appointmentId, message, isRead, createdAt } = notification;
@@ -65,6 +65,8 @@ export function NotificationItem({ notification, today, onRead }: NotificationIt
   const markRead = () => {
     if (!isRead) onRead(notificationId);
   };
+  // Dòng bắt đầu là “chưa đọc” giữ nguyên là nút sau khi bấm đọc: đổi nút thành div sẽ làm mất focus bàn phím.
+  const [startedUnread] = useState(!isRead);
 
   return (
     <li className={`border-b border-line-soft last:border-b-0 ${unreadClass}`}>
@@ -72,8 +74,13 @@ export function NotificationItem({ notification, today, onRead }: NotificationIt
         <Link href={ROUTES.appointmentDetail(appointmentId)} onClick={markRead} className={`${rowClass} hover:bg-mist`}>
           {content}
         </Link>
-      ) : !isRead ? (
-        <button type="button" onClick={markRead} className={`${rowClass} cursor-pointer hover:bg-mist`}>
+      ) : startedUnread ? (
+        <button
+          type="button"
+          onClick={markRead}
+          aria-disabled={isRead || undefined}
+          className={`${rowClass} ${isRead ? "cursor-default" : "cursor-pointer hover:bg-mist"}`}
+        >
           {content}
         </button>
       ) : (

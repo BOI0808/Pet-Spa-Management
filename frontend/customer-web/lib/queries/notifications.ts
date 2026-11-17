@@ -33,21 +33,32 @@ export function useInfiniteNotifications(pageSize: number) {
   });
 }
 
-/** Đánh dấu một thông báo đã đọc ngay trong bộ đệm (danh sách + số trên chuông), giảm `unread` đi 1. */
-function markReadInCache(page: NotificationPage, notificationId: string): NotificationPage {
-  const target = page.items.find((item) => item.notificationId === notificationId);
+type CachedNotifications = NotificationPage | InfiniteData<NotificationPage, number>;
+
+function pagesOf(data: CachedNotifications | undefined): NotificationPage[] {
+  if (!data) return [];
+  return "pages" in data ? data.pages : [data];
+}
+
+/** Thông báo đã là “đã đọc” ở bất kỳ bộ đệm nào (bấm lặp, hoặc đã đọc ở nơi khác rồi tải lại). */
+function isReadInCache(entries: [readonly unknown[], CachedNotifications | undefined][], notificationId: string) {
+  return entries.some(([, data]) =>
+    pagesOf(data).some((page) => page.items.some((item) => item.notificationId === notificationId && item.isRead)),
+  );
+}
+
+/** Đánh dấu một thông báo đã đọc trong một trang của bộ đệm và giảm `unread` đi 1. */
+function markReadInPage(page: NotificationPage, notificationId: string): NotificationPage {
   return {
     ...page,
-    items: target && !target.isRead
-      ? page.items.map((item) => (item === target ? { ...item, isRead: true } : item))
-      : page.items,
+    items: page.items.map((item) => (item.notificationId === notificationId ? { ...item, isRead: true } : item)),
     unread: Math.max(0, page.unread - 1),
   };
 }
 
 /**
  * Bấm thông báo chưa đọc → POST /notifications/{id}/read, không chờ kết quả (UI-Screens CW-12): cập nhật bộ đệm
- * trước để chấm và số trên chuông đổi ngay. Lỗi thì tải lại để trạng thái khớp backend.
+ * trước để chấm và số trên chuông đổi ngay. Lỗi thì trả bộ đệm về như trước khi bấm rồi tải lại cho khớp backend.
  */
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
@@ -55,18 +66,22 @@ export function useMarkNotificationRead() {
     mutationFn: markNotificationRead,
     onMutate: async (notificationId: string) => {
       await queryClient.cancelQueries({ queryKey: notificationKeys.all });
+      const snapshot = queryClient.getQueriesData<CachedNotifications>({ queryKey: notificationKeys.all });
+      // Đã đọc rồi thì không trừ `unread` lần nữa.
+      if (isReadInCache(snapshot, notificationId)) return { snapshot };
+
       queryClient.setQueryData<NotificationPage>(notificationKeys.unread, (page) =>
-        page ? markReadInCache(page, notificationId) : page,
+        page ? markReadInPage(page, notificationId) : page,
       );
       queryClient.setQueriesData<InfiniteData<NotificationPage, number>>(
         { queryKey: [...notificationKeys.all, "infinite"] },
-        (data) =>
-          data && {
-            ...data,
-            pages: data.pages.map((page) => markReadInCache(page, notificationId)),
-          },
+        (data) => data && { ...data, pages: data.pages.map((page) => markReadInPage(page, notificationId)) },
       );
+      return { snapshot };
     },
-    onError: () => void queryClient.invalidateQueries({ queryKey: notificationKeys.all }),
+    onError: (_error, _notificationId, context) => {
+      context?.snapshot.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
   });
 }

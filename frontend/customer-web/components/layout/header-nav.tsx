@@ -91,7 +91,7 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
         {/* Chuông + số chưa đọc, ẩn số khi 0 (UI-Screens khung CW, vùng D; `.dot-count` của ui-demo). */}
         <Link
           href={ROUTES.notifications}
-          aria-label={`Thông báo, ${unread} chưa đọc`}
+          aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : "Thông báo"}
           title="Thông báo"
           aria-current={notificationsActive ? "page" : undefined}
           className={`relative grid size-10 place-items-center rounded-xl text-ink hover:bg-mist ${

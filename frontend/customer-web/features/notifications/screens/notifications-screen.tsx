@@ -12,7 +12,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { isForbiddenError } from "@/lib/api/errors";
-import { useInfiniteNotifications, useMarkNotificationRead } from "@/lib/queries/notifications";
+import {
+  useInfiniteNotifications,
+  useMarkNotificationRead,
+  useUnreadNotificationCount,
+} from "@/lib/queries/notifications";
 import { getStoreToday } from "@/lib/time";
 import { NotificationItem } from "../components/notification-item";
 import {
@@ -77,14 +81,23 @@ export function NotificationsScreen() {
 
   const notifications = useInfiniteNotifications(PAGE_SIZE);
   const markRead = useMarkNotificationRead();
+  // Số trên tab dùng chung bộ đệm với chuông (tự làm mới 60 giây/lần) để hai số luôn khớp; chưa có thì lấy từ danh sách.
+  const unreadCount = useUnreadNotificationCount();
+  // Thông báo vừa bấm đọc ở tab “Chưa đọc” vẫn hiện (đổi sang kiểu đã đọc) tới khi đổi tab.
+  const [readHere, setReadHere] = useState<ReadonlySet<string>>(() => new Set());
 
   function selectTab(next: NotificationTab) {
+    setReadHere(new Set());
     router.replace(next === "all" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
   }
 
+  function handleRead(notificationId: string) {
+    if (tab === "unread") setReadHere((previous) => new Set(previous).add(notificationId));
+    markRead.mutate(notificationId);
+  }
+
   const pages = notifications.data?.pages ?? [];
-  // `unread` của trang mới nhất đã tải (bộ đệm đã trừ các thông báo vừa bấm đọc).
-  const unread = pages.at(-1)?.unread;
+  const unread = unreadCount.data ?? pages.at(-1)?.unread;
 
   let body;
   if (notifications.isPending) {
@@ -100,14 +113,33 @@ export function NotificationsScreen() {
       </div>
     );
   } else {
-    const all = pages.flatMap((page) => page.items);
+    // Phân trang theo vị trí: có thông báo mới thì mục cuối trang trước bị đẩy sang trang sau → bỏ mục trùng.
+    const seen = new Set<string>();
+    const all = pages
+      .flatMap((page) => page.items)
+      .filter((item) => {
+        if (seen.has(item.notificationId)) return false;
+        seen.add(item.notificationId);
+        return true;
+      });
     // API không lọc được theo isRead (G-19): tab “Chưa đọc” lọc trên các trang đã tải.
-    const items = tab === "unread" ? all.filter((item) => !item.isRead) : all;
+    const items =
+      tab === "unread" ? all.filter((item) => !item.isRead || readHere.has(item.notificationId)) : all;
+    // Còn thông báo chưa đọc ở các trang chưa tải: không báo “không có”, gợi ý tải thêm.
+    const moreUnreadToLoad = tab === "unread" && notifications.hasNextPage && (unread ?? 0) > 0;
     body = (
       <>
         {items.length === 0 ? (
           <Card className={LIST_CLASS}>
-            <EmptyState icon="bell" title={EMPTY_TITLES[tab]} />
+            {moreUnreadToLoad ? (
+              <EmptyState
+                icon="bell"
+                title="Chưa thấy thông báo chưa đọc trong các thông báo đã tải."
+                description="Bấm “Xem thêm” để tìm tiếp."
+              />
+            ) : (
+              <EmptyState icon="bell" title={EMPTY_TITLES[tab]} />
+            )}
           </Card>
         ) : (
           <Card className={LIST_CLASS}>
@@ -117,7 +149,7 @@ export function NotificationsScreen() {
                   key={notification.notificationId}
                   notification={notification}
                   today={today}
-                  onRead={(notificationId) => markRead.mutate(notificationId)}
+                  onRead={handleRead}
                 />
               ))}
             </ul>
