@@ -41,7 +41,7 @@ public sealed class StaffController(StaffService staffService) : ControllerBase
     
     [HttpPost("{id}/deactivate")]
     [EndpointSummary("Quản lý vô hiệu hóa tài khoản nhân viên")]
-    [EndpointDescription("IsActive = false, thu hồi mọi refresh token, nhân viên mất quyền đăng nhập ngay. Mọi lịch spa Đã xác nhận đã phân công cho nhân viên này quay về Chờ xác nhận và bị xóa phân công (BR-27); returnedToPending là số lịch đã chuyển. Không tìm thấy nhân viên trả 404 NOT_FOUND. Gọi lại trên nhân viên đã vô hiệu hóa vẫn trả 200.")]
+    [EndpointDescription("IsActive = false, thu hồi mọi refresh token, nhân viên mất quyền đăng nhập ngay. Mọi lịch spa Đã xác nhận đã phân công cho nhân viên này quay về Chờ xác nhận và bị xóa phân công (BR-27), khách hàng có tài khoản được thông báo; returnedToPending là số lịch đã chuyển. Không tìm thấy nhân viên trả 404 NOT_FOUND. Gọi lại trên nhân viên đã vô hiệu hóa vẫn trả 200.")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {
         var returnedToPending = await staffService.DeactivateAsync(id, ct);

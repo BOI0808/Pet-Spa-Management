@@ -1,5 +1,6 @@
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 
@@ -8,8 +9,12 @@ namespace PetSpa.Application.Services.StaffManagement;
 public sealed class StaffService(
     IStaffRepository staffs,
     IAppointmentChangeRepository changes,
-    IConcurrencyGuard concurrency)
+    IConcurrencyGuard concurrency,
+    NotificationService notifications,
+    ShopTimeZone shopTimeZone)
 {
+    private sealed record ReturnedAppointment(Guid AppointmentId, Guid? OwnerUserId, DateTimeOffset SlotStart);
+
     public Task<Guid> CreateAsync(
         string userName, string fullName, StaffRole staffRole, string password, CancellationToken ct = default) =>
         staffs.CreateAsync(PhoneNumber.Normalize(userName), fullName.Trim(), staffRole, password, ct);
@@ -22,7 +27,7 @@ public sealed class StaffService(
 
     public async Task<int> DeactivateAsync(Guid staffId, CancellationToken ct = default)
     {
-        var returnedToPending = 0;
+        var returned = new List<ReturnedAppointment>();
 
         await concurrency.RunAsync(async () =>
         {
@@ -39,10 +44,22 @@ public sealed class StaffService(
                 spa.ReturnToPending();
                 await changes.RemoveStaffAssignmentsAsync(appointmentId, ct);
 
-                returnedToPending++;
+                returned.Add(new ReturnedAppointment(appointmentId, found.OwnerUserId, spa.SlotStart));
             }
         }, ct);
 
-        return returnedToPending;
+        foreach (var item in returned)
+        {
+            if (item.OwnerUserId is null) continue;
+
+            var (day, time) = shopTimeZone.ToLocal(item.SlotStart);
+            var message = FormattableString.Invariant(
+                $"Lịch hẹn spa lúc {time:HH:mm} ngày {day:dd/MM/yyyy} của bạn quay về trạng thái Chờ xác nhận vì nhân viên phụ trách ngừng làm việc. Cửa hàng sẽ phân công lại nhân viên.");
+
+            await notifications.CreateAsync(
+                item.OwnerUserId.Value, NotificationType.StatusChanged, item.AppointmentId, message, ct);
+        }
+
+        return returned.Count;
     }
 }
