@@ -2,7 +2,7 @@
 
 // MW-10 Thanh toán – UI-Screens.md (UC-23, UC-25, FR-PAY-02, FR-PAY-04; BR-07, BR-17)
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,11 @@ import { Select } from "@/components/ui/field";
 import { Pager } from "@/components/ui/pager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
-import type { PaymentKind, PaymentMethod, PaymentStatus } from "@/lib/api/types";
+import type { Payment, PaymentKind, PaymentMethod, PaymentStatus } from "@/lib/api/types";
 import { PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
 import { usePayments, useUnpaidSummary } from "@/lib/queries/payments";
 import { ROUTES } from "@/lib/routes";
+import { CounterPaymentDialog } from "../components/counter-payment-dialog";
 import { PaymentRow, cellClass } from "../components/payment-row";
 import { UnpaidKpiTile } from "../components/unpaid-kpi-tile";
 
@@ -94,6 +95,20 @@ export function PaymentsScreen() {
   // Backend chưa lọc theo khoản và phương thức (G-07) nên hai bộ lọc này chỉ áp dụng cho các dòng của trang đang xem.
   const [kind, setKind] = useState<PaymentKind | "">("");
   const [method, setMethod] = useState<PaymentMethod | "">("");
+  /** Khoản đang mở hộp thoại ghi nhận tại quầy; `null` là đóng. */
+  const [recording, setRecording] = useState<Payment | null>(null);
+
+  // Phần tử cần nhận focus sau khi đóng hộp thoại: nút “Ghi nhận” đã mở bị gỡ khỏi DOM khi khoản thành “Đã thanh toán”
+  // nên Overlay không trả focus được.
+  const focusAfterCloseRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (recording !== null) return;
+    const targetId = focusAfterCloseRef.current;
+    if (!targetId) return;
+    focusAfterCloseRef.current = null;
+    document.getElementById(targetId)?.focus();
+  }, [recording]);
 
   const paymentsQuery = usePayments(status, page);
   const summaryQuery = useUnpaidSummary();
@@ -113,6 +128,12 @@ export function PaymentsScreen() {
 
   function goToPage(next: number) {
     setPageState({ status, page: next });
+  }
+
+  function handleRecorded() {
+    focusAfterCloseRef.current = `payments-chip-${status ?? "all"}`;
+    // Ở chip “Chưa thanh toán” khoản vừa thu rời khỏi danh sách; nếu đó là dòng cuối của một trang sau trang 1 thì lùi một trang.
+    if (status === "Unpaid" && page > 1 && data !== undefined && data.items.length <= 1) goToPage(page - 1);
   }
 
   // Vùng 1 – Thẻ số liệu; vùng 2 – Bộ lọc; vùng 3 – Bảng; vùng 4 – Chân bảng.
@@ -215,7 +236,7 @@ export function PaymentsScreen() {
                   </tr>
                 </thead>
                 <tbody className="[&>tr:last-child>td]:border-b-0">
-                  {rows ? rows.map((item) => <PaymentRow key={item.paymentId} payment={item} />) : <PaymentsTableSkeleton />}
+                  {rows ? rows.map((item) => <PaymentRow key={item.paymentId} payment={item} onRecord={setRecording} />) : <PaymentsTableSkeleton />}
                 </tbody>
               </table>
             </div>
@@ -240,6 +261,15 @@ export function PaymentsScreen() {
       <p className="mt-3 text-xs text-muted">
         Lịch spa chỉ phát sinh khoản thanh toán khi hoàn tất. Lịch lưu trú có tối đa 2 khoản: tiền lưu trú và phí trả muộn.
       </p>
+
+      {recording && (
+        <CounterPaymentDialog
+          key={recording.paymentId}
+          payment={recording}
+          onRecorded={handleRecorded}
+          onClose={() => setRecording(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api/client";
-import type { PaymentPage, PaymentStatus } from "@/lib/api/types";
+import type { CounterPaymentRequest, PaymentPage, PaymentStatus, PaymentStatusResult } from "@/lib/api/types";
 
 export type PaymentListParams = {
   status?: PaymentStatus;
@@ -13,5 +13,22 @@ export type PaymentListParams = {
  */
 export async function listPayments(params: PaymentListParams = {}) {
   const { data } = await apiClient.get<PaymentPage>("/payments", { params });
+  return data;
+}
+
+/**
+ * POST /payments/{id}/counter – ghi nhận thanh toán tại quầy, LT hoặc QL (FR-PAY-02). Chỉ gửi `method` và `receivedAmount`.
+ * Sai thời điểm → 409 PAYMENT_NOT_DUE; tiền nhận thấp hơn số phải trả → 409 AMOUNT_MISMATCH; tiền lưu trú khi lịch chờ khách xác nhận
+ * chi phí mới → 409 COST_CONFIRMATION_PENDING; khoản đã thanh toán → 409 INVALID_TRANSITION; không tìm thấy → 404 NOT_FOUND.
+ */
+export async function recordCounterPayment({
+  paymentId,
+  method,
+  receivedAmount,
+}: { paymentId: string } & CounterPaymentRequest) {
+  const { data } = await apiClient.post<PaymentStatusResult>(`/payments/${paymentId}/counter`, {
+    method,
+    receivedAmount,
+  } satisfies CounterPaymentRequest);
   return data;
 }

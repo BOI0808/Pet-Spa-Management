@@ -1,6 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { listPayments } from "@/lib/api/endpoints/payments";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { listPayments, recordCounterPayment } from "@/lib/api/endpoints/payments";
+import type { ApiError } from "@/lib/api/errors";
 import type { PaymentPage, PaymentStatus } from "@/lib/api/types";
+import { appointmentKeys } from "@/lib/queries/appointments";
 
 /** Số dòng mỗi trang của bảng MW-10 (UI-Screens MW-10 vùng 3). */
 export const PAYMENT_PAGE_SIZE = 20;
@@ -50,5 +52,23 @@ export function useUnpaidSummary() {
     queryKey: paymentKeys.unpaidSummary(),
     queryFn: () => listPayments({ status: "Unpaid", page: 1, pageSize: UNPAID_SUMMARY_PAGE_SIZE }),
     select: summarizeUnpaid,
+  });
+}
+
+// Sau khi ghi nhận tải lại bảng, thẻ số liệu và dữ liệu lịch hẹn (Frontend-Architecture 5.1); lỗi 409 (sai thời điểm,
+// khoản đã được thu ở nơi khác…) cũng tải lại để thấy dữ liệu mới nhất.
+export function useRecordCounterPayment() {
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all }),
+    ]);
+  return useMutation({
+    mutationFn: recordCounterPayment,
+    onSuccess: invalidate,
+    onError: (error: ApiError) => {
+      if (error.status === 409) return invalidate();
+    },
   });
 }

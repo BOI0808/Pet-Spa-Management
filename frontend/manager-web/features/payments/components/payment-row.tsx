@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PaymentStatusBadge } from "@/components/domain/status-badge";
+import { Button } from "@/components/ui/button";
 import type { Payment } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth, formatMoney } from "@/lib/format";
 import { PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
@@ -15,13 +16,16 @@ function formatPaidAt(iso: string) {
 
 type PaymentRowProps = {
   payment: Payment;
+  /** Mở hộp thoại ghi nhận tại quầy (MW-10·D1) cho khoản này. */
+  onRecord: (payment: Payment) => void;
 };
 
 /**
  * Một dòng của bảng MW-10 (vùng 3). `Payment` chưa có tên thú cưng, tên khách, người xác nhận (G-07)
  * nên cột Lịch hẹn chỉ có mã, liên kết sang MW-05; cột Ghi nhận chỉ có phương thức và thời điểm.
+ * Khoản `Unpaid` có nút “Ghi nhận”; backend quyết định có đến thời điểm thu chưa (BR-07), web không tự chặn.
  */
-export function PaymentRow({ payment }: PaymentRowProps) {
+export function PaymentRow({ payment, onRecord }: PaymentRowProps) {
   const isPaid = payment.status === "Paid";
 
   return (
@@ -47,7 +51,13 @@ export function PaymentRow({ payment }: PaymentRowProps) {
           <span className="text-muted">–</span>
         )}
       </td>
-      <td className={`${cellClass} whitespace-nowrap text-right`} />
+      <td className={`${cellClass} whitespace-nowrap text-right`}>
+        {!isPaid && (
+          <Button variant="secondary" size="sm" onClick={() => onRecord(payment)}>
+            Ghi nhận
+          </Button>
+        )}
+      </td>
     </tr>
   );
 }

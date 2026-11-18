@@ -328,3 +328,16 @@ export type Payment = {
 
 /** Phản hồi của GET /payments. */
 export type PaymentPage = Page<Payment>;
+
+/** Phương thức ghi nhận tại quầy; `Online` chỉ do cổng thanh toán xác nhận nên không có ở đây. */
+export type CounterMethod = Extract<PaymentMethod, "Cash" | "BankQR">;
+
+/** Body của POST /payments/{id}/counter. Không gửi `amount`: số tiền phải trả do backend xác định (BR-17). */
+export type CounterPaymentRequest = {
+  method: CounterMethod;
+  /** Số tiền khách đưa (VND), phải từ số tiền phải trả trở lên. */
+  receivedAmount: number;
+};
+
+/** Phản hồi của POST /payments/{id}/counter. */
+export type PaymentStatusResult = { status: PaymentStatus };
