@@ -307,3 +307,24 @@ export type UpdateHotelAppointmentRequest = {
 };
 
 export type UpdateAppointmentRequest = UpdateSpaAppointmentRequest | UpdateHotelAppointmentRequest;
+
+// ── Thanh toán (FR-PAY-02, FR-PAY-04) ──
+export type PaymentKind = "Spa" | "Stay" | "LateFee";
+export type PaymentStatus = "Unpaid" | "Paid";
+export type PaymentMethod = "Cash" | "BankQR" | "Online";
+
+/** Một khoản thanh toán của GET /payments (schema Payment). Chưa có tên thú cưng, tên khách, người xác nhận (UI-Screens G-07). */
+export type Payment = {
+  paymentId: string;
+  appointmentId: string;
+  kind: PaymentKind;
+  /** Số tiền phải trả (VND), do hệ thống tính. */
+  amount: number;
+  status: PaymentStatus;
+  method?: PaymentMethod | null;
+  receivedAmount?: number | null;
+  paidAt?: string | null;
+};
+
+/** Phản hồi của GET /payments. */
+export type PaymentPage = Page<Payment>;
