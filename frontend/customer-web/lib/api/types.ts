@@ -242,6 +242,9 @@ export type CostConfirmation = {
   respondedAt?: string | null;
 };
 
+/** Khách đồng ý (`true`) hoặc từ chối (`false`) chi phí mới – FR-EXE-11. */
+export type CostConfirmationRespondRequest = { accept: boolean };
+
 export type AppointmentDetail = Appointment & {
   /** Chỉ lịch Spa. */
   services?: AppointmentServiceItem[];
