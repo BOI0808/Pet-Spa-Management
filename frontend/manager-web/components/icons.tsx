@@ -179,6 +179,12 @@ const ICON_PATHS = {
       <path d="m4.9 4.9 14.2 14.2" />
     </>
   ),
+  // Ba biểu tượng của màn Thanh toán MW-10 (ui-demo: i-chev-l, i-chev-r, i-hourglass).
+  "chev-l": <path d="m15 18-6-6 6-6" />,
+  "chev-r": <path d="m9 18 6-6-6-6" />,
+  hourglass: (
+    <path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICON_PATHS;
