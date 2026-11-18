@@ -1,32 +1,65 @@
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
+using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 
 namespace PetSpa.Application.Services.StaffManagement;
 
-// Nhóm Staff: tạo, cập nhật, vô hiệu hóa tài khoản nhân viên.
-// Chỉ Quản lý gọi được (policy Manager ở StaffController) và Quản lý có toàn quyền (BR-16),
-// nên service không nhận CurrentUser.
-public sealed class StaffService(IStaffRepository staffs)
+public sealed class StaffService(
+    IStaffRepository staffs,
+    IAppointmentChangeRepository changes,
+    IConcurrencyGuard concurrency,
+    NotificationService notifications,
+    ShopTimeZone shopTimeZone)
 {
-    // FR-STF-01: Role = Staff do adapter đặt; vai trò lễ tân/nhân viên spa do quản lý chọn.
+    private sealed record ReturnedAppointment(Guid AppointmentId, Guid? OwnerUserId, DateTimeOffset SlotStart);
+
     public Task<Guid> CreateAsync(
         string userName, string fullName, StaffRole staffRole, string password, CancellationToken ct = default) =>
         staffs.CreateAsync(PhoneNumber.Normalize(userName), fullName.Trim(), staffRole, password, ct);
-    
-    // FR-STF-02: danh sách có phân trang (page, pageSize đã được validator kiểm tra ở tầng API).
+
     public Task<PagedResult<StaffSummary>> ListAsync(int page, int pageSize, CancellationToken ct = default) =>
         staffs.ListAsync(page, pageSize, ct);
 
-    // FR-STF-02: cập nhật họ tên và vai trò. Role của tài khoản vẫn là Staff, không đổi.
     public Task UpdateAsync(Guid staffId, string fullName, StaffRole staffRole, CancellationToken ct = default) =>
         staffs.UpdateAsync(staffId, fullName.Trim(), staffRole, ct);
-    
-    // FR-STF-03: trả số lịch spa "Đã xác nhận" đã chuyển về "Chờ xác nhận".
-    // Hiện chưa có API lịch hẹn nên chưa có lịch nào để chuyển, trả 0. ID 64 (BR-27) thay bằng số lịch thực sự chuyển và gửi thông báo.
+
     public async Task<int> DeactivateAsync(Guid staffId, CancellationToken ct = default)
     {
-        await staffs.DeactivateAsync(staffId, ct);
-        return 0;
+        var returned = new List<ReturnedAppointment>();
+
+        await concurrency.RunAsync(async () =>
+        {
+            await staffs.DeactivateAsync(staffId, ct);
+
+            foreach (var appointmentId in await staffs.ListConfirmedSpaAppointmentIdsAsync(staffId, ct))
+            {
+                await concurrency.LockAppointmentAsync(appointmentId, ct);
+
+                var found = await changes.FindWithOwnerAsync(appointmentId, asNoTracking: false, ct);
+                if (found is null || found.Appointment is not SpaAppointment spa || spa.Status != AppointmentStatus.Confirmed)
+                    continue;
+
+                spa.ReturnToPending();
+                await changes.RemoveStaffAssignmentsAsync(appointmentId, ct);
+
+                returned.Add(new ReturnedAppointment(appointmentId, found.OwnerUserId, spa.SlotStart));
+            }
+        }, ct);
+
+        foreach (var item in returned)
+        {
+            if (item.OwnerUserId is null) continue;
+
+            var (day, time) = shopTimeZone.ToLocal(item.SlotStart);
+            var message = FormattableString.Invariant(
+                $"Lịch hẹn spa lúc {time:HH:mm} ngày {day:dd/MM/yyyy} của bạn quay về trạng thái Chờ xác nhận vì nhân viên phụ trách ngừng làm việc. Cửa hàng sẽ phân công lại nhân viên.");
+
+            await notifications.CreateAsync(
+                item.OwnerUserId.Value, NotificationType.StatusChanged, item.AppointmentId, message, ct);
+        }
+
+        return returned.Count;
     }
 }

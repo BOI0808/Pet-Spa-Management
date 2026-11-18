@@ -1,8 +1,8 @@
 "use client";
 
-// CW-09 Chi tiết lịch hẹn: theo dõi trạng thái (vùng 1, 2, 4, 6, 7), đổi/hủy (vùng 8, D1 – [112]) – UI-Screens.md
-// Phần còn lại của màn làm ở thẻ khác: ảnh trước/sau (vùng 5) – [113];
-// xác nhận chi phí mới (vùng 3) – [114]; thanh toán trực tuyến và kết quả (vùng 7 nút, vùng 9) – [116].
+// CW-09 Chi tiết lịch hẹn: theo dõi trạng thái (vùng 1, 2, 4, 6, 7), đổi/hủy (vùng 8, D1 – [112]),
+// ảnh trước/sau (vùng 5 – [113]) – UI-Screens.md
+// Phần còn lại của màn làm ở thẻ khác: xác nhận chi phí mới (vùng 3) – [114]; thanh toán trực tuyến và kết quả (vùng 7 nút, vùng 9) – [116].
 import { useParams } from "next/navigation";
 import { Lifecycle } from "@/components/domain/lifecycle";
 import { PetAvatar } from "@/components/domain/pet-avatar";
@@ -32,6 +32,7 @@ import {
 } from "../appointments";
 import { AppointmentInfoCard, HotelStayCard, PaymentCard, SpaServicesCard } from "../components/appointment-detail-cards";
 import { ChangeCancelCard } from "../components/change-cancel-card";
+import { PhotosCard } from "../components/photos-card";
 
 /** Bố cục 2 cột (`.split` của ui-demo): nội dung chính trái, thẻ phụ phải 360px; dưới 1180px còn 1 cột. */
 const splitClass = "grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-[1180px]:grid-cols-1";
@@ -99,7 +100,11 @@ function AppointmentDetailView({ appointment, pet }: { appointment: AppointmentD
       <div className={splitClass}>
         <div className="flex min-w-0 flex-col gap-4">
           {appointment.type === "Spa" ? (
-            <SpaServicesCard appointment={appointment} pet={pet} />
+            <>
+              <SpaServicesCard appointment={appointment} pet={pet} />
+              {/* Vùng 5 – ảnh trước và sau (FR-EXE-09) */}
+              <PhotosCard appointment={appointment} />
+            </>
           ) : (
             <HotelStayCard appointment={appointment} pet={pet} />
           )}

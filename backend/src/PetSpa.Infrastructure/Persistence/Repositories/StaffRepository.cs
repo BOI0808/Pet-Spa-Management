@@ -80,17 +80,22 @@ public sealed class StaffRepository(
         var staff = await db.Set<Staff>().AsNoTracking().FirstOrDefaultAsync(s => s.StaffId == staffId, ct)
             ?? throw new BusinessException(ErrorCodes.NotFound);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
         var user = await db.Users.FirstAsync(u => u.Id == staff.UserId, ct);
         user.IsActive = false;
         await db.SaveChangesAsync(ct);
 
-        // Cùng DbContext nên lệnh thu hồi nằm trong giao dịch này: hoặc cả hai thành công, hoặc cả hai hoàn tác.
         await identity.RevokeAllAsync(staff.UserId, ct);
-
-        await transaction.CommitAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Guid>> ListConfirmedSpaAppointmentIdsAsync(
+        Guid staffId, CancellationToken ct = default) =>
+        await (
+            from asg in db.Set<AppointmentStaff>().AsNoTracking()
+            join a in db.Set<SpaAppointment>().AsNoTracking() on asg.AppointmentId equals a.AppointmentId
+            where asg.StaffId == staffId && a.Status == AppointmentStatus.Confirmed
+            orderby a.AppointmentId
+            select a.AppointmentId)
+            .ToListAsync(ct);
     private static BusinessException ToBusinessException(IdentityResult result)
     {
         if (result.Errors.Any(e => e.Code == "DuplicateUserName"))

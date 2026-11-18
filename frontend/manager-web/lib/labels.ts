@@ -1,5 +1,13 @@
 // Nhãn hiển thị cho giá trị enum của API (UI-Screens 2.4). Chỉ khai báo enum web quản lý đang dùng.
-import type { AppointmentStatus, AppointmentType, SizeGroup, Species, StaffRole, Temperament } from "@/lib/api/types";
+import type {
+  AppointmentStatus,
+  AppointmentType,
+  CancelReason,
+  SizeGroup,
+  Species,
+  StaffRole,
+  Temperament,
+} from "@/lib/api/types";
 
 /** Thứ tự hiển thị các loài: Chó, Mèo, Thỏ, Chuột lang (UI demo). */
 export const SPECIES_ORDER: readonly Species[] = ["Dog", "Cat", "Rabbit", "GuineaPig"];
@@ -41,4 +49,13 @@ export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   InStay: "Đang lưu trú",
   Completed: "Hoàn tất",
   Cancelled: "Đã hủy",
+};
+
+/** Lý do hủy lịch hẹn (Requirements 3.3 “Vòng đời lịch hẹn”, mục (a) – (e)). */
+export const CANCEL_REASON_LABELS: Record<CancelReason, string> = {
+  CustomerCancelled: "Khách hàng chủ động hủy",
+  StoreUnable: "Cửa hàng không thể đáp ứng",
+  CustomerBeyondDeadline: "Theo yêu cầu của khách, ngoài thời hạn tự hủy",
+  NoShow: "Khách vắng mặt",
+  CostNotConfirmed: "Khách không xác nhận chi phí mới",
 };

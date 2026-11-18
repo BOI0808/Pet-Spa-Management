@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  checkInSpaAppointment,
   createSpaAppointment,
   getAppointment,
   getSpaSlots,
@@ -83,4 +84,14 @@ export function useAppointmentPayments(appointmentId: string, { enabled = true }
     queryFn: () => listAppointmentPayments(appointmentId),
     enabled,
   });
+}
+
+/**
+ * Tiếp nhận lịch spa (SW-07). Thành công hay lỗi 409 (quá giờ giữ chỗ, đã tiếp nhận, đã hủy) đều làm mới mọi khóa
+ * `appointments` để danh sách và chi tiết hiện đúng trạng thái mới (SA 6.6).
+ */
+export function useCheckInSpa() {
+  const queryClient = useQueryClient();
+  const invalidate = () => void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+  return useMutation({ mutationFn: checkInSpaAppointment, onSuccess: invalidate, onError: invalidate });
 }

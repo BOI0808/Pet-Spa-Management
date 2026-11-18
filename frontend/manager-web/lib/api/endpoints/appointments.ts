@@ -4,12 +4,14 @@ import type {
   AppointmentPage,
   AppointmentStatus,
   AppointmentType,
+  CancelRequest,
   ConfirmHotelRequest,
   ConfirmSpaRequest,
   HotelSuggestions,
   RejectResult,
   SpaSuggestions,
   StatusResult,
+  UpdateAppointmentRequest,
 } from "@/lib/api/types";
 
 export type AppointmentListParams = {
@@ -88,5 +90,26 @@ export async function confirmSpaAppointment({
     staffIds,
     ...(confirmOutOfShift ? { confirmOutOfShift } : {}),
   } satisfies ConfirmSpaRequest);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/cancel – Quản lý hủy lịch hẹn khi cửa hàng không thể đáp ứng hoặc khi khách yêu cầu ngoài thời hạn tự hủy (FR-CHG-03).
+ * Bắt buộc gửi `reason` là StoreUnable hoặc CustomerBeyondDeadline; không gửi trạng thái hay số tiền (hoàn tiền xử lý ngoài hệ thống, BR-24).
+ * Lịch Hoàn tất, đã Đã hủy → 409 INVALID_TRANSITION; không tìm thấy → 404 NOT_FOUND.
+ */
+export async function cancelAppointment({ appointmentId, reason }: { appointmentId: string } & CancelRequest) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/cancel`, {
+    reason,
+  } satisfies CancelRequest);
+  return data;
+}
+
+/**
+ * PUT /appointments/{id} – Quản lý đổi lịch Chờ xác nhận hoặc Đã xác nhận, không giới hạn hạn tự đổi, trạng thái giữ nguyên (FR-CHG-03).
+ * Lỗi 409 thường gặp: SLOT_FULL, NO_CAPACITY, STAFF_COUNT_MISMATCH, STAFF_CONFLICT, STAFF_OUT_OF_SHIFT, INVALID_TRANSITION.
+ */
+export async function updateAppointment({ appointmentId, body }: { appointmentId: string; body: UpdateAppointmentRequest }) {
+  const { data } = await apiClient.put<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}`, body);
   return data;
 }

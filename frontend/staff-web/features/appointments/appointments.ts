@@ -44,6 +44,76 @@ export function upcomingItems(appointments: Appointment[], today: string) {
   return appointments.filter((item) => appointmentDate(item) > today);
 }
 
+// ── SW-02 lễ tân ──
+const DATE_PARAM = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * `?date=` hợp lệ thì dùng, không thì hôm nay (UI-Screens SW-02: mặc định hôm nay). Ngày không tồn tại như 2026-02-30
+ * vẫn qua `Date.parse` (tự lùi sang 02/03, review PR #62) nên định dạng lại ngày vừa đọc và so với chuỗi gốc.
+ */
+export function parseDateParam(value: string | null, today: string) {
+  if (!value || !DATE_PARAM.test(value)) return today;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : today;
+}
+
+/**
+ * Mốc giờ của một dòng trong ngày `date` (UI-Screens SW-02 vùng 3): spa là giờ bắt đầu; lưu trú là giờ nhận nếu nhận
+ * trong ngày, không thì giờ trả. Backend sắp lưu trú theo giờ nhận nên lịch “trả” phải sắp lại ở web theo mốc này.
+ */
+export function rowMoment(appointment: Appointment, date: string): { iso: string; label?: "nhận" | "trả" } {
+  if (appointment.type === "Spa") return { iso: appointmentStart(appointment) };
+  const { plannedCheckIn, plannedCheckOut, actualCheckOut } = appointment;
+  if (plannedCheckIn && toStoreDate(plannedCheckIn) === date) return { iso: plannedCheckIn, label: "nhận" };
+  const checkOut = actualCheckOut ?? plannedCheckOut;
+  if (checkOut) return { iso: checkOut, label: "trả" };
+  return { iso: appointmentStart(appointment) };
+}
+
+export function sortByRowMoment(appointments: Appointment[], date: string) {
+  return [...appointments].sort(
+    (a, b) => Date.parse(rowMoment(a, date).iso) - Date.parse(rowMoment(b, date).iso),
+  );
+}
+
+/** Chip lọc nhanh của SW-02 vùng 2, lọc ở web trên danh sách trong ngày. */
+export const RECEPTION_FILTERS = ["all", "waiting", "inStore", "hotelMoves", "pending"] as const;
+export type ReceptionFilter = (typeof RECEPTION_FILTERS)[number];
+
+export const RECEPTION_FILTER_LABELS: Record<ReceptionFilter, string> = {
+  all: "Tất cả",
+  waiting: "Chờ tiếp nhận",
+  inStore: "Đang ở cửa hàng",
+  hotelMoves: "Lưu trú nhận, trả",
+  pending: "Chờ xác nhận",
+};
+
+/**
+ * Luật từng chip (UI-Screens SW-02 vùng 2): Chờ tiếp nhận = Đã xác nhận có giờ hẹn hoặc giờ nhận trong ngày; Đang ở
+ * cửa hàng = Đã tiếp nhận, Đang thực hiện; Lưu trú nhận, trả = mọi lịch lưu trú trong ngày (backend đã lọc theo ngày
+ * nhận hoặc ngày trả); Chờ xác nhận = Chờ xác nhận. Lịch Đang lưu trú không thuộc “Đang ở cửa hàng” vì UI-Screens ghi
+ * rõ hai trạng thái của lịch spa.
+ */
+export function matchesReceptionFilter(appointment: Appointment, filter: ReceptionFilter, date: string) {
+  switch (filter) {
+    case "all":
+      return true;
+    case "waiting":
+      return appointment.status === "Confirmed" && toStoreDate(appointmentStart(appointment)) === date;
+    case "inStore":
+      return appointment.status === "Received" || appointment.status === "InProgress";
+    case "hotelMoves":
+      return appointment.type === "Hotel";
+    case "pending":
+      return appointment.status === "Pending";
+  }
+}
+
+/** Lịch spa Đã xác nhận đúng hôm nay thì tiếp nhận được ở SW-07; ngày khác backend trả 409 nên không mời bấm. */
+export function canCheckInSpa(appointment: Appointment, today: string) {
+  return appointment.type === "Spa" && appointment.status === "Confirmed" && appointmentDate(appointment) === today;
+}
+
 /** “09:00 – 11:00”. */
 export function formatSlotRange(appointment: Appointment) {
   if (!appointment.slotStart) return "";
@@ -82,9 +152,20 @@ export function nightsOf(appointment: Appointment) {
 }
 
 // ── Thú cưng, dịch vụ, nhân viên ──
+/**
+ * “Chó Poodle”; giống đã bắt đầu bằng tên loài (“Mèo Ta”) thì không lặp thành “Mèo Mèo Ta” – cùng luật với thẻ khách
+ * ở SW-04 (customer-card.tsx).
+ */
+export function speciesAndBreed(pet: Pet) {
+  const species = SPECIES_LABELS[pet.species];
+  return pet.breed.toLocaleLowerCase("vi-VN").startsWith(species.toLocaleLowerCase("vi-VN"))
+    ? pet.breed
+    : `${species} ${pet.breed}`;
+}
+
 /** “Chó Poodle, nhóm Nhỏ” – dòng phụ cạnh tên bé trên phiếu (ui-demo SW-02). */
 export function describePetKind(pet: Pet) {
-  return `${SPECIES_LABELS[pet.species]} ${pet.breed}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
+  return `${speciesAndBreed(pet)}, nhóm ${SIZE_GROUP_LABELS[pet.sizeGroup]}`;
 }
 
 export function serviceNames(detail: AppointmentDetail) {

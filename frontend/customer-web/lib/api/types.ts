@@ -272,6 +272,17 @@ export type UpdateAppointmentRequest = SpaChangeRequest | HotelChangeRequest;
 /** Kết quả `PUT /appointments/{id}`, `POST /appointments/{id}/cancel`. */
 export type StatusResult = { status: AppointmentStatus };
 
+// ── Ảnh minh chứng (FR-EXE-09) ──
+export type PhotoKind = "Before" | "After";
+
+/** Một ảnh trong `GET /appointments/{id}/photos`; `url` là URL tạm thời (backend ký có hạn 1 giờ). */
+export type Photo = {
+  photoId: string;
+  kind: PhotoKind;
+  url: string;
+  uploadedAt: string;
+};
+
 // ── Thanh toán ──
 export type PaymentKind = "Spa" | "Stay" | "LateFee";
 export type PaymentStatus = "Unpaid" | "Paid";
@@ -288,3 +299,25 @@ export type Payment = {
   receivedAmount?: number | null;
   paidAt?: string | null;
 };
+
+// ── Thông báo ──
+export type NotificationType =
+  | "BookingReceived"
+  | "ConfirmedAssigned"
+  | "StatusChanged"
+  | "Cancelled"
+  | "PaymentRecorded"
+  | "CostConfirmation";
+
+export type Notification = {
+  notificationId: string;
+  type: NotificationType;
+  appointmentId?: string | null;
+  /** ≤ 500 ký tự, backend soạn sẵn. */
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
+/** `unread`: số thông báo chưa đọc của cả tài khoản, không chỉ trang này. */
+export type NotificationPage = Page<Notification> & { unread: number };

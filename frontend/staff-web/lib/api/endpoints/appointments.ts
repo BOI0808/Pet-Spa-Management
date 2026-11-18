@@ -4,6 +4,7 @@ import type {
   AppointmentPage,
   AppointmentStatus,
   AppointmentType,
+  CheckInResult,
   Payment,
   SpaBookingCreated,
   SpaBookingRequest,
@@ -58,5 +59,16 @@ export async function getAppointment(appointmentId: string) {
 /** GET /appointments/{id}/payments – FR-PAY-04. Spa có 1 khoản; lưu trú tối đa 2 khoản (Stay, LateFee). */
 export async function listAppointmentPayments(appointmentId: string) {
   const { data } = await apiClient.get<Payment[]>(`/appointments/${encodeURIComponent(appointmentId)}/payments`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/check-in, lịch spa – FR-EXE-02, FR-EXE-10. Backend chuyển lịch sang Đã tiếp nhận rồi đối chiếu
+ * cân nặng (BR-23); chỉ hợp lệ trong ngày hẹn và trước khi hết thời gian giữ chỗ, quá hạn → 409 INVALID_TRANSITION.
+ */
+export async function checkInSpaAppointment({ appointmentId, actualWeightKg }: { appointmentId: string; actualWeightKg: number }) {
+  const { data } = await apiClient.post<CheckInResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`, {
+    actualWeightKg,
+  });
   return data;
 }

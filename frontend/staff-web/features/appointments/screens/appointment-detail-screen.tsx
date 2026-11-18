@@ -19,9 +19,9 @@ import { useSession } from "@/lib/auth/use-session";
 import { formatAppointmentCode } from "@/lib/format";
 import { useAppointment } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { ROUTES } from "@/lib/routes";
-import { toStoreTime } from "@/lib/time";
-import { formatLongDate, formatSlotRange, lifecycleSteps } from "../appointments";
+import { ROUTES, checkInRoute } from "@/lib/routes";
+import { getStoreToday, toStoreTime } from "@/lib/time";
+import { canCheckInSpa, formatLongDate, formatSlotRange, lifecycleSteps } from "../appointments";
 import {
   AssignmentCard,
   CustomerCard,
@@ -46,11 +46,20 @@ function describeTime(appointment: AppointmentDetail) {
 }
 
 /**
- * Vùng 1 – thao tác chính theo vai trò. Nhân viên spa, lịch Đã xác nhận: nút khóa kèm lý do. Nút “Mở màn hình thực
- * hiện” (lịch Đã tiếp nhận, Đang thực hiện → SW-11) thêm ở thẻ 131; nút của lễ tân (SW-07, SW-10) ở thẻ 125, 127.
+ * Vùng 1 – thao tác chính theo vai trò. Lễ tân, lịch spa Đã xác nhận đúng hôm nay: “Tiếp nhận thú cưng” → SW-07 (lịch
+ * ngày khác backend trả 409 nên không hiện). Nhân viên spa, lịch Đã xác nhận: nút khóa kèm lý do. Nút “Mở màn hình
+ * thực hiện” (→ SW-11) thêm ở thẻ 131; “Trả thú cưng” của lễ tân (→ SW-10) ở thẻ 127.
  */
 function PrimaryAction({ appointment, isSpaStaff }: { appointment: AppointmentDetail; isSpaStaff: boolean }) {
-  if (!isSpaStaff || appointment.status !== "Confirmed") return null;
+  if (!isSpaStaff) {
+    if (!canCheckInSpa(appointment, getStoreToday())) return null;
+    return (
+      <ButtonLink href={checkInRoute(appointment.appointmentId)} variant="primary" size="lg">
+        Tiếp nhận thú cưng
+      </ButtonLink>
+    );
+  }
+  if (appointment.status !== "Confirmed") return null;
   return (
     <div className="flex flex-col items-end gap-1.5 max-[640px]:items-stretch">
       <Button variant="primary" size="lg" disabled>
