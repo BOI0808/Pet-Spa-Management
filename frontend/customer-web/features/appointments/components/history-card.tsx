@@ -3,12 +3,13 @@
 // Một thẻ lịch đã hoàn tất trong CW-11 (vùng 2, 3) – UI-Screens.md
 import Link from "next/link";
 import { AppointmentTypeLabel } from "@/components/domain/appointment-type-label";
+import { PhotoTile } from "@/components/domain/photo-tile";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment } from "@/lib/api/types";
 import { formatAppointmentCode, formatDate, formatMoney } from "@/lib/format";
-import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
+import { useAppointment, useAppointmentPayments, useAppointmentPhotos } from "@/lib/queries/appointments";
 import { ROUTES } from "@/lib/routes";
 import { toStoreDate } from "@/lib/time";
 import {
@@ -28,7 +29,39 @@ function LineSkeleton() {
   return <Skeleton className="mt-1.5 h-3.5 w-56 max-w-full" />;
 }
 
-/** Spa: dịch vụ, nhân viên (từ chi tiết – G-05), số tiền và phương thức. Ảnh trước/sau làm ở thẻ [113]. */
+/**
+ * Cột phải của thẻ spa: ảnh nhỏ Trước/Sau (ảnh đầu tiên mỗi loại), bấm vào mở CW-09 để xem lớn.
+ * Chưa có ảnh hoặc lỗi tải thì không hiện gì – ảnh chỉ là phần phụ của thẻ lịch sử.
+ */
+function SpaPhotos({ appointment, enabled }: { appointment: Appointment; enabled: boolean }) {
+  const photos = useAppointmentPhotos(appointment.appointmentId, { enabled });
+  if (enabled && photos.isPending) {
+    return (
+      <div className="flex gap-2" aria-hidden="true">
+        <Skeleton className="aspect-[4/3] w-24 rounded-[10px]" />
+        <Skeleton className="aspect-[4/3] w-24 rounded-[10px]" />
+      </div>
+    );
+  }
+  const shown = (["Before", "After"] as const)
+    .map((kind) => photos.data?.find((photo) => photo.kind === kind))
+    .filter((photo) => photo !== undefined);
+  if (shown.length === 0) return null;
+
+  return (
+    <Link
+      href={ROUTES.appointmentDetail(appointment.appointmentId)}
+      aria-label={`Xem ảnh trước và sau chăm sóc của lịch ${formatAppointmentCode(appointment.appointmentId)}`}
+      className="flex shrink-0 gap-2 rounded-[10px] outline-offset-2"
+    >
+      {shown.map((photo) => (
+        <PhotoTile key={photo.photoId} photo={photo} onBroken={photos.refreshUrls} className="w-24" />
+      ))}
+    </Link>
+  );
+}
+
+/** Spa: dịch vụ, nhân viên (từ chi tiết – G-05), số tiền và phương thức. */
 function SpaSummary({ appointment, enabled }: { appointment: Appointment; enabled: boolean }) {
   const detail = useAppointment(appointment.appointmentId, { enabled });
   const payments = useAppointmentPayments(appointment.appointmentId, { enabled });
@@ -127,6 +160,7 @@ export function HistoryCard({ appointment }: { appointment: Appointment }) {
               <HotelSummary appointment={appointment} enabled={inView} />
             )}
           </div>
+          {isSpa && <SpaPhotos appointment={appointment} enabled={inView} />}
         </div>
       </Card>
     </li>

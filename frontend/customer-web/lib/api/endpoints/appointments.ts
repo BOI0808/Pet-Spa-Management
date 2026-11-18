@@ -5,6 +5,7 @@ import type {
   AppointmentStatus,
   AppointmentType,
   Payment,
+  Photo,
   SpaBookingCreated,
   SpaBookingRequest,
   SpaSlots,
@@ -52,6 +53,15 @@ export async function getAppointment(appointmentId: string) {
 /** GET /appointments/{id}/payments – FR-PAY-04. Spa có 1 khoản; lưu trú tối đa 2 khoản (Stay, LateFee). */
 export async function listAppointmentPayments(appointmentId: string) {
   const { data } = await apiClient.get<Payment[]>(`/appointments/${encodeURIComponent(appointmentId)}/payments`);
+  return data;
+}
+
+/**
+ * GET /appointments/{id}/photos – FR-EXE-09. Backend kiểm tra phạm vi (BR-16: khách chỉ xem ảnh lịch của mình)
+ * rồi trả URL tạm thời cho từng ảnh.
+ */
+export async function listAppointmentPhotos(appointmentId: string) {
+  const { data } = await apiClient.get<Photo[]>(`/appointments/${encodeURIComponent(appointmentId)}/photos`);
   return data;
 }
 
