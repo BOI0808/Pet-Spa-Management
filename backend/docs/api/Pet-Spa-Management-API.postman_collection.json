@@ -2561,27 +2561,6 @@
               "response": []
             }
           ]
-        },
-        {
-          "name": "/staff/{id}/deactivate",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/deactivate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "staff",
-                "{{staffId}}",
-                "deactivate"
-              ]
-            }
-          },
-          "response": []
         }
       ]
     },
@@ -19430,50 +19409,6 @@
             }
           ],
           "description": "### Theo dõi lịch hẹn, đổi/hủy, vô hiệu hóa nhân viên spa (FR-BOOK-04, FR-BOOK-05, FR-CHG-01, FR-CHG-02, FR-CHG-03, FR-STF-03)\n\nChạy theo thứ tự 06.C.0 → 06.C.10. Điều kiện: backend đang chạy, tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 06.C.0. Hai folder 06.C.3 và 06.C.6 có bước SQL xen giữa (xem mô tả từng folder); khi chạy tự động bằng Runner hoặc Newman không có SQL thì test vẫn xanh.\n\nNgày hẹn spa và khoảng ngày lưu trú được tạo ngẫu nhiên ở xa trong tương lai ở request đầu của 06.C.0 để mỗi lần chạy không trùng dữ liệu lần trước."
-        },
-        {
-          "name": "/appointments",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}/cancel",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
         }
       ]
     },
