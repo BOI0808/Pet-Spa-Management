@@ -16689,6 +16689,1046 @@
                 }
               ],
               "description": "### Khách hàng xem lịch sử sử dụng dịch vụ của thú cưng (FR-BOOK-05, BR-16)\n\nQuy trình:\n\n1. Chạy xong 06.C.0, 06.C.1 và 06.C.2.\n\n2. Đánh dấu lịch T4 đã hoàn tất bằng SQL trên Supabase (thay `<chgApptT4>` bằng giá trị biến môi trường chgApptT4):\n\n```sql\nUPDATE \"Appointment\"\nSET \"Status\" = 'Completed', \"UpdatedAt\" = now()\nWHERE \"AppointmentId\" = '<chgApptT4>'::uuid;\n```\n\n3. Gửi lần lượt 3 request của folder này.\n\nKhi chạy tự động bằng Runner hoặc Newman (không có bước SQL), lịch T4 vẫn ở Pending nên danh sách lịch sử rỗng. Test script chấp nhận cả hai trường hợp để bộ chạy tự động không bị gãy."
+            },
+            {
+              "name": "06.C.4 Khách tự đổi lịch trong hạn – FR-CHG-01",
+              "item": [
+                {
+                  "name": "PUT /appointments/{id} – lễ tân không có quyền đổi (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – khách 2 đổi lịch của khách 1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet2Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – khách đổi sang thú cưng của khách khác (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet2Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – thiếu serviceIds (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet1Id}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – mốc 19:00 quá giờ bắt đầu muộn nhất của dịch vụ (409 SLOT_FULL)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SLOT_FULL\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SLOT_FULL\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1900}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – khách đổi lịch spa sang 11:00 và chó thứ hai (200) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Sau khi khách đổi, lịch về Pending\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet1bId}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch spa sau khi khách đổi (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch T1 ở Pending, giờ và thú cưng mới, nhân viên bị bỏ\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(new Date(body.slotStart).getTime()).to.eql(new Date(pm.environment.get(\"chgSlot1100\")).getTime());",
+                          "        pm.expect(body.petId).to.eql(pm.environment.get(\"chgPet1bId\"));",
+                          "        pm.expect(body.staff).to.have.lengthOf(0);",
+                          "    });",
+                          "",
+                          "    pm.test(\"Dịch vụ của lịch vẫn là dịch vụ đã chọn\", function () {",
+                          "        pm.expect(body.services).to.have.lengthOf(1);",
+                          "        pm.expect(body.services[0].serviceId).to.eql(pm.environment.get(\"chgServiceId\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – khách đổi lịch lưu trú sang khoảng ngày mới (200) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Sau khi khách đổi, lịch về Pending\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH1}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{chgPet1Id}}\",\n  \"plannedCheckIn\": \"{{chgHotelW2In}}\",\n  \"plannedCheckOut\": \"{{chgHotelW2Out}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch lưu trú sau khi khách đổi (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch H1 ở Pending, khoảng ngày mới, chuồng bị bỏ\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(new Date(body.plannedCheckIn).getTime()).to.eql(new Date(pm.environment.get(\"chgHotelW2In\")).getTime());",
+                          "        pm.expect(new Date(body.plannedCheckOut).getTime()).to.eql(new Date(pm.environment.get(\"chgHotelW2Out\")).getTime());",
+                          "        pm.expect(body.cageId === null || body.cageId === undefined).to.be.true;",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Khách hàng tự đổi lịch spa và lưu trú trong hạn (FR-CHG-01, BR-02, BR-08, BR-13, BR-26)\n\nChạy sau 06.C.2 (hoặc 06.C.3). Lịch T1 đang Confirmed với nhân viên C; lịch H1 đang Confirmed với chuồng A. Sau khi khách đổi thành công, lịch về Pending và bỏ phân công nhân viên hoặc chuồng."
+            },
+            {
+              "name": "06.C.5 Khách tự hủy lịch trong hạn – FR-CHG-01",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/cancel – lễ tân không có quyền hủy (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – khách 2 hủy lịch của khách 1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – khách hủy lịch spa trong hạn (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch spa sau khi khách hủy (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch Cancelled, lý do CustomerCancelled, có thời điểm hủy\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "        pm.expect(body.cancelReason).to.eql(\"CustomerCancelled\");",
+                          "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – khách hủy lại lịch đã hủy (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT1}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – khách hủy lịch lưu trú trong hạn (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH1}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch lưu trú sau khi khách hủy (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch Cancelled, lý do CustomerCancelled, có thời điểm hủy\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "        pm.expect(body.cancelReason).to.eql(\"CustomerCancelled\");",
+                          "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                          "        pm.expect(body.cageId === null || body.cageId === undefined).to.be.true;",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Khách hàng tự hủy lịch spa và lưu trú trong hạn (FR-CHG-01, BR-08, BR-14)\n\nChạy sau 06.C.4. Lịch T1 và H1 lúc này đang Pending (sau khi khách đổi). Khách hủy không gửi body; lý do CustomerCancelled do backend đặt."
+            },
+            {
+              "name": "06.C.6 Quá hạn tự đổi/hủy – chạy từng request, xen bước SQL (xem hướng dẫn)",
+              "item": [
+                {
+                  "name": "PUT /appointments/{id} – khách đổi lịch quá hạn tự đổi (409 CHANGE_WINDOW_CLOSED)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 (đã chạy SQL) hoặc 200 (chạy tự động, chưa quá hạn)\", function () {",
+                          "    pm.expect([200, 409]).to.include(pm.response.code);",
+                          "});",
+                          "",
+                          "pm.environment.set(\"chgWindowSqlDone\", String(pm.response.code === 409));",
+                          "",
+                          "if (pm.response.code === 409) {",
+                          "    pm.test(\"Mã lỗi là CHANGE_WINDOW_CLOSED\", function () {",
+                          "        pm.expect(pm.response.json().code).to.eql(\"CHANGE_WINDOW_CLOSED\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT3}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT3}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1100}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – khách hủy lịch quá hạn tự hủy (409 CHANGE_WINDOW_CLOSED)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 (đã chạy SQL) hoặc 200 (chạy tự động, chưa quá hạn)\", function () {",
+                          "    pm.expect([200, 409]).to.include(pm.response.code);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 409) {",
+                          "    pm.test(\"Mã lỗi là CHANGE_WINDOW_CLOSED\", function () {",
+                          "        pm.expect(pm.response.json().code).to.eql(\"CHANGE_WINDOW_CLOSED\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT3}}",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch T3 vẫn Pending sau khi bị chặn (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    if (pm.environment.get(\"chgWindowSqlDone\") === \"true\") {",
+                          "        pm.test(\"Lịch T3 bị chặn đổi/hủy nên vẫn ở Pending\", function () {",
+                          "            pm.expect(body.status).to.eql(\"Pending\");",
+                          "        });",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT3}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT3}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Khóa tự đổi, tự hủy sau mốc cho phép (FR-CHG-02, BR-08)\n\nQuy trình:\n\n1. Chạy xong 06.C.0 và 06.C.1.\n\n2. Đưa giờ hẹn của lịch T3 về 30 phút sau hiện tại (nhỏ hơn hạn tự đổi/hủy 60 phút) bằng SQL trên Supabase (thay `<chgApptT3>` bằng giá trị biến môi trường chgApptT3):\n\n```sql\nUPDATE \"Appointment\"\nSET \"SlotStart\" = now() + interval '30 minutes',\n    \"SlotEnd\" = now() + interval '90 minutes',\n    \"BusyUntil\" = now() + interval '105 minutes',\n    \"UpdatedAt\" = now()\nWHERE \"AppointmentId\" = '<chgApptT3>'::uuid;\n```\n\n3. Gửi lần lượt 3 request của folder này.\n\nKhi chạy tự động bằng Runner hoặc Newman (không có bước SQL), lịch T3 còn xa giờ hẹn nên khách đổi, hủy được (200). Test script chấp nhận cả 200 và 409 để bộ chạy tự động không bị gãy. Request đầu tiên ghi biến chgWindowSqlDone cho các request sau và folder 06.C.8."
             }
           ],
           "description": "### Theo dõi lịch hẹn, đổi/hủy, vô hiệu hóa nhân viên spa (FR-BOOK-04, FR-BOOK-05, FR-CHG-01, FR-CHG-02, FR-CHG-03, FR-STF-03)\n\nChạy theo thứ tự 06.C.0 → 06.C.10. Điều kiện: backend đang chạy, tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 06.C.0. Hai folder 06.C.3 và 06.C.6 có bước SQL xen giữa (xem mô tả từng folder); khi chạy tự động bằng Runner hoặc Newman không có SQL thì test vẫn xanh.\n\nNgày hẹn spa và khoảng ngày lưu trú được tạo ngẫu nhiên ở xa trong tương lai ở request đầu của 06.C.0 để mỗi lần chạy không trùng dữ liệu lần trước."
