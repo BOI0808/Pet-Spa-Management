@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
+  cancelAppointment,
   confirmHotelAppointment,
   confirmSpaAppointment,
   getAppointment,
@@ -7,6 +8,7 @@ import {
   getSpaSuggestions,
   listAppointments,
   rejectAppointment,
+  updateAppointment,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
 import type { Appointment } from "@/lib/api/types";
@@ -214,4 +216,40 @@ export function useRemovePendingAppointment() {
     );
     void invalidatePending(queryClient);
   };
+}
+
+/**
+ * Sau khi đổi hoặc hủy lịch (kể cả khi bị 409) tải lại mọi dữ liệu lịch hẹn đang hiển thị: chi tiết, danh sách chờ, huy hiệu, đề xuất.
+ * Các khóa đều bắt đầu bằng `appointmentKeys.all`, và chỉ query đang được dùng mới tải lại ngay.
+ */
+function invalidateAppointments(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+}
+
+/** POST /appointments/{id}/cancel (FR-CHG-03). Lỗi 409 (vd. INVALID_TRANSITION khi lịch đã Hoàn tất) tải lại để thấy trạng thái mới nhất. */
+export function useCancelAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelAppointment,
+    onSuccess: () => {
+      void invalidateAppointments(queryClient);
+    },
+    onError: (error) => {
+      if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
+    },
+  });
+}
+
+/** PUT /appointments/{id} (FR-CHG-03). Lỗi 409 (hết chỗ, trùng nhân viên, lịch đã đổi trạng thái…) tải lại để thấy dữ liệu mới nhất. */
+export function useUpdateAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateAppointment,
+    onSuccess: () => {
+      void invalidateAppointments(queryClient);
+    },
+    onError: (error) => {
+      if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
+    },
+  });
 }

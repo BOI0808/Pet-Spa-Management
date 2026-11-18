@@ -94,3 +94,11 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - "Tạm tính" tính ở web (`features/pending/hotel-stay.ts`) từ `GET /hotel/pricing` và hồ sơ thú cưng chỉ để hiển thị; số tiền thật do backend tính (BR-22, BR-26).
 - Lỗi 409: `CAGE_CONFLICT` hiện `ErrorAlert` trong thẻ rồi tải lại đề xuất chuồng; `INVALID_TRANSITION` hiện toast lỗi rồi tải lại danh sách chờ và huy hiệu.
 - Sau khi xác nhận hoặc từ chối: `PendingScreen.handleProcessed` đổi `?appointmentId=` sang lịch kế tiếp bằng History API (không chờ máy chủ), gỡ lịch khỏi cache rồi tải lại danh sách và huy hiệu.
+
+## Đổi và hủy lịch hẹn (MW-05, thẻ 148)
+
+- Trang `/lich-hen/[appointmentId]` mới có vùng đầu trang (thông tin lịch, trạng thái, nút "Đổi lịch" và "Hủy lịch"); thẻ 147 bổ sung danh sách MW-03 và các vùng giám sát, thẻ 149 bổ sung cập nhật trạng thái. Chưa có MW-03 nên vào trang bằng đường dẫn có mã lịch.
+- Đổi lịch: `PUT /appointments/{id}` (`useUpdateAppointment`). Backend bắt buộc đủ `slotStart + petId + serviceIds` (spa) hoặc `plannedCheckIn + plannedCheckOut + petId` (lưu trú) nên web luôn gửi lại thú cưng và dịch vụ hiện tại; `staffIds` chỉ gửi khi Quản lý đổi người (lịch Đã xác nhận). Quản lý chỉ đổi được lịch Chờ xác nhận hoặc Đã xác nhận (`canChangeAppointment`), trạng thái lịch giữ nguyên.
+- Mốc giờ spa chọn trong `SLOT_TIME_OPTIONS` vì `GET /spa/slots` không dành cho Quản lý; backend kiểm tra còn chỗ khi lưu (409 `SLOT_FULL`). Lịch lưu trú không gửi `cageId` nên giữ chuồng hiện tại; thẻ 150 nối `GET /cages` thì thêm chọn chuồng vào hộp thoại.
+- Hủy lịch: `POST /appointments/{id}/cancel` chỉ gửi `{ reason }` là `StoreUnable` hoặc `CustomerBeyondDeadline`; hủy được ở mọi trạng thái trừ Hoàn tất và Đã hủy (`canCancelAppointment`). Hoàn tiền xử lý ngoài hệ thống (BR-24).
+- Lỗi 409: `STAFF_OUT_OF_SHIFT` mở `OutOfShiftDialog` rồi gửi lại kèm `confirmOutOfShift: true`; `INVALID_TRANSITION` hiện toast lỗi; mọi lỗi 409 tải lại dữ liệu lịch hẹn. Chưa hiện thông báo "đã gửi thông báo cho khách" vì thông báo tự động do thẻ 97 nối.
