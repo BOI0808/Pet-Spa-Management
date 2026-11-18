@@ -16,9 +16,15 @@ public sealed class SpaProgressRepository(AppDbContext db) : ISpaProgressReposit
         db.Set<AppointmentService>()
             .FirstOrDefaultAsync(s => s.AppointmentId == appointmentId && s.ServiceId == serviceId, ct);
 
-    public async Task<bool> AreAllServicesDoneAsync(Guid appointmentId, CancellationToken ct = default) =>
-        !await db.Set<AppointmentService>().AsNoTracking()
-            .AnyAsync(s => s.AppointmentId == appointmentId && !s.IsDone, ct);
+    public async Task<bool> AreAllServicesDoneAsync(Guid appointmentId, CancellationToken ct = default)
+    {
+        var services = await db.Set<AppointmentService>().AsNoTracking()
+            .Where(s => s.AppointmentId == appointmentId)
+            .Select(s => s.IsDone)
+            .ToListAsync(ct);
+
+        return services.Count > 0 && services.All(isDone => isDone);
+    }
 
     public void AddPayment(Payment payment) => db.Set<Payment>().Add(payment);
 }

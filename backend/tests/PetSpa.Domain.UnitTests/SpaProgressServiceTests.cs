@@ -126,7 +126,7 @@ public class SpaProgressServiceTests
             Task.FromResult(Lines.FirstOrDefault(l => l.AppointmentId == appointmentId && l.ServiceId == serviceId));
 
         public Task<bool> AreAllServicesDoneAsync(Guid appointmentId, CancellationToken ct = default) =>
-            Task.FromResult(Lines.All(l => l.IsDone));
+            Task.FromResult(Lines.Count > 0 && Lines.All(l => l.IsDone));
 
         public void AddPayment(Payment payment) => Payments.Add(payment);
     }
@@ -421,6 +421,18 @@ public class SpaProgressServiceTests
     {
         var f = new Fixture(AppointmentStatus.InProgress);
         f.Progress.Lines[0].IsDone = true;
+        f.Photos.Stored.Add(Photo(PhotoKind.After));
+
+        await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
+        Assert.Empty(f.Progress.Payments);
+    }
+
+    [Fact]
+    public async Task Complete_NoServices_ThrowsServicesIncomplete()
+    {
+        var f = new Fixture(AppointmentStatus.InProgress);
+        f.Progress.Lines.Clear();
         f.Photos.Stored.Add(Photo(PhotoKind.After));
 
         await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));

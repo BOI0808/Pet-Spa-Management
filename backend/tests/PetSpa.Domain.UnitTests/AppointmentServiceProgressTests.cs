@@ -20,6 +20,18 @@ public class AppointmentServiceProgressTests
     }
 
     [Fact]
+    public void UpdateProgress_AlreadyDone_PreservesOriginalDoneAt()
+    {
+        var line = new AppointmentService { IsDone = true, DoneAt = Now, Note = "Ghi chú cũ" };
+
+        line.UpdateProgress(true, "Cập nhật ghi chú", Now.AddMinutes(30));
+
+        Assert.True(line.IsDone);
+        Assert.Equal(Now, line.DoneAt);
+        Assert.Equal("Cập nhật ghi chú", line.Note);
+    }
+
+    [Fact]
     public void UpdateProgress_Undone_ClearsDoneAt()
     {
         var line = new AppointmentService { IsDone = true, DoneAt = Now };

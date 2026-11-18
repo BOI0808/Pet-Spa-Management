@@ -11,7 +11,7 @@ public class AppointmentService
     public void UpdateProgress(bool isDone, string? note, DateTimeOffset now)
     {
         IsDone = isDone;
-        DoneAt = isDone ? now : null;
+        DoneAt = isDone ? DoneAt ?? now : null;
 
         if (note is not null)
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
