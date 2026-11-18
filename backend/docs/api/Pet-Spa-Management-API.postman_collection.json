@@ -17729,6 +17729,925 @@
                 }
               ],
               "description": "### Khóa tự đổi, tự hủy sau mốc cho phép (FR-CHG-02, BR-08)\n\nQuy trình:\n\n1. Chạy xong 06.C.0 và 06.C.1.\n\n2. Đưa giờ hẹn của lịch T3 về 30 phút sau hiện tại (nhỏ hơn hạn tự đổi/hủy 60 phút) bằng SQL trên Supabase (thay `<chgApptT3>` bằng giá trị biến môi trường chgApptT3):\n\n```sql\nUPDATE \"Appointment\"\nSET \"SlotStart\" = now() + interval '30 minutes',\n    \"SlotEnd\" = now() + interval '90 minutes',\n    \"BusyUntil\" = now() + interval '105 minutes',\n    \"UpdatedAt\" = now()\nWHERE \"AppointmentId\" = '<chgApptT3>'::uuid;\n```\n\n3. Gửi lần lượt 3 request của folder này.\n\nKhi chạy tự động bằng Runner hoặc Newman (không có bước SQL), lịch T3 còn xa giờ hẹn nên khách đổi, hủy được (200). Test script chấp nhận cả 200 và 409 để bộ chạy tự động không bị gãy. Request đầu tiên ghi biến chgWindowSqlDone cho các request sau và folder 06.C.8."
+            },
+            {
+              "name": "06.C.7 Quản lý đổi lịch hẹn – FR-CHG-03",
+              "item": [
+                {
+                  "name": "PUT /appointments/{id} – quản lý đổi sang thú cưng không thuộc khách của lịch (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1500}}\",\n  \"petId\": \"{{chgPet2Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – quản lý đổi sang mốc 19:00 quá giờ bắt đầu muộn nhất (409 SLOT_FULL)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SLOT_FULL\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SLOT_FULL\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1900}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – quản lý dời lịch spa sang 15:00, giữ nhân viên C (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Quản lý đổi lịch, trạng thái giữ nguyên Confirmed\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1500}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch spa sau khi quản lý đổi (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch T2 vẫn Confirmed, giờ 15:00, giữ nhân viên C\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                          "        pm.expect(new Date(body.slotStart).getTime()).to.eql(new Date(pm.environment.get(\"chgSlot1500\")).getTime());",
+                          "        pm.expect(body.staff).to.have.lengthOf(1);",
+                          "        pm.expect(body.staff[0].staffId).to.eql(pm.environment.get(\"chgStaffCId\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – quản lý dời sang 17:00, chọn nhân viên D đang giữ lịch T6 (409 STAFF_CONFLICT)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là STAFF_CONFLICT\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"STAFF_CONFLICT\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"slotStart\": \"{{chgSlot1700}}\",\n  \"petId\": \"{{chgPet1Id}}\",\n  \"serviceIds\": [\n    \"{{chgServiceId}}\"\n  ],\n  \"staffIds\": [\n    \"{{chgStaffDId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch spa không đổi sau khi bị từ chối (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch T2 vẫn Confirmed, giờ 15:00, giữ nhân viên C\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                          "        pm.expect(new Date(body.slotStart).getTime()).to.eql(new Date(pm.environment.get(\"chgSlot1500\")).getTime());",
+                          "        pm.expect(body.staff).to.have.lengthOf(1);",
+                          "        pm.expect(body.staff[0].staffId).to.eql(pm.environment.get(\"chgStaffCId\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – quản lý dời lịch lưu trú sang W4, chọn chuồng A đã có H3 (409 CAGE_CONFLICT)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 Conflict\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là CAGE_CONFLICT\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"CAGE_CONFLICT\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{chgPet2Id}}\",\n  \"plannedCheckIn\": \"{{chgHotelW4In}}\",\n  \"plannedCheckOut\": \"{{chgHotelW4Out}}\",\n  \"cageId\": \"{{chgCageAId}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PUT /appointments/{id} – quản lý dời lịch lưu trú sang W4, giữ chuồng B (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Quản lý đổi lịch, trạng thái giữ nguyên Confirmed\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH2}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{chgPet2Id}}\",\n  \"plannedCheckIn\": \"{{chgHotelW4In}}\",\n  \"plannedCheckOut\": \"{{chgHotelW4Out}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch lưu trú sau khi quản lý đổi (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch H2 vẫn Confirmed, khoảng ngày mới, giữ chuồng B\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                          "        pm.expect(new Date(body.plannedCheckIn).getTime()).to.eql(new Date(pm.environment.get(\"chgHotelW4In\")).getTime());",
+                          "        pm.expect(body.cageId).to.eql(pm.environment.get(\"chgCageBId\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH2}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH2}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Quản lý đổi lịch spa và lưu trú (FR-CHG-03, BR-04, BR-13, BR-21)\n\nChạy sau 06.C.5. Lịch T2 đang Confirmed với nhân viên C lúc 13:00; lịch T6 giữ nhân viên D lúc 17:00; lịch H2 Confirmed với chuồng B, lịch H3 giữ chuồng A ở khoảng ngày W4. Quản lý đổi không bị giới hạn hạn tự đổi, trạng thái giữ nguyên, các ràng buộc BR-13, BR-04, BR-21 vẫn được kiểm tra."
+            },
+            {
+              "name": "06.C.8 Quản lý hủy lịch hẹn – FR-CHG-03",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý gửi lý do không hợp lệ (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400 Bad Request\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH3}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"NoShow\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch lưu trú, cửa hàng không thể đáp ứng (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH3}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch lưu trú sau khi quản lý hủy (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch Cancelled, lý do StoreUnable, có thời điểm hủy\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "        pm.expect(body.cancelReason).to.eql(\"StoreUnable\");",
+                          "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH3}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH3}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch spa đã xác nhận, cửa hàng không thể đáp ứng (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT2}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT2}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch T3 quá hạn tự hủy theo yêu cầu khách (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 (lịch T3 còn Pending) hoặc 409 (chạy tự động, T3 đã được khách hủy)\", function () {",
+                          "    pm.expect([200, 409]).to.include(pm.response.code);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT3}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"CustomerBeyondDeadline\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch lưu trú H2 theo yêu cầu khách ngoài hạn (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgHotelH2}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgHotelH2}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"CustomerBeyondDeadline\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch T4 đã hoàn tất (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409 (đã chạy SQL, lịch đã hoàn tất) hoặc 200 (chạy tự động, lịch còn Pending)\", function () {",
+                          "    pm.expect([200, 409]).to.include(pm.response.code);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 409) {",
+                          "    pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "        pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT4}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT4}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Quản lý hủy lịch spa và lưu trú kèm lý do (FR-CHG-03, BR-14, BR-24)\n\nChạy sau 06.C.7 (và sau 06.C.6 để T3 đã có trạng thái quá hạn). Quản lý bắt buộc gửi lý do StoreUnable hoặc CustomerBeyondDeadline; không bị giới hạn hạn tự hủy."
             }
           ],
           "description": "### Theo dõi lịch hẹn, đổi/hủy, vô hiệu hóa nhân viên spa (FR-BOOK-04, FR-BOOK-05, FR-CHG-01, FR-CHG-02, FR-CHG-03, FR-STF-03)\n\nChạy theo thứ tự 06.C.0 → 06.C.10. Điều kiện: backend đang chạy, tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 06.C.0. Hai folder 06.C.3 và 06.C.6 có bước SQL xen giữa (xem mô tả từng folder); khi chạy tự động bằng Runner hoặc Newman không có SQL thì test vẫn xanh.\n\nNgày hẹn spa và khoảng ngày lưu trú được tạo ngẫu nhiên ở xa trong tương lai ở request đầu của 06.C.0 để mỗi lần chạy không trùng dữ liệu lần trước."
