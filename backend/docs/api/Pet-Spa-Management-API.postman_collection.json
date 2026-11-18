@@ -18648,6 +18648,785 @@
                 }
               ],
               "description": "### Quản lý hủy lịch spa và lưu trú kèm lý do (FR-CHG-03, BR-14, BR-24)\n\nChạy sau 06.C.7 (và sau 06.C.6 để T3 đã có trạng thái quá hạn). Quản lý bắt buộc gửi lý do StoreUnable hoặc CustomerBeyondDeadline; không bị giới hạn hạn tự hủy."
+            },
+            {
+              "name": "06.C.9 Vô hiệu hóa nhân viên spa – FR-STF-03",
+              "item": [
+                {
+                  "name": "POST /auth/login – nhân viên spa D (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có accessToken và refreshToken\", function () {",
+                          "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                          "        pm.expect(body.refreshToken).to.be.a(\"string\");",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"chgStaffDToken\", body.accessToken);",
+                          "    pm.environment.set(\"chgStaffDRefreshToken\", body.refreshToken);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{chgStaffDPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403 Forbidden\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{chgStaffDId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{chgStaffDId}}",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – nhân viên không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404 Not Found\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/3f2c9a10-7b1e-4c55-9d2a-5e8f1a6b7c90/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "3f2c9a10-7b1e-4c55-9d2a-5e8f1a6b7c90",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /me – token nhân viên D dùng được trước khi vô hiệu hóa (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{chgStaffDToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "me"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – quản lý vô hiệu hóa nhân viên D (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có đúng 1 lịch spa quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(body.returnedToPending).to.eql(1);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{chgStaffDId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{chgStaffDId}}",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch T6 của nhân viên D quay về Pending (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch T6 quay về Pending và không còn nhân viên\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Pending\");",
+                          "        pm.expect(body.staff).to.have.lengthOf(0);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT6}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT6}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /me – token cũ của nhân viên D bị từ chối ngay (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401 Unauthorized\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{chgStaffDToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "me"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/login – nhân viên D đăng nhập lại bị từ chối (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401 Unauthorized\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "login"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userName\": \"{{chgStaffDPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /auth/refresh – refresh token của nhân viên D bị từ chối (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401 Unauthorized\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "auth",
+                        "refresh"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"refreshToken\": \"{{chgStaffDRefreshToken}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/suggestions – nhân viên D không còn được đề xuất cho T6 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const ids = body.suggested.concat(body.alternatives).map((s) => s.staffId);",
+                          "",
+                          "    pm.test(\"Nhân viên D bị vô hiệu hóa không còn trong danh sách phân công\", function () {",
+                          "        pm.expect(ids).to.not.include(pm.environment.get(\"chgStaffDId\"));",
+                          "    });",
+                          "",
+                          "    pm.test(\"Nhân viên C vẫn có trong danh sách phân công\", function () {",
+                          "        pm.expect(ids).to.include(pm.environment.get(\"chgStaffCId\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT6}}/suggestions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT6}}",
+                        "suggestions"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Quản lý vô hiệu hóa nhân viên spa (FR-STF-03, BR-14, BR-27)\n\nChạy sau 06.C.8. Nhân viên D đang giữ đúng một lịch spa Confirmed là T6; request đầu tiên đăng nhập D để có token mới. Sau khi vô hiệu hóa, T6 về Pending, D mất quyền đăng nhập và không còn được đề xuất phân công. Thông báo cho khách thuộc folder thông báo (task 170), không thử ở đây."
+            },
+            {
+              "name": "06.C.10 Dọn dữ liệu thử (task 167)",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch T6 còn lại (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{chgApptT6}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{chgApptT6}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên C (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(body.returnedToPending).to.eql(0);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{chgStaffCId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{chgStaffCId}}",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /cages/{id}/status – ngừng dùng chuồng Dog/Small A (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/cages/{{chgCageAId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "cages",
+                        "{{chgCageAId}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /cages/{id}/status – ngừng dùng chuồng Dog/Small B (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/cages/{{chgCageBId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "cages",
+                        "{{chgCageBId}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /services/{id}/status – ngừng cung cấp dịch vụ spa thử (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services/{{chgServiceId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services",
+                        "{{chgServiceId}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Dọn dữ liệu thử (task 167)\n\nHủy lịch T6 còn lại, vô hiệu hóa nhân viên C, ngừng dùng 2 chuồng và ngừng cung cấp dịch vụ spa thử để danh mục không đầy rác sau mỗi lần chạy. Chạy cuối cùng.\n\nKhông xóa ca làm, lịch hẹn, thú cưng thử: các dòng này gắn với lịch hẹn nên hệ thống không cho xóa. Dữ liệu nằm ở ngày rất xa trong tương lai nên không ảnh hưởng các folder khác."
             }
           ],
           "description": "### Theo dõi lịch hẹn, đổi/hủy, vô hiệu hóa nhân viên spa (FR-BOOK-04, FR-BOOK-05, FR-CHG-01, FR-CHG-02, FR-CHG-03, FR-STF-03)\n\nChạy theo thứ tự 06.C.0 → 06.C.10. Điều kiện: backend đang chạy, tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 06.C.0. Hai folder 06.C.3 và 06.C.6 có bước SQL xen giữa (xem mô tả từng folder); khi chạy tự động bằng Runner hoặc Newman không có SQL thì test vẫn xanh.\n\nNgày hẹn spa và khoảng ngày lưu trú được tạo ngẫu nhiên ở xa trong tương lai ở request đầu của 06.C.0 để mỗi lần chạy không trùng dữ liệu lần trước."
