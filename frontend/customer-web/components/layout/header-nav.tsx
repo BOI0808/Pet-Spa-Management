@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { useSession } from "@/lib/auth/session";
+import { useUnreadNotificationCount } from "@/lib/queries/notifications";
 import { getInitials, getShortName } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { Dropdown, dropdownItemClass } from "./dropdown";
@@ -29,6 +30,8 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
   const bookingActive = isUnder(pathname, "/dat-lich");
   const notificationsActive = isUnder(pathname, ROUTES.notifications);
   const fullName = me ? (me.fullName ?? me.userName) : null;
+  // Chỉ gọi khi đã có phiên: thanh trên nằm ngoài SessionGate.
+  const { data: unread = 0 } = useUnreadNotificationCount({ enabled: me !== null });
 
   return (
     <>
@@ -85,10 +88,10 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
       </nav>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Số thông báo chưa đọc hiển thị khi làm trung tâm thông báo (thẻ 1.5.5.2). */}
+        {/* Chuông + số chưa đọc, ẩn số khi 0 (UI-Screens khung CW, vùng D; `.dot-count` của ui-demo). */}
         <Link
           href={ROUTES.notifications}
-          aria-label="Thông báo"
+          aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : "Thông báo"}
           title="Thông báo"
           aria-current={notificationsActive ? "page" : undefined}
           className={`relative grid size-10 place-items-center rounded-xl text-ink hover:bg-mist ${
@@ -96,6 +99,14 @@ export function HeaderNav({ pathname }: { pathname: string | null }) {
           }`}
         >
           <Icon name="bell" className="size-[22px]" />
+          {unread > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute right-[3px] top-1 h-[18px] min-w-[18px] rounded-full border-2 border-white bg-danger px-[5px] text-center text-[11px] font-bold leading-[14px] text-white tabular-nums"
+            >
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </Link>
         {/* Avatar chữ cái đầu + tên ngắn từ GET /me; chưa tải xong thì hiện biểu tượng (UI-Screens 2.1, vùng E). */}
         <Dropdown
