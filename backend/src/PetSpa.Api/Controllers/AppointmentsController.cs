@@ -22,7 +22,8 @@ public sealed class AppointmentsController(
     AppointmentChangeService appointmentChangeService,
     CheckInService checkInService,
     WeightCheckService weightCheckService,
-    CostConfirmationService costConfirmationService) : ControllerBase
+    CostConfirmationService costConfirmationService,
+    SpaProgressService spaProgressService) : ControllerBase
 {
     [HttpGet]
     [Authorize]
@@ -147,6 +148,41 @@ public sealed class AppointmentsController(
 
         var result = await costConfirmationService.RespondAsync(User.ToCurrentUser(), id, request.Accept!.Value, ct);
         return Ok(CostConfirmationRespondResponse.From(result));
+    }
+
+    [HttpPost("{id}/start")]
+    [Authorize(Policy = AuthorizationPolicies.SpaStaffOrManager)]
+    [EndpointSummary("Nhân viên spa hoặc quản lý bắt đầu thực hiện lịch spa")]
+    [EndpointDescription("Chỉ nhân viên spa được phân công cho lịch hoặc quản lý; không có body (BR-05). Lịch Đã tiếp nhận chuyển sang Đang thực hiện. Thú cưng phải có ảnh Before hợp lệ trong Photo.ValidityDays ngày (BR-20), nếu không trả 409 PHOTO_REQUIRED; đang chờ khách xác nhận chi phí mới trả 409 COST_CONFIRMATION_PENDING (BR-23); lịch không ở Đã tiếp nhận trả 409 INVALID_TRANSITION. Nhân viên spa không được phân công trả 403 FORBIDDEN; không tìm thấy lịch spa trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> Start(Guid id, CancellationToken ct)
+    {
+        var status = await spaProgressService.StartAsync(User.ToCurrentUser(), id, ct);
+        return Ok(new AppointmentStatusResponse(status));
+    }
+
+    [HttpPatch("{id}/services/{serviceId}")]
+    [Authorize(Policy = AuthorizationPolicies.SpaStaffOrManager)]
+    [EndpointSummary("Nhân viên spa hoặc quản lý đánh dấu dịch vụ trong lịch spa đã xong hoặc chưa xong")]
+    [EndpointDescription("Chỉ nhân viên spa được phân công cho lịch hoặc quản lý (BR-05). Body { isDone, note? }: isDone bắt buộc; note không gửi thì giữ ghi chú cũ, gửi chuỗi trắng thì xóa ghi chú. Chỉ cập nhật được khi lịch đang Đang thực hiện, nếu không trả 409 INVALID_TRANSITION. Thiếu isDone trả 400 VALIDATION_ERROR; nhân viên spa không được phân công trả 403 FORBIDDEN; không tìm thấy lịch spa hoặc dịch vụ trong lịch trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> UpdateServiceProgress(
+        Guid id, Guid serviceId, [FromBody] ServiceProgressRequest request, CancellationToken ct)
+    {
+        if (request is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
+
+        await spaProgressService.UpdateServiceAsync(
+            User.ToCurrentUser(), id, serviceId, request.IsDone!.Value, request.Note, ct);
+        return Ok();
+    }
+
+    [HttpPost("{id}/complete")]
+    [Authorize(Policy = AuthorizationPolicies.SpaStaffOrManager)]
+    [EndpointSummary("Nhân viên spa hoặc quản lý hoàn tất lịch spa")]
+    [EndpointDescription("Chỉ nhân viên spa được phân công cho lịch hoặc quản lý; không có body (BR-05). Lịch Đang thực hiện chuyển sang Hoàn tất khi mọi dịch vụ đã xong (BR-06, nếu không trả 409 SERVICES_INCOMPLETE) và có ít nhất một ảnh After (BR-20, nếu không trả 409 PHOTO_REQUIRED). Trong cùng giao dịch: nhả giữ chỗ nhân viên và hình thành khoản thanh toán Spa chưa thanh toán, số tiền do backend tính (FR-PAY-01). Lịch không ở Đang thực hiện trả 409 INVALID_TRANSITION; nhân viên spa không được phân công trả 403 FORBIDDEN; không tìm thấy lịch spa trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    {
+        var status = await spaProgressService.CompleteAsync(User.ToCurrentUser(), id, ct);
+        return Ok(new AppointmentStatusResponse(status));
     }
 
     [HttpPost("{id}/cancel")]
