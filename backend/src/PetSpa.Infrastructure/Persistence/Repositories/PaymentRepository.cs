@@ -21,6 +21,14 @@ public sealed class PaymentRepository(AppDbContext db) : IPaymentRepository
         return row is null ? null : new PaymentWithAppointmentStatus(row.Payment, row.AppointmentStatus);
     }
 
+    public async Task<AppointmentStatus?> GetAppointmentStatusAsync(Guid appointmentId, CancellationToken ct = default)
+    {
+        return await db.Set<Appointment>().AsNoTracking()
+            .Where(a => a.AppointmentId == appointmentId)
+            .Select(a => (AppointmentStatus?)a.Status)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Payment>> ListByAppointmentAsync(Guid appointmentId, CancellationToken ct = default)
     {
         var items = await db.Set<Payment>().AsNoTracking()

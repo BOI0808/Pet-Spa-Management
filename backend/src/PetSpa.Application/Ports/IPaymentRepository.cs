@@ -10,6 +10,8 @@ public interface IPaymentRepository
 {
     Task<PaymentWithAppointmentStatus?> FindWithAppointmentStatusAsync(Guid paymentId, CancellationToken ct = default);
 
+    Task<AppointmentStatus?> GetAppointmentStatusAsync(Guid appointmentId, CancellationToken ct = default);
+
     Task<IReadOnlyList<Payment>> ListByAppointmentAsync(Guid appointmentId, CancellationToken ct = default);
 
     Task<PagedResult<Payment>> ListAsync(PaymentStatus? status, int page, int pageSize, CancellationToken ct = default);

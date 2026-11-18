@@ -25,11 +25,16 @@ public sealed class PaymentService(
                 ?? throw new BusinessException(ErrorCodes.NotFound);
             var payment = found.Payment;
 
+            await concurrencyGuard.LockAppointmentAsync(payment.AppointmentId, ct);
+
+            var appointmentStatus = await payments.GetAppointmentStatusAsync(payment.AppointmentId, ct)
+                ?? found.AppointmentStatus;
+
             if (payment.Kind == PaymentKind.Stay
                 && await costConfirmations.HasPendingAsync(payment.AppointmentId, ct))
                 throw new BusinessException(ErrorCodes.CostConfirmationPending);
 
-            payment.MarkPaid(found.AppointmentStatus, method, receivedAmount, user.UserId);
+            payment.MarkPaid(appointmentStatus, method, receivedAmount, user.UserId);
 
             return payment.Status;
         }, ct);
