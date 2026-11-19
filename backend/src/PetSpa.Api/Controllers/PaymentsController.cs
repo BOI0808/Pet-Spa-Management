@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetSpa.Api.Dtos;
@@ -45,5 +46,28 @@ public sealed class PaymentsController(PaymentService paymentService) : Controll
         var status = await paymentService.RecordCounterAsync(
             User.ToCurrentUser(), id, request.Method!.Value, request.ReceivedAmount!.Value, ct);
         return Ok(new PaymentStatusResponse(status));
+    }
+
+    [HttpPost("payments/{id}/online")]
+    [Authorize(Policy = AuthorizationPolicies.Customer)]
+    [EndpointSummary("Khách hàng khởi tạo thanh toán trực tuyến cho khoản thanh toán của mình")]
+    [EndpointDescription("Chỉ khách hàng. Body { gateway } hiện chỉ hỗ trợ VNPAY. Chỉ khoản Spa chưa thanh toán của lịch spa đã hoàn thành (BR-09) thuộc về khách hàng (BR-16). Số tiền do hệ thống xác định, không nhận từ client. Thành công trả { paymentUrl, txnRef } để chuyển khách sang cổng thanh toán; kết quả cuối do webhook của cổng quyết định. Thiếu hoặc sai gateway, hoặc gateway chưa được hỗ trợ trả 400 VALIDATION_ERROR; không phải khoản thanh toán của mình trả 403 FORBIDDEN; không tìm thấy trả 404 NOT_FOUND; sai thời điểm theo BR-07 trả 409 PAYMENT_NOT_DUE; khoản đã thanh toán hoặc không phải khoản Spa trả 409 INVALID_TRANSITION.")]
+    public async Task<IActionResult> PayOnline(Guid id, [FromBody] OnlinePaymentRequest request, CancellationToken ct)
+    {
+        if (request is null)
+            throw new BusinessException(ErrorCodes.ValidationError, "Dữ liệu yêu cầu không được để trống.");
+
+        var result = await paymentService.InitiateOnlineAsync(
+            User.ToCurrentUser(), id, request.Gateway!.Value, GetClientIp(), ct);
+        return Ok(new OnlinePaymentCreatedResponse(result.PaymentUrl, result.TxnRef));
+    }
+
+    private string GetClientIp()
+    {
+        var address = HttpContext.Connection.RemoteIpAddress;
+        if (address is null || IPAddress.IsLoopback(address))
+            return "127.0.0.1";
+
+        return address.IsIPv4MappedToIPv6 ? address.MapToIPv4().ToString() : address.ToString();
     }
 }

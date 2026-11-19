@@ -22,6 +22,15 @@ public sealed class CounterPaymentRequestValidator : AbstractValidator<CounterPa
     }
 }
 
+public sealed class OnlinePaymentRequestValidator : AbstractValidator<OnlinePaymentRequest>
+{
+    public OnlinePaymentRequestValidator()
+    {
+        RuleFor(x => x.Gateway)
+            .NotNull().WithMessage("Cổng thanh toán là bắt buộc.");
+    }
+}
+
 public sealed class ListPaymentsQueryValidator : AbstractValidator<ListPaymentsQuery>
 {
     public ListPaymentsQueryValidator()
