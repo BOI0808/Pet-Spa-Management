@@ -6,9 +6,12 @@ import {
   getSpaSlots,
   listAppointmentPayments,
   listAppointments,
+  respondCostConfirmation,
+  weightCheckHotelAppointment,
   type AppointmentListParams,
   type SpaSlotParams,
 } from "@/lib/api/endpoints/appointments";
+import { petKeys } from "@/lib/queries/pets";
 
 // Cùng khóa với customer-web.
 export const appointmentKeys = {
@@ -94,4 +97,37 @@ export function useCheckInSpa() {
   const queryClient = useQueryClient();
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
   return useMutation({ mutationFn: checkInSpaAppointment, onSuccess: invalidate, onError: invalidate });
+}
+
+/**
+ * Đối chiếu cân nặng lịch lưu trú (SW-07 vùng 9). Hồ sơ thú cưng có thể đã cập nhật theo cân thực tế (OK, giảm nhóm)
+ * nên làm mới cả khóa `pets`; lỗi cũng tải lại lịch để thấy trạng thái mới (SA 6.6).
+ */
+export function useWeightCheckHotel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: weightCheckHotelAppointment,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: petKeys.all });
+    },
+    onError: () => void queryClient.invalidateQueries({ queryKey: appointmentKeys.all }),
+  });
+}
+
+/**
+ * Lễ tân ghi nhận phản hồi chi phí mới của khách (SW-07·D1). Giống `useRespondCostConfirmation` của customer-web:
+ * thành công hay lỗi đều tải lại lịch, vì yêu cầu có thể vừa hết hạn và backend đã hủy lịch.
+ */
+export function useRespondCostConfirmation(appointmentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (accept: boolean) => respondCostConfirmation(appointmentId, { accept }),
+    onSuccess: (_result, accept) => {
+      void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+      // Đồng ý: hồ sơ thú cưng cập nhật theo cân nặng thực tế.
+      if (accept) void queryClient.invalidateQueries({ queryKey: petKeys.all });
+    },
+    onError: () => void queryClient.invalidateQueries({ queryKey: appointmentKeys.all }),
+  });
 }

@@ -310,6 +310,23 @@ export type WeightCheck = {
   newAmount?: number;
   /** Hạn khách phản hồi chi phí mới; chỉ có khi `result` = NEEDS_CONFIRMATION. */
   expiresAt?: string;
+  /**
+   * Chỉ lịch lưu trú, khi nhóm kích cỡ của lịch đổi (`PRICE_DECREASED`): chuồng đã gán còn phù hợp nhóm mới.
+   * `false` → quản lý gán chuồng khác hoặc từ chối lịch (FR-EXE-10, BR-21).
+   */
+  cageSuitable?: boolean;
+};
+
+/** Phản hồi POST /appointments/{id}/weight-check (lịch lưu trú). */
+export type WeightCheckResponse = { weightCheck: WeightCheck };
+
+/** Khách đồng ý (`true`) hoặc từ chối (`false`) chi phí mới – FR-EXE-11. Cùng tên với customer-web. */
+export type CostConfirmationRespondRequest = { accept: boolean };
+
+/** Phản hồi POST /appointments/{id}/cost-confirmation/respond. `cageSuitable` chỉ có ở lịch lưu trú khi `accept`. */
+export type CostConfirmationRespondResult = {
+  status: AppointmentStatus;
+  cageSuitable?: boolean;
 };
 
 /** Phản hồi POST /appointments/{id}/check-in. `weightCheck` chỉ có ở lịch spa. */
