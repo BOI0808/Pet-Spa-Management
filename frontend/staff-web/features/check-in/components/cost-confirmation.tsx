@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { Modal } from "@/components/ui/modal";
 import type { ApiError } from "@/lib/api/errors";
-import type { AppointmentDetail, CostConfirmation } from "@/lib/api/types";
+import type { AppointmentDetail, CostConfirmation, CostConfirmationRespondResult } from "@/lib/api/types";
 import { formatAppointmentCode, formatMoney, formatWeight } from "@/lib/format";
 import { SIZE_GROUP_LABELS } from "@/lib/labels";
 import { appointmentKeys, useRespondCostConfirmation } from "@/lib/queries/appointments";
@@ -98,6 +98,8 @@ type RecordResponseDialogProps = {
   pending: CostConfirmation;
   petName: string;
   overdue: boolean;
+  /** Ghi nhận thành công; lịch lưu trú dùng `result.cageSuitable` để báo chuồng không còn phù hợp. */
+  onResponded?: (accept: boolean, result: CostConfirmationRespondResult) => void;
 };
 
 type Choice = "accept" | "reject";
@@ -106,7 +108,15 @@ type Choice = "accept" | "reject";
  * SW-07·D1. Nhóm “Khách phản hồi qua” của ui-demo không có trường trong API nên không làm (G-20).
  * Không chọn sẵn lựa chọn nào để lễ tân không lỡ tay ghi “đồng ý”; quá hạn chỉ còn “Khách từ chối” (Đề xuất).
  */
-export function RecordResponseDialog({ open, onClose, appointment, pending, petName, overdue }: RecordResponseDialogProps) {
+export function RecordResponseDialog({
+  open,
+  onClose,
+  appointment,
+  pending,
+  petName,
+  overdue,
+  onResponded,
+}: RecordResponseDialogProps) {
   const { showSuccess, showError } = useToast();
   const respond = useRespondCostConfirmation(appointment.appointmentId);
   const [choice, setChoice] = useState<Choice | null>(null);
@@ -124,7 +134,8 @@ export function RecordResponseDialog({ open, onClose, appointment, pending, petN
     if (!selected) return;
     const accept = selected === "accept";
     respond.mutate(accept, {
-      onSuccess: () => {
+      onSuccess: (result) => {
+        onResponded?.(accept, result);
         showSuccess(
           accept
             ? `Đã ghi nhận khách đồng ý chi phí mới cho ${petName}`

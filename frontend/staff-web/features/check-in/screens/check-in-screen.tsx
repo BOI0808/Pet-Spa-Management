@@ -1,14 +1,15 @@
 "use client";
 
-// SW-07 Tiếp nhận thú cưng – UI-Screens.md, UC-16, FR-EXE-02, UF-03. Thẻ 125 làm phần lịch spa; phần lưu trú
-// (đối chiếu cân nặng, thu tiền, đưa vào chuồng) và ghi nhận phản hồi chi phí mới làm ở thẻ 126, 127.
+// SW-07 Tiếp nhận thú cưng – UI-Screens.md, UC-16, FR-EXE-02, FR-EXE-10, FR-EXE-11, UF-03, UF-10. Thẻ 125 làm phần
+// lịch spa; thẻ 126 thêm đối chiếu cân nặng lịch lưu trú và ghi nhận phản hồi chi phí mới; thu tiền lưu trú, đưa vào
+// chuồng ở thẻ 128, 127.
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { ForbiddenState } from "@/components/feedback/forbidden-state";
 import { NotFoundState } from "@/components/feedback/not-found-state";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,9 +18,10 @@ import type { Appointment } from "@/lib/api/types";
 import { formatFullDate } from "@/lib/format";
 import { useAppointment, useAppointments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { appointmentDetailRoute, checkInRoute } from "@/lib/routes";
+import { checkInRoute } from "@/lib/routes";
 import { getStoreToday } from "@/lib/time";
-import { canCheckInSpa, sortByRowMoment } from "@/features/appointments/appointments";
+import { canCheckIn, sortByRowMoment } from "@/features/appointments/appointments";
+import { HotelCheckInCard } from "../components/hotel-check-in-card";
 import { SpaCheckInCard, type CheckInOutcome } from "../components/spa-check-in-card";
 import { TodayList } from "../components/today-list";
 
@@ -27,7 +29,7 @@ import { TodayList } from "../components/today-list";
 function nextCheckInHref(items: Appointment[], currentId: string, today: string) {
   const index = items.findIndex((item) => item.appointmentId === currentId);
   const next = [...items.slice(index + 1), ...items.slice(0, Math.max(0, index))].find(
-    (item) => item.appointmentId !== currentId && canCheckInSpa(item, today),
+    (item) => item.appointmentId !== currentId && canCheckIn(item, today),
   );
   return next ? checkInRoute(next.appointmentId) : null;
 }
@@ -64,21 +66,13 @@ function SelectedPanel({
   }
 
   if (appointment.data.type === "Hotel") {
-    // Backend chưa tiếp nhận được lịch lưu trú; các bước đối chiếu, thu tiền, đưa vào chuồng làm ở thẻ 126, 127.
-    return (
-      <Card>
-        <EmptyState
-          title="Tiếp nhận lịch lưu trú chưa có ở bản này"
-          description="Xem chi tiết lịch để biết giờ nhận, giờ trả và chuồng."
-          icon="bed"
-          action={<ButtonLink href={appointmentDetailRoute(appointmentId)}>Xem chi tiết</ButtonLink>}
-        />
-      </Card>
-    );
+    // `key`: đổi sang lịch khác thì bỏ kết quả đối chiếu, ô cân nặng của lịch trước.
+    return <HotelCheckInCard key={appointmentId} appointment={appointment.data} pet={pet.data ?? null} />;
   }
 
   return (
     <SpaCheckInCard
+      key={appointmentId}
       appointment={appointment.data}
       pet={pet.data ?? null}
       outcome={outcome}

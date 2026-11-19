@@ -10,7 +10,7 @@ import { useAppointment } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
 import { appointmentDetailRoute, checkInRoute } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
-import { canCheckInSpa, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
+import { canCheckIn, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
 
 type ReceptionRowProps = {
   appointment: Appointment;
@@ -96,7 +96,7 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
       </td>
       <td className={`${CELL} text-right`}>
         {/* Thao tác theo trạng thái (UI-Screens SW-02 vùng 3). “Trả thú cưng”, “Thu tiền” thêm ở thẻ 127, 128. */}
-        {canCheckInSpa(appointment, today) ? (
+        {canCheckIn(appointment, today) ? (
           <ButtonLink href={checkInRoute(appointment.appointmentId)} size="sm">
             Tiếp nhận
           </ButtonLink>
