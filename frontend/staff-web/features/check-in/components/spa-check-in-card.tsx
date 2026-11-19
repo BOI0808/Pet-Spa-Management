@@ -170,6 +170,9 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
     : null;
 
   const justCheckedIn = outcome?.appointmentId === appointment.appointmentId ? outcome : null;
+  // Vừa gửi xong nhưng chi tiết lịch chưa tải lại (còn Đã xác nhận): chưa mời sang lịch tiếp theo, vì có thể lịch đang
+  // chờ khách xác nhận chi phí và nút “Ghi nhận phản hồi của khách” sẽ hiện thay.
+  const reloadingAfterCheckIn = justCheckedIn !== null && appointment.status === "Confirmed";
   const canSubmit = appointment.status === "Confirmed" && !justCheckedIn;
   // Vừa tiếp nhận thì câu kết quả đã nói đủ; riêng lịch vừa bị hủy (khách từ chối chi phí mới) vẫn cần câu trạng thái.
   const note = canSubmit || (justCheckedIn && appointment.status !== "Cancelled") ? null : statusNote(appointment);
@@ -293,7 +296,7 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
               Ghi nhận phản hồi của khách
             </Button>
           )}
-          {justCheckedIn && !pending && nextHref && (
+          {justCheckedIn && !pending && !reloadingAfterCheckIn && nextHref && (
             <ButtonLink href={nextHref} replace className="ml-auto">
               Tiếp nhận lịch tiếp theo
             </ButtonLink>
