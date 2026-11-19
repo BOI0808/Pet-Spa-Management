@@ -219,7 +219,7 @@ export function PaymentsScreen() {
             <EmptyState icon="wallet" title={emptyContent.title} description={emptyContent.description} />
           ) : (
             <div
-              className={`overflow-x-auto ${paymentsQuery.isPlaceholderData ? "opacity-60" : ""}`}
+              className={`relative overflow-x-auto ${paymentsQuery.isPlaceholderData ? "opacity-60" : ""}`}
               aria-busy={paymentsQuery.isPlaceholderData || undefined}
             >
               <table className="w-full border-separate border-spacing-0 text-sm">
