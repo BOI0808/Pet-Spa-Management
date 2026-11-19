@@ -43,6 +43,18 @@ public class Payment
         ConfirmedByUserId = confirmedByUserId;
     }
 
+    public void EnsureCanPayOnline(AppointmentStatus appointmentStatus)
+    {
+        if (Status != PaymentStatus.Unpaid)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
+        if (Kind != PaymentKind.Spa)
+            throw new BusinessException(ErrorCodes.InvalidTransition);
+
+        if (!IsDue(appointmentStatus))
+            throw new BusinessException(ErrorCodes.PaymentNotDue);
+    }
+
     private bool IsDue(AppointmentStatus appointmentStatus) => Kind switch
     {
         PaymentKind.Spa => appointmentStatus == AppointmentStatus.Completed,

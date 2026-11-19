@@ -33,6 +33,7 @@ public class PaymentServiceTests
         public PaymentStatus? LastStatus { get; private set; }
         public int LastPage { get; private set; }
         public int LastPageSize { get; private set; }
+        public List<PaymentTransaction> Transactions { get; } = [];
 
         public Task<PaymentWithAppointmentStatus?> FindWithAppointmentStatusAsync(
             Guid paymentId, CancellationToken ct = default) =>
@@ -57,6 +58,12 @@ public class PaymentServiceTests
             LastPage = page;
             LastPageSize = pageSize;
             return Task.FromResult(PagedResultToReturn);
+        }
+
+        public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default)
+        {
+            Transactions.Add(transaction);
+            return Task.CompletedTask;
         }
     }
 
@@ -113,6 +120,18 @@ public class PaymentServiceTests
             Task.FromResult(Role);
     }
 
+    private sealed class FakePaymentGateway : IPaymentGateway
+    {
+        public PaymentGateway Gateway => PaymentGateway.VNPAY;
+        public PaymentGatewayRequest? LastRequest { get; private set; }
+
+        public string CreatePaymentUrl(PaymentGatewayRequest request)
+        {
+            LastRequest = request;
+            return $"https://pay.test/{request.TxnRef}";
+        }
+    }
+
     private sealed class Fixture
     {
         public FakePaymentRepository Payments { get; } = new();
@@ -120,6 +139,7 @@ public class PaymentServiceTests
         public FakeConcurrencyGuard Guard { get; } = new();
         public FakeAppointmentQueryRepository AppointmentQueryRepo { get; } = new();
         public FakeStaffRoleReader StaffRoles { get; } = new();
+        public FakePaymentGateway Gateway { get; } = new();
         public AppointmentQueryService AppointmentQueries { get; }
         public PaymentService Service { get; }
 
@@ -131,7 +151,7 @@ public class PaymentServiceTests
                 null!,
                 StaffRoles);
 
-            Service = new PaymentService(Payments, Confirmations, Guard, AppointmentQueries);
+            Service = new PaymentService(Payments, Confirmations, Guard, AppointmentQueries, Gateway);
         }
     }
 
@@ -434,5 +454,121 @@ public class PaymentServiceTests
         Assert.Null(fixture.Payments.LastStatus);
         Assert.Equal(1, fixture.Payments.LastPage);
         Assert.Equal(20, fixture.Payments.LastPageSize);
+    }
+
+    private static void SetUpDueSpaPayment(Fixture fixture)
+    {
+        fixture.Payments.Stored = NewPayment(PaymentKind.Spa);
+        fixture.Payments.AppointmentStatus = AppointmentStatus.Completed;
+        fixture.AppointmentQueryRepo.DetailResult = CreateAppointmentDetail(AppointmentId, OwnerUserId);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenOwnerAndDue_CreatesTransactionWithSystemAmountAndReturnsUrl()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+
+        var result = await fixture.Service.InitiateOnlineAsync(
+            CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1");
+
+        var transaction = Assert.Single(fixture.Payments.Transactions);
+        Assert.Equal(PaymentId, transaction.PaymentId);
+        Assert.Equal(PaymentGateway.VNPAY, transaction.Gateway);
+        Assert.Equal(Due, transaction.RequestedAmount);
+        Assert.Equal(result.TxnRef, transaction.TxnRef);
+        Assert.Null(transaction.Result);
+        Assert.Equal($"https://pay.test/{result.TxnRef}", result.PaymentUrl);
+        Assert.Equal(Due, fixture.Gateway.LastRequest!.Amount);
+        Assert.Equal("127.0.0.1", fixture.Gateway.LastRequest.ClientIp);
+        Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenCalledTwice_CreatesDistinctTxnRefs()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+
+        var first = await fixture.Service.InitiateOnlineAsync(
+            CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1");
+        var second = await fixture.Service.InitiateOnlineAsync(
+            CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1");
+
+        Assert.NotEqual(first.TxnRef, second.TxnRef);
+        Assert.Equal(2, fixture.Payments.Transactions.Count);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenGatewayIsNotSupported_ThrowsValidationError()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+
+        await AssertErrorAsync(ErrorCodes.ValidationError,
+            () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.MoMo, "127.0.0.1"));
+
+        Assert.Empty(fixture.Payments.Transactions);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenPaymentNotFound_ThrowsNotFound()
+    {
+        var fixture = new Fixture();
+
+        await AssertErrorAsync(ErrorCodes.NotFound,
+            () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenCustomerDoesNotOwnAppointment_ThrowsForbidden()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+
+        await AssertErrorAsync(ErrorCodes.Forbidden,
+            () => fixture.Service.InitiateOnlineAsync(OtherCustomer, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
+
+        Assert.Empty(fixture.Payments.Transactions);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenAppointmentNotCompleted_ThrowsPaymentNotDue()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+        fixture.Payments.AppointmentStatus = AppointmentStatus.InProgress;
+
+        await AssertErrorAsync(ErrorCodes.PaymentNotDue,
+            () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
+
+        Assert.Empty(fixture.Payments.Transactions);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenAlreadyPaid_ThrowsInvalidTransition()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+        fixture.Payments.Stored!.MarkPaid(AppointmentStatus.Completed, PaymentMethod.Cash, Due, Receptionist.UserId);
+
+        await AssertErrorAsync(ErrorCodes.InvalidTransition,
+            () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
+
+        Assert.Empty(fixture.Payments.Transactions);
+    }
+
+    [Fact]
+    public async Task InitiateOnlineAsync_WhenPaymentIsNotSpa_ThrowsInvalidTransition()
+    {
+        var fixture = new Fixture();
+        SetUpDueSpaPayment(fixture);
+        fixture.Payments.Stored = NewPayment(PaymentKind.Stay);
+        fixture.Payments.AppointmentStatus = AppointmentStatus.Confirmed;
+
+        await AssertErrorAsync(ErrorCodes.InvalidTransition,
+            () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
+
+        Assert.Empty(fixture.Payments.Transactions);
     }
 }
