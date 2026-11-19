@@ -461,4 +461,98 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.InvalidTransition, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));
     }
+
+    // ---------- Quản lý cập nhật trực tiếp trạng thái (FR-EXE-05; BR-05, BR-06, BR-20, FR-LFC-01) ----------
+
+    [Fact]
+    public async Task UpdateService_ManagerNotAssigned_Succeeds()
+    {
+        var f = new Fixture(AppointmentStatus.InProgress);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+
+        await f.Sut.UpdateServiceAsync(ManagerUser, AppointmentId, BathId, true, "Quản lý cập nhật");
+
+        var line = f.Progress.Lines.Single(l => l.ServiceId == BathId);
+        Assert.True(line.IsDone);
+        Assert.Equal("Quản lý cập nhật", line.Note);
+    }
+
+    [Fact]
+    public async Task Complete_ManagerNotAssigned_CompletesAndCreatesPayment()
+    {
+        var f = new Fixture(AppointmentStatus.InProgress);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+        f.Progress.Lines.ForEach(l => l.IsDone = true);
+        f.Photos.Stored.Add(Photo(PhotoKind.After));
+
+        var status = await f.Sut.CompleteAsync(ManagerUser, AppointmentId);
+
+        Assert.Equal(AppointmentStatus.Completed, status);
+        var payment = Assert.Single(f.Progress.Payments);
+        Assert.Equal(PaymentKind.Spa, payment.Kind);
+    }
+
+    [Fact]
+    public async Task Start_ManagerNoBeforePhoto_ThrowsPhotoRequired()
+    {
+        var f = new Fixture(AppointmentStatus.Received);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+        f.Photos.LatestBefore = null;
+
+        await AssertCodeAsync(ErrorCodes.PhotoRequired, () => f.Sut.StartAsync(ManagerUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.Received, f.Assignments.Appointment!.Status);
+    }
+
+    [Fact]
+    public async Task Complete_ManagerServiceNotDone_ThrowsServicesIncomplete()
+    {
+        var f = new Fixture(AppointmentStatus.InProgress);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+        f.Progress.Lines[0].IsDone = true;
+        f.Photos.Stored.Add(Photo(PhotoKind.After));
+
+        await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(ManagerUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
+        Assert.Empty(f.Progress.Payments);
+    }
+
+    [Fact]
+    public async Task Complete_ManagerNoAfterPhoto_ThrowsPhotoRequired()
+    {
+        var f = new Fixture(AppointmentStatus.InProgress);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+        f.Progress.Lines.ForEach(l => l.IsDone = true);
+        f.Photos.Stored.Add(Photo(PhotoKind.Before));
+
+        await AssertCodeAsync(ErrorCodes.PhotoRequired, () => f.Sut.CompleteAsync(ManagerUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
+        Assert.Empty(f.Progress.Payments);
+    }
+
+    [Fact]
+    public async Task Start_ManagerFromConfirmed_ThrowsInvalidTransition()
+    {
+        var f = new Fixture(AppointmentStatus.Confirmed);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+
+        await AssertCodeAsync(ErrorCodes.InvalidTransition, () => f.Sut.StartAsync(ManagerUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.Confirmed, f.Assignments.Appointment!.Status);
+    }
+
+    [Fact]
+    public async Task Complete_ManagerFromReceived_ThrowsInvalidTransition()
+    {
+        var f = new Fixture(AppointmentStatus.Received);
+        f.Query.IsAssigned = false;
+        f.Roles.Role = null;
+
+        await AssertCodeAsync(ErrorCodes.InvalidTransition, () => f.Sut.CompleteAsync(ManagerUser, AppointmentId));
+        Assert.Equal(AppointmentStatus.Received, f.Assignments.Appointment!.Status);
+    }
 }
