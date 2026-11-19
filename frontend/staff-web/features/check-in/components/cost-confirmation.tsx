@@ -21,9 +21,19 @@ import { toStoreTime } from "@/lib/time";
 /** Cùng câu với customer-web (cost-confirmation-banner.tsx), thêm hậu quả lễ tân cần biết. */
 const EXPIRED_MESSAGE = "Yêu cầu xác nhận chi phí đã hết hạn. Lịch hẹn đã bị hủy.";
 
-/** 409 `COST_CONFIRMATION_EXPIRED`: backend vừa hủy lịch; 404: yêu cầu không còn (đã có người phản hồi, đã hết hạn). */
+/**
+ * 404: không còn yêu cầu đang chờ – thường là khách vừa tự phản hồi trên Web Khách hàng trong lúc lễ tân mở D1 (review
+ * PR #75). Lịch có thể đang tiếp tục bình thường nên không báo “đã hủy”; trạng thái thật hiện ra sau khi tải lại.
+ */
+const NO_LONGER_PENDING_MESSAGE = "Yêu cầu này không còn chờ phản hồi, có thể khách đã tự phản hồi. Đã tải lại lịch hẹn.";
+
+/** 409 `COST_CONFIRMATION_EXPIRED`: quá hạn, backend vừa hủy lịch. */
 function isExpiredError(error: ApiError) {
-  return error.code === "COST_CONFIRMATION_EXPIRED" || error.status === 404;
+  return error.code === "COST_CONFIRMATION_EXPIRED";
+}
+
+function isNoLongerPendingError(error: ApiError) {
+  return error.status === 404;
 }
 
 /** “Chênh 2,2 kg” – làm tròn 2 chữ số để tránh số lẻ của phép trừ số thực. */
@@ -144,16 +154,18 @@ export function RecordResponseDialog({
         close();
       },
       onError: (error) => {
-        // Hết hạn: hook đã tải lại lịch (giờ là Đã hủy), đóng hộp thoại và báo bằng toast; lỗi khác hiện trong hộp thoại.
-        if (isExpiredError(error)) {
-          showError(EXPIRED_MESSAGE);
+        // Hết hạn hoặc không còn yêu cầu: hook đã tải lại lịch, đóng hộp thoại và báo bằng toast; lỗi khác hiện trong
+        // hộp thoại.
+        if (isExpiredError(error) || isNoLongerPendingError(error)) {
+          showError(isExpiredError(error) ? EXPIRED_MESSAGE : NO_LONGER_PENDING_MESSAGE);
           close();
         }
       },
     });
   }
 
-  const shownError = respond.error && !isExpiredError(respond.error) ? respond.error : null;
+  const shownError =
+    respond.error && !isExpiredError(respond.error) && !isNoLongerPendingError(respond.error) ? respond.error : null;
 
   return (
     <Modal
