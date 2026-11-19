@@ -154,6 +154,13 @@ const ICON_PATHS = {
     </>
   ),
   x: <path d="M18 6 6 18M6 6l12 12" />,
+  // SW-07 vùng 7 (thẻ 126): cảnh báo tăng nhóm kích cỡ (ui-demo: i-scale).
+  scale: (
+    <>
+      <circle cx="12" cy="5" r="3" />
+      <path d="M6.5 8a2 2 0 0 0-1.9 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.93-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z" />
+    </>
+  ),
   // SW-06 (thẻ 124): ô chọn dịch vụ, ô giờ lưu trú, đang kiểm tra chỗ, lý do nút bị khóa – giống customer-web.
   check: <path d="M20 6 9 17l-5-5" />,
   clock: (

@@ -1,6 +1,7 @@
 "use client";
 
 // SW-07 vùng 2 → 6 – thẻ tiếp nhận lịch spa (UI-Screens.md, FR-EXE-02, FR-EXE-10, UF-03).
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { PetAvatar } from "@/components/domain/pet-avatar";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -13,7 +14,7 @@ import { Field, Input } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppointmentDetail, Pet, WeightCheck } from "@/lib/api/types";
 import { formatAppointmentCode, formatMoney, formatWeight } from "@/lib/format";
-import { SIZE_GROUP_LABELS } from "@/lib/labels";
+import { CANCEL_REASON_LABELS, SIZE_GROUP_LABELS } from "@/lib/labels";
 import { useCheckInSpa } from "@/lib/queries/appointments";
 import { useServices } from "@/lib/queries/services";
 import { ROUTES } from "@/lib/routes";
@@ -26,6 +27,12 @@ import {
   speciesAndBreed,
   staffNames,
 } from "@/features/appointments/appointments";
+import {
+  CostConfirmationAlert,
+  RecordResponseDialog,
+  usePendingCostConfirmation,
+  weightDifference,
+} from "./cost-confirmation";
 
 /** “Chó Poodle” → “chó Poodle” cho tiêu đề “Bông, chó Poodle” như ui-demo. */
 function lowerFirst(text: string) {
@@ -61,25 +68,21 @@ function InfoBox({ label, value, note }: { label: string; value: string; note?: 
 }
 
 /**
- * SW-07 vùng 5 sau khi gửi: câu theo kết quả đối chiếu. Cần khách xác nhận (tăng nhóm) chỉ hiện cảnh báo và hạn phản
- * hồi; đồng hồ đếm ngược và hộp “Ghi nhận phản hồi của khách” (vùng 7, SW-07·D1) làm ở thẻ 126.
+ * SW-07 vùng 5 sau khi gửi: câu theo kết quả đối chiếu. Cần khách xác nhận (tăng nhóm) thì thẻ hiện vùng 7
+ * (`CostConfirmationAlert`) từ yêu cầu đang chờ của chi tiết lịch; nhánh NEEDS_CONFIRMATION dưới đây chỉ hiện trong
+ * lúc chi tiết lịch chưa tải lại xong.
  */
 function WeightCheckAlert({ outcome, appointment }: { outcome: CheckInOutcome; appointment: AppointmentDetail }) {
   const { weightCheck, actualWeightKg } = outcome;
   const weight = formatWeight(actualWeightKg);
-  // “Chênh 0,8 kg” như ui-demo SW-07; làm tròn 2 chữ số để tránh số lẻ của phép trừ số thực.
-  const difference =
-    outcome.declaredWeightKg === null
-      ? ""
-      : ` (chênh ${formatWeight(Math.round(Math.abs(actualWeightKg - outcome.declaredWeightKg) * 100) / 100)})`;
+  // “Chênh 0,8 kg” như ui-demo SW-07.
+  const differenceKg = weightDifference(actualWeightKg, outcome.declaredWeightKg);
+  const difference = differenceKg ? ` (chênh ${differenceKg})` : "";
   const staff = staffNames(appointment);
   const handOver = staff.length > 0 ? ` Lịch đã chuyển cho nhân viên spa ${staff.join(", ")}.` : "";
   const oldGroup = SIZE_GROUP_LABELS[appointment.sizeGroup];
   const newGroup = weightCheck?.newSizeGroup ? SIZE_GROUP_LABELS[weightCheck.newSizeGroup] : oldGroup;
   const money = (amount?: number) => (amount === undefined ? "—" : formatMoney(amount));
-  // Backend chưa trả `expiresAt` trong `weightCheck` dù openapi có ghi (review PR #62): lấy từ yêu cầu xác nhận chi phí
-  // của chi tiết lịch, đã được tải lại ngay sau khi tiếp nhận.
-  const expiresAt = weightCheck?.expiresAt ?? appointment.pendingCostConfirmation?.expiresAt;
 
   switch (weightCheck?.result) {
     case "PRICE_DECREASED":
@@ -90,13 +93,21 @@ function WeightCheckAlert({ outcome, appointment }: { outcome: CheckInOutcome; a
         </Alert>
       );
     case "NEEDS_CONFIRMATION":
+      // Đã ghi nhận phản hồi ở SW-07·D1: từ chối → lịch hủy (câu ở `statusNote`); đồng ý → lịch đổi sang nhóm mới.
+      if (appointment.status === "Cancelled") return null;
+      if (weightCheck.newSizeGroup && appointment.sizeGroup === weightCheck.newSizeGroup) {
+        return (
+          <Alert tone="success" title="Khách đã đồng ý chi phí mới">
+            Lịch tiếp tục theo nhóm {newGroup}, chi phí {money(weightCheck.newAmount)}. Hồ sơ cập nhật cân nặng {weight}.
+            {handOver}
+          </Alert>
+        );
+      }
       return (
         <Alert tone="warn" title={`Tăng nhóm kích cỡ: ${oldGroup} → ${newGroup}`}>
           Cân thực tế {weight}{difference}, vượt ngưỡng dung sai so với hồ sơ. Chi
           phí tăng từ {money(weightCheck.oldAmount)} lên {money(weightCheck.newAmount)}. Đã gửi yêu cầu xác nhận cho
-          khách
-          {expiresAt ? `, hạn phản hồi ${toStoreTime(expiresAt)}` : ""}. Nếu là khách vãng lai
-          (không nhận thông báo trên web), hãy hỏi trực tiếp khách.
+          khách{weightCheck.expiresAt ? `, hạn phản hồi ${toStoreTime(weightCheck.expiresAt)}` : ""}.
         </Alert>
       );
     default:
@@ -121,7 +132,9 @@ function statusNote(appointment: AppointmentDetail) {
         ? `Đã tiếp nhận, cân thực tế ${formatWeight(appointment.actualWeightKg)}.`
         : "Lịch đã được tiếp nhận.";
     case "Cancelled":
-      return "Lịch đã bị hủy.";
+      return appointment.cancelReason
+        ? `Lịch đã bị hủy, lý do ${CANCEL_REASON_LABELS[appointment.cancelReason]}.`
+        : "Lịch đã bị hủy.";
     default:
       return null;
   }
@@ -130,6 +143,8 @@ function statusNote(appointment: AppointmentDetail) {
 export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHref }: SpaCheckInCardProps) {
   const { showSuccess } = useToast();
   const checkIn = useCheckInSpa();
+  const { pending, overdue } = usePendingCostConfirmation(appointment);
+  const [responseOpen, setResponseOpen] = useState(false);
   const services = useServices(pet ? { species: pet.species, sizeGroup: appointment.sizeGroup } : {}, {
     enabled: pet !== null,
   });
@@ -156,7 +171,8 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
 
   const justCheckedIn = outcome?.appointmentId === appointment.appointmentId ? outcome : null;
   const canSubmit = appointment.status === "Confirmed" && !justCheckedIn;
-  const note = canSubmit || justCheckedIn ? null : statusNote(appointment);
+  // Vừa tiếp nhận thì câu kết quả đã nói đủ; riêng lịch vừa bị hủy (khách từ chối chi phí mới) vẫn cần câu trạng thái.
+  const note = canSubmit || (justCheckedIn && appointment.status !== "Cancelled") ? null : statusNote(appointment);
 
   const submit = handleSubmit(({ actualWeightKg }) => {
     const weight = parseDecimal(actualWeightKg);
@@ -247,14 +263,17 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
             </div>
           )}
 
-          {justCheckedIn && <WeightCheckAlert outcome={justCheckedIn} appointment={appointment} />}
-          {/* Mở lại lịch đang chờ khách xác nhận chi phí: cảnh báo cơ bản; đếm ngược, ghi nhận phản hồi ở thẻ 126. */}
-          {!justCheckedIn && appointment.pendingCostConfirmation?.status === "Pending" && (
-            <Alert tone="warn" title="Đang chờ khách xác nhận chi phí mới">
-              Chi phí mới {formatMoney(appointment.pendingCostConfirmation.newAmount)} (trước{" "}
-              {formatMoney(appointment.pendingCostConfirmation.oldAmount)}), hạn phản hồi{" "}
-              {toStoreTime(appointment.pendingCostConfirmation.expiresAt)}.
-            </Alert>
+          {/* Vùng 7 – đang chờ khách xác nhận chi phí: vừa tiếp nhận xong, hoặc mở lại lịch đang chờ. */}
+          {pending ? (
+            <CostConfirmationAlert
+              appointment={appointment}
+              pending={pending}
+              // Khi đang chờ, hồ sơ chưa đổi; vừa tiếp nhận thì dùng cân khai báo đã lưu lúc gửi.
+              declaredWeightKg={justCheckedIn?.declaredWeightKg ?? pet?.weightKg ?? null}
+              overdue={overdue}
+            />
+          ) : (
+            justCheckedIn && <WeightCheckAlert outcome={justCheckedIn} appointment={appointment} />
           )}
           {note && <Alert tone="neutral">{note}</Alert>}
         </CardBody>
@@ -269,13 +288,28 @@ export function SpaCheckInCard({ appointment, pet, outcome, onCheckedIn, nextHre
               Xác nhận tiếp nhận
             </Button>
           )}
-          {justCheckedIn && nextHref && (
+          {pending && appointment.status === "Received" && (
+            <Button className="ml-auto" onClick={() => setResponseOpen(true)}>
+              Ghi nhận phản hồi của khách
+            </Button>
+          )}
+          {justCheckedIn && !pending && nextHref && (
             <ButtonLink href={nextHref} replace className="ml-auto">
               Tiếp nhận lịch tiếp theo
             </ButtonLink>
           )}
         </CardFooter>
       </form>
+      {pending && (
+        <RecordResponseDialog
+          open={responseOpen}
+          onClose={() => setResponseOpen(false)}
+          appointment={appointment}
+          pending={pending}
+          petName={petName}
+          overdue={overdue}
+        />
+      )}
     </Card>
   );
 }
