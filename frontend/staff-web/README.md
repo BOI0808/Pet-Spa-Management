@@ -27,7 +27,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/booking` | SW-06 Đặt lịch thay khách: tab Lịch spa, tab Lưu trú (phần lưu trú theo CW-07 của customer-web) |
 | `features/services` | SW-14 Danh mục dịch vụ (chỉ xem) |
 | `features/appointments` | SW-02 Lịch hẹn (nhân viên spa: lịch được phân công; lễ tân: lịch toàn cửa hàng theo ngày), SW-03 Chi tiết lịch hẹn – thẻ lịch hẹn chép từ customer-web |
-| `features/check-in` | SW-07 Tiếp nhận: lịch hôm nay, tiếp nhận lịch spa kèm cân nặng thực tế |
+| `features/check-in` | SW-07 Tiếp nhận: lịch hôm nay, tiếp nhận lịch spa kèm cân nặng thực tế, đối chiếu cân nặng lịch lưu trú, đếm ngược và ghi nhận phản hồi chi phí mới của khách (SW-07·D1) |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
