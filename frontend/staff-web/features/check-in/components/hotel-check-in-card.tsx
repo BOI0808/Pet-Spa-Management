@@ -117,8 +117,18 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
   const isConfirmed = appointment.status === "Confirmed";
   // Đang chờ khách: backend đã ghi `actualWeightKg` nhưng chưa đổi nhóm, nên phải xét `pending` trước.
   const weighed = !pending && appointment.actualWeightKg != null;
-  const canWeigh = isConfirmed && !pending && !weighed;
-  // Chuồng không còn phù hợp nhóm mới (BR-21): sau khi giảm nhóm, hoặc khách đồng ý tăng nhóm.
+  // Vừa gửi đối chiếu nhưng chi tiết lịch chưa tải lại: chưa hiện lại ô cân nặng, để lễ tân không gửi lần nữa và nhận
+  // 409 COST_CONFIRMATION_PENDING (review PR #75; thẻ spa có `reloadingAfterCheckIn` tương tự).
+  const reloadingAfterWeigh = outcome !== null && !pending && !weighed;
+  const canWeigh = isConfirmed && !pending && !weighed && !reloadingAfterWeigh;
+  // Khách đã đồng ý chi phí mới ở nơi khác (Web Khách hàng) sau khi màn này nhận NEEDS_CONFIRMATION: yêu cầu không
+  // còn chờ và lịch đã sang nhóm mới – cùng cách nhận biết với thẻ spa (review PR #75).
+  const acceptedElsewhere =
+    accepted === null &&
+    !pending &&
+    outcome?.weightCheck.result === "NEEDS_CONFIRMATION" &&
+    outcome.weightCheck.newSizeGroup === appointment.sizeGroup;
+  // Chuồng không còn phù hợp nhóm mới (BR-21): sau khi giảm nhóm, hoặc khách đồng ý tăng nhóm ở D1.
   const cageUnsuitable =
     (outcome?.weightCheck.result === "PRICE_DECREASED" && outcome.weightCheck.cageSuitable === false) ||
     accepted?.cageSuitable === false;
@@ -181,7 +191,7 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
                 <ServiceTask
                   done
                   name={`Ghi nhận cân nặng thực tế: ${formatWeight(appointment.actualWeightKg ?? 0)}`}
-                  detail={weighedDetail(appointment, outcome, accepted !== null, cageCode)}
+                  detail={weighedDetail(appointment, outcome, accepted !== null || acceptedElsewhere, cageCode)}
                   aside={<Tag tone="ok">Đã đối chiếu</Tag>}
                 />
               ) : (
@@ -202,6 +212,8 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
                       declaredWeightKg={outcome?.declaredWeightKg ?? pet?.weightKg ?? null}
                       overdue={overdue}
                     />
+                  ) : reloadingAfterWeigh ? (
+                    <p className="text-[13px] text-muted">Đang cập nhật kết quả đối chiếu…</p>
                   ) : (
                     canWeigh && (
                       <div className="flex flex-wrap items-end gap-3">
@@ -254,6 +266,14 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
             </ol>
           )}
 
+          {acceptedElsewhere && (
+            // Phản hồi `cageSuitable` chỉ có khi lễ tân ghi nhận ở D1; khách tự đồng ý thì màn này không biết chuồng còn
+            // phù hợp không (GET /cages chưa dùng được tới thẻ 88), nên nhắc kiểm tra thay vì im lặng.
+            <Alert tone="warn" title={`Khách đã đồng ý chi phí mới, lịch sang nhóm ${SIZE_GROUP_LABELS[appointment.sizeGroup]}`}>
+              Kiểm tra chuồng {cageCode || "đã gán"} còn phù hợp nhóm mới không; nếu không, báo quản lý gán chuồng phù hợp
+              khác trước khi đưa bé vào chuồng.
+            </Alert>
+          )}
           {cageUnsuitable && (
             <Alert tone="warn" title={`Chuồng ${cageCode || "đã gán"} không còn phù hợp nhóm kích cỡ mới`}>
               Báo quản lý gán chuồng phù hợp khác trước khi đưa bé vào chuồng. Nếu hết chuồng phù hợp, quản lý hủy lịch
