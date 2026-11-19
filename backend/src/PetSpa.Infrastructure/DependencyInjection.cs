@@ -9,6 +9,7 @@ using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
 using PetSpa.Infrastructure.Identity;
+using PetSpa.Infrastructure.Payments;
 using PetSpa.Infrastructure.Persistence;
 using PetSpa.Infrastructure.Persistence.Repositories;
 using PetSpa.Infrastructure.Services;
@@ -112,6 +113,8 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.Add("apikey", storage.ServiceKey);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", storage.ServiceKey);
         });
+        services.AddSingleton(config.GetSection("Payment:Vnpay").Get<VnpayOptions>() ?? new VnpayOptions());
+        services.AddSingleton<IPaymentGateway, VnpayPaymentGateway>();
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
         return services;

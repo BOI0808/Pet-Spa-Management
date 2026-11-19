@@ -14,6 +14,10 @@ public sealed record CounterPaymentRequest(PaymentMethod? Method, long? Received
 
 public sealed record PaymentStatusResponse(PaymentStatus Status);
 
+public sealed record OnlinePaymentRequest(PaymentGateway? Gateway);
+
+public sealed record OnlinePaymentCreatedResponse(string PaymentUrl, string TxnRef);
+
 public sealed record PaymentResponse(
     Guid PaymentId,
     Guid AppointmentId,

@@ -15,4 +15,6 @@ public interface IPaymentRepository
     Task<IReadOnlyList<Payment>> ListByAppointmentAsync(Guid appointmentId, CancellationToken ct = default);
 
     Task<PagedResult<Payment>> ListAsync(PaymentStatus? status, int page, int pageSize, CancellationToken ct = default);
+
+    Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default);
 }
