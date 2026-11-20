@@ -5,10 +5,13 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CheckInResult,
+  CostConfirmationRespondRequest,
+  CostConfirmationRespondResult,
   Payment,
   SpaBookingCreated,
   SpaBookingRequest,
   SpaSlots,
+  WeightCheckResponse,
 } from "@/lib/api/types";
 
 export type SpaSlotParams = { date: string; petId: string; serviceIds: string[] };
@@ -70,5 +73,30 @@ export async function checkInSpaAppointment({ appointmentId, actualWeightKg }: {
   const { data } = await apiClient.post<CheckInResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`, {
     actualWeightKg,
   });
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/weight-check, lịch lưu trú – FR-EXE-10, BR-23. Bước 1 của tiếp nhận lưu trú (SW-07 vùng 9),
+ * trước khi thu tiền lưu trú; lịch vẫn ở Đã xác nhận. 409 `COST_CONFIRMATION_PENDING` khi đang chờ khách xác nhận.
+ */
+export async function weightCheckHotelAppointment({ appointmentId, actualWeightKg }: { appointmentId: string; actualWeightKg: number }) {
+  const { data } = await apiClient.post<WeightCheckResponse>(
+    `/appointments/${encodeURIComponent(appointmentId)}/weight-check`,
+    { actualWeightKg },
+  );
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/cost-confirmation/respond – FR-EXE-11, BR-23. Lễ tân ghi nhận phản hồi thay khách (SW-07·D1).
+ * `accept = true`: hồ sơ thú cưng và nhóm kích cỡ cập nhật, lịch tiếp tục theo chi phí mới; `false`: lịch Đã hủy, lý do
+ * `CostNotConfirmed`. Quá hạn → 409 `COST_CONFIRMATION_EXPIRED` (backend hủy lịch luôn); không còn yêu cầu chờ → 404.
+ */
+export async function respondCostConfirmation(appointmentId: string, body: CostConfirmationRespondRequest) {
+  const { data } = await apiClient.post<CostConfirmationRespondResult>(
+    `/appointments/${encodeURIComponent(appointmentId)}/cost-confirmation/respond`,
+    body,
+  );
   return data;
 }

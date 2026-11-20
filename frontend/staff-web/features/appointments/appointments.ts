@@ -109,9 +109,13 @@ export function matchesReceptionFilter(appointment: Appointment, filter: Recepti
   }
 }
 
-/** Lịch spa Đã xác nhận đúng hôm nay thì tiếp nhận được ở SW-07; ngày khác backend trả 409 nên không mời bấm. */
-export function canCheckInSpa(appointment: Appointment, today: string) {
-  return appointment.type === "Spa" && appointment.status === "Confirmed" && appointmentDate(appointment) === today;
+/**
+ * Lịch Đã xác nhận có ngày hẹn (spa) hoặc ngày nhận (lưu trú) là hôm nay thì mở SW-07 để tiếp nhận; lịch spa ngày khác
+ * backend trả 409 nên không mời bấm. Lịch lưu trú: SW-07 làm bước đối chiếu cân nặng (thẻ 126), thu tiền và đưa vào
+ * chuồng ở thẻ 127, 128.
+ */
+export function canCheckIn(appointment: Appointment, today: string) {
+  return appointment.status === "Confirmed" && appointmentDate(appointment) === today;
 }
 
 /** “09:00 – 11:00”. */
