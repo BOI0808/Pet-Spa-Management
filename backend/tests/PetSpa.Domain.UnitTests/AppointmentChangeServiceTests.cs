@@ -279,6 +279,10 @@ public class AppointmentChangeServiceTests
         public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(
             Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<HotelAppointment>>(AssignedStays.ToList());
+
+        public Task<bool> IsCageOccupiedAsync(
+            Guid cageId, Guid currentAppointmentId, CancellationToken ct = default) =>
+            Task.FromResult(false);
     }
 
     private sealed class FakeTimeZoneProvider(TimeZoneInfo tz) : IStoreTimeZoneProvider

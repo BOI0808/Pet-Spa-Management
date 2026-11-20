@@ -747,7 +747,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: "INVALID_TRANSITION; PAYMENT_NOT_DUE (lưu trú: chưa thanh toán tiền lưu trú); COST_CONFIRMATION_PENDING."
+          description: INVALID_TRANSITION; PAYMENT_NOT_DUE (lưu trú: chưa thanh toán tiền lưu trú); COST_CONFIRMATION_PENDING; CAGE_CONFLICT (lưu trú: chuồng đã gán không còn phù hợp).
           content: { application/problem+json: { schema: { $ref: '#/components/schemas/ProblemDetails' } } }
   /appointments/{id}/weight-check:
     post:

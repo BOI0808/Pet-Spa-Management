@@ -1,3 +1,4 @@
+using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Services.Payments;
 using PetSpa.Domain.Entities;
@@ -56,6 +57,7 @@ public class PaymentAmountServiceTests
         public Task AddCageAsync(Cage cage, CancellationToken ct = default) => Task.CompletedTask;
         public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => Task.FromResult(true);
         public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<PagedResult<CageStatus>> ListCagesAsync(int page, int pageSize, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<SizeRule>>([]);
         public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => Task.CompletedTask;
     }

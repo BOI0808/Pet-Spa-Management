@@ -134,6 +134,8 @@ public class CheckInServiceTests
         public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> IsCageOccupiedAsync(Guid cageId, Guid currentAppointmentId, CancellationToken ct = default) =>
+            Task.FromResult(false);
     }
 
     private sealed class FakeHotelCatalogRepository : IHotelCatalogRepository
@@ -144,6 +146,7 @@ public class CheckInServiceTests
         public Task AddCageAsync(Cage cage, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<PagedResult<CageStatus>> ListCagesAsync(int page, int pageSize, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => throw new NotImplementedException();
     }
@@ -207,7 +210,7 @@ public class CheckInServiceTests
             new FakeCostConfirmationRepository(),
             timeZoneProvider,
             guard);
-        return (new CheckInService(repo, guard, shopTimeZone, weightCheck), repo, guard);
+        return (new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, new FakeCostConfirmationRepository(), new FakeStayPaymentRepository()), repo, guard);
     }
 
     [Fact]
@@ -272,7 +275,7 @@ public class CheckInServiceTests
             timeZoneProvider,
             guard);
 
-        var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck);
+        var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, costRepo, new FakeStayPaymentRepository());
 
         // Pet weighs 3.6kg, moves from Small to Medium, exceeding tolerance -> NEEDS_CONFIRMATION
         var result = await sut.CheckInSpaAsync(AppointmentId, 3.6m);

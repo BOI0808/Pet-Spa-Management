@@ -50,4 +50,11 @@ public sealed class HotelAssignmentRepository(AppDbContext db) : IHotelAssignmen
                 && stay.PlannedCheckOut > checkIn
             select stay)
             .ToListAsync(ct);
+
+    public async Task<bool> IsCageOccupiedAsync(
+        Guid cageId, Guid currentAppointmentId, CancellationToken ct = default) =>
+        await db.Set<HotelAppointment>().AsNoTracking()
+            .AnyAsync(a => a.CageId == cageId
+                        && a.AppointmentId != currentAppointmentId
+                        && a.Status == AppointmentStatus.InStay, ct);
 }

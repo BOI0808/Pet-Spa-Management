@@ -7,9 +7,11 @@ public sealed class ActualWeightRequestValidator : AbstractValidator<ActualWeigh
 {
     public ActualWeightRequestValidator()
     {
-        RuleFor(x => x.ActualWeightKg)
-            .NotNull().WithMessage("Cân nặng thực tế là bắt buộc.")
-            .GreaterThan(0m).WithMessage("Cân nặng thực tế phải lớn hơn 0.")
-            .PrecisionScale(5, 2, true).WithMessage("Cân nặng thực tế tối đa 3 chữ số nguyên và 2 chữ số thập phân.");
+        When(x => x.ActualWeightKg.HasValue, () =>
+        {
+            RuleFor(x => x.ActualWeightKg!.Value)
+                .GreaterThan(0m).WithMessage("Cân nặng thực tế phải lớn hơn 0.")
+                .PrecisionScale(5, 2, true).WithMessage("Cân nặng thực tế tối đa 3 chữ số nguyên và 2 chữ số thập phân.");
+        });
     }
 }
