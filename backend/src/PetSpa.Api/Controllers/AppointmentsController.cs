@@ -115,8 +115,12 @@ public sealed class AppointmentsController(
     public async Task<IActionResult> CheckIn(
         Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActualWeightRequest? request, CancellationToken ct)
     {
-        if (request?.ActualWeightKg is { } actualWeightKg)
+        var type = await checkInService.GetAppointmentTypeAsync(id, ct);
+        if (type == AppointmentType.Spa)
         {
+            if (request?.ActualWeightKg is not { } actualWeightKg)
+                throw new BusinessException(ErrorCodes.ValidationError, "Cân nặng thực tế là bắt buộc khi tiếp nhận lịch spa.");
+
             var result = await checkInService.CheckInSpaAsync(id, actualWeightKg, ct);
             return Ok(CheckInResponse.From(result));
         }

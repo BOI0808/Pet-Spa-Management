@@ -47,6 +47,10 @@ public sealed class CheckInService(
         }, ct);
     }
 
+    public async Task<AppointmentType> GetAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default) =>
+        await assignments.FindAppointmentTypeAsync(appointmentId, ct)
+            ?? throw new BusinessException(ErrorCodes.NotFound);
+
     public async Task<AppointmentStatus> CheckInHotelAsync(Guid appointmentId, CancellationToken ct = default)
     {
         return await concurrencyGuard.RunAsync(async () =>
@@ -66,6 +70,11 @@ public sealed class CheckInService(
             if (stay.Status != AppointmentStatus.Confirmed)
                 throw new BusinessException(ErrorCodes.InvalidTransition);
 
+            var (today, _) = shopTimeZone.ToLocal(DateTimeOffset.UtcNow);
+            var (checkInDate, _) = shopTimeZone.ToLocal(stay.PlannedCheckIn);
+            if (today < checkInDate)
+                throw new BusinessException(ErrorCodes.InvalidTransition, "Chưa đến ngày hẹn, không thể tiếp nhận.");
+
             var holdMinutes = await assignments.GetHoldMinutesAsync(ct);
             if (DateTimeOffset.UtcNow > stay.PlannedCheckIn.AddMinutes(holdMinutes))
                 throw new BusinessException(ErrorCodes.InvalidTransition);
@@ -79,6 +88,9 @@ public sealed class CheckInService(
             var cage = stay.CageId is { } cageId ? await hotelAssignments.FindCageAsync(cageId, ct) : null;
             if (!stay.IsCageSuitable(cage, found.Species))
                 throw new BusinessException(ErrorCodes.CageConflict);
+
+            if (stay.CageId is { } assignedCageId && await hotelAssignments.IsCageOccupiedAsync(assignedCageId, appointmentId, ct))
+                throw new BusinessException(ErrorCodes.CageConflict, "Chuồng hiện đang có thú cưng lưu trú chưa trả phòng.");
 
             var stayPayments = await payments.ListByAppointmentAsync(appointmentId, ct);
             if (!stayPayments.Any(p => p.Kind == PaymentKind.Stay && p.Status == PaymentStatus.Paid))

@@ -121,6 +121,8 @@ public sealed class WeightCheckServiceTests
         public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => Task.FromResult(Cage);
         public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> IsCageOccupiedAsync(Guid cageId, Guid currentAppointmentId, CancellationToken ct = default) =>
+            Task.FromResult(false);
     }
 
     private sealed class FakeHotelCatalogRepository : IHotelCatalogRepository

@@ -55,6 +55,7 @@ public class CheckInHotelServiceTests
         public Appointment? Appointment { get; set; }
         public Species Species { get; set; } = Species.Dog;
         public Cage? Cage { get; set; }
+        public bool IsOccupied { get; set; } = false;
 
         public Task<Appointment?> FindAppointmentAsync(Guid appointmentId, bool asNoTracking = false, CancellationToken ct = default) =>
             Task.FromResult(Appointment);
@@ -65,6 +66,8 @@ public class CheckInHotelServiceTests
         public Task<Cage?> FindCageAsync(Guid cageId, CancellationToken ct = default) => Task.FromResult(Cage);
         public Task<IReadOnlyList<Cage>> ListActiveCagesAsync(Species species, SizeGroup sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> IsCageOccupiedAsync(Guid cageId, Guid currentAppointmentId, CancellationToken ct = default) =>
+            Task.FromResult(IsOccupied);
     }
 
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard
@@ -89,7 +92,8 @@ public class CheckInHotelServiceTests
         FakeAssignmentRepository Assignments,
         FakeStayPaymentRepository Payments,
         FakeCostConfirmationRepository CostConfirmations,
-        FakeConcurrencyGuard Guard);
+        FakeConcurrencyGuard Guard,
+        FakeHotelAssignmentRepository HotelAssignments);
 
     private static Payment NewPayment(PaymentKind kind, bool paid)
     {
@@ -157,7 +161,7 @@ public class CheckInHotelServiceTests
             costConfirmations,
             payments);
 
-        return new Fixture(sut, stay, assignments, payments, costConfirmations, guard);
+        return new Fixture(sut, stay, assignments, payments, costConfirmations, guard, hotelAssignments);
     }
 
     [Fact]
@@ -173,13 +177,34 @@ public class CheckInHotelServiceTests
     }
 
     [Fact]
-    public async Task CheckInHotelAsync_WhenBeforePlannedCheckIn_MovesToInStay()
+    public async Task CheckInHotelAsync_WhenBeforePlannedCheckInDate_ThrowsInvalidTransition()
     {
         var f = CreateSut(plannedCheckIn: DateTimeOffset.UtcNow.AddDays(1));
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => f.Sut.CheckInHotelAsync(AppointmentId));
+
+        Assert.Equal(ErrorCodes.InvalidTransition, ex.Code);
+    }
+
+    [Fact]
+    public async Task CheckInHotelAsync_WhenEarlierOnSameDay_MovesToInStay()
+    {
+        var f = CreateSut(plannedCheckIn: DateTimeOffset.UtcNow.AddHours(2));
 
         var status = await f.Sut.CheckInHotelAsync(AppointmentId);
 
         Assert.Equal(AppointmentStatus.InStay, status);
+    }
+
+    [Fact]
+    public async Task CheckInHotelAsync_WhenCageAlreadyOccupied_ThrowsCageConflict()
+    {
+        var f = CreateSut();
+        f.HotelAssignments.IsOccupied = true;
+
+        var ex = await Assert.ThrowsAsync<BusinessException>(() => f.Sut.CheckInHotelAsync(AppointmentId));
+
+        Assert.Equal(ErrorCodes.CageConflict, ex.Code);
     }
 
     [Fact]

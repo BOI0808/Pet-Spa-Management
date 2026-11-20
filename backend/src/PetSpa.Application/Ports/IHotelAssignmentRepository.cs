@@ -20,4 +20,7 @@ public interface IHotelAssignmentRepository
 
     Task<IReadOnlyList<HotelAppointment>> ListAssignedStaysAsync(
         Species species, SizeGroup sizeGroup, DateTimeOffset checkIn, DateTimeOffset checkOut, CancellationToken ct = default);
+
+    Task<bool> IsCageOccupiedAsync(
+        Guid cageId, Guid currentAppointmentId, CancellationToken ct = default);
 }
