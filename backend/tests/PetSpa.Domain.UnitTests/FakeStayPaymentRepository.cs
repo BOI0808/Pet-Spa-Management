@@ -19,6 +19,8 @@ internal sealed class FakeStayPaymentRepository : IPaymentRepository
     public Task<IReadOnlyList<Payment>> ListByAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Payment>>(Payments.Where(p => p.AppointmentId == appointmentId).ToList());
 
+    public void Add(Payment payment) => Payments.Add(payment);
+
     public Task<PagedResult<Payment>> ListAsync(
         PaymentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
         throw new NotImplementedException();

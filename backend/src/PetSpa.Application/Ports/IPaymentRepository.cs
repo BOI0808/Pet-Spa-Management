@@ -17,4 +17,6 @@ public interface IPaymentRepository
     Task<PagedResult<Payment>> ListAsync(PaymentStatus? status, int page, int pageSize, CancellationToken ct = default);
 
     Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default);
+
+    void Add(Payment payment);
 }

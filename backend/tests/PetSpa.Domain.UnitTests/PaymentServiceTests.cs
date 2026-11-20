@@ -60,6 +60,8 @@ public class PaymentServiceTests
             return Task.FromResult(PagedResultToReturn);
         }
 
+        public void Add(Payment payment) => throw new NotImplementedException();
+
         public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default)
         {
             Transactions.Add(transaction);
