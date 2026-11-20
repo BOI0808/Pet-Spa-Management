@@ -166,6 +166,12 @@ export function CostConfirmationBanner({ appointment, pet }: { appointment: Appo
     setDialogOpen(true);
   }
 
+  // Bỏ lỗi của lần từ chối vừa rồi khi khách bấm “Quay lại”: lỗi đã báo trong hộp thoại, không đưa ra trang.
+  function closeRejectDialog() {
+    setDialogOpen(false);
+    respond.reset();
+  }
+
   function reject() {
     respond.mutate(false, {
       onSuccess: () => {
@@ -216,7 +222,7 @@ export function CostConfirmationBanner({ appointment, pet }: { appointment: Appo
           petName={petName}
           loading={respond.isPending && respond.variables === false}
           error={dialogError}
-          onClose={() => setDialogOpen(false)}
+          onClose={closeRejectDialog}
           onConfirm={reject}
         />
       )}

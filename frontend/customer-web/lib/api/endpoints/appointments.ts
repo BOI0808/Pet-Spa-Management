@@ -5,6 +5,7 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CostConfirmationRespondRequest,
+  CostConfirmationRespondResult,
   Payment,
   Photo,
   SpaBookingCreated,
@@ -90,7 +91,7 @@ export async function cancelAppointment(appointmentId: string) {
  * 409 `COST_CONFIRMATION_EXPIRED` khi quá hạn, 404 khi không còn yêu cầu đang chờ.
  */
 export async function respondCostConfirmation(appointmentId: string, body: CostConfirmationRespondRequest) {
-  const { data } = await apiClient.post<StatusResult>(
+  const { data } = await apiClient.post<CostConfirmationRespondResult>(
     `/appointments/${encodeURIComponent(appointmentId)}/cost-confirmation/respond`,
     body,
   );
