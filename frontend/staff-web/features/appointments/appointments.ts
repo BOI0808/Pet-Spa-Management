@@ -118,6 +118,14 @@ export function canCheckIn(appointment: Appointment, today: string) {
   return appointment.status === "Confirmed" && appointmentDate(appointment) === today;
 }
 
+/**
+ * Lịch spa Đã tiếp nhận hoặc Đang thực hiện: nhân viên spa mở thẳng SW-11 Thực hiện dịch vụ (UI-Screens SW-02 vùng 5,
+ * SW-03 vùng 1). Lịch Hoàn tất xem lại ở SW-11 qua SW-12 (thẻ 132).
+ */
+export function canOpenExecution(appointment: Appointment) {
+  return appointment.type === "Spa" && (appointment.status === "Received" || appointment.status === "InProgress");
+}
+
 /** “09:00 – 11:00”. */
 export function formatSlotRange(appointment: Appointment) {
   if (!appointment.slotStart) return "";
