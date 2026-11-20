@@ -22,4 +22,7 @@ internal sealed class FakeStayPaymentRepository : IPaymentRepository
     public Task<PagedResult<Payment>> ListAsync(
         PaymentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
         throw new NotImplementedException();
+
+    public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default) =>
+        throw new NotImplementedException();
 }
