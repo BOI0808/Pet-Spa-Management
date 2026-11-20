@@ -281,6 +281,27 @@ export type AppointmentDetail = Appointment & {
   pendingCostConfirmation?: CostConfirmation | null;
 };
 
+// ── Thực hiện lịch spa (SW-11) ──
+/** Phản hồi POST /appointments/{id}/start và /complete. Cùng tên với customer-web. */
+export type StatusResult = { status: AppointmentStatus };
+
+/** Body PATCH /appointments/{id}/services/{serviceId} – FR-EXE-03. */
+export type ServiceProgressRequest = { isDone: boolean; note?: string };
+
+// ── Ảnh minh chứng (FR-EXE-09) – cùng tên với customer-web ──
+export type PhotoKind = "Before" | "After";
+
+/** Một ảnh trong `GET /appointments/{id}/photos`; `url` là URL tạm thời (backend ký có hạn 1 giờ). */
+export type Photo = {
+  photoId: string;
+  kind: PhotoKind;
+  url: string;
+  uploadedAt: string;
+};
+
+/** Phản hồi 201 của POST /appointments/{id}/photos. */
+export type PhotoCreated = { photoId: string };
+
 // ── Thanh toán ──
 export type PaymentKind = "Spa" | "Stay" | "LateFee";
 export type PaymentStatus = "Unpaid" | "Paid";

@@ -8,9 +8,14 @@ import type {
   CostConfirmationRespondRequest,
   CostConfirmationRespondResult,
   Payment,
+  Photo,
+  PhotoCreated,
+  PhotoKind,
+  ServiceProgressRequest,
   SpaBookingCreated,
   SpaBookingRequest,
   SpaSlots,
+  StatusResult,
   WeightCheckResponse,
 } from "@/lib/api/types";
 
@@ -98,5 +103,73 @@ export async function respondCostConfirmation(appointmentId: string, body: CostC
     `/appointments/${encodeURIComponent(appointmentId)}/cost-confirmation/respond`,
     body,
   );
+  return data;
+}
+
+// ── Thực hiện lịch spa (SW-11) – FR-EXE-03, 04, 09 ──
+// Cả bốn lời gọi chỉ nhân viên spa được phân công (hoặc quản lý) dùng được; ngoài phạm vi → 403 (BR-05, BR-16).
+
+/** GET /appointments/{id}/photos – FR-EXE-09. Backend kiểm tra phạm vi rồi trả URL tạm thời cho từng ảnh. */
+export async function listAppointmentPhotos(appointmentId: string) {
+  const { data } = await apiClient.get<Photo[]>(`/appointments/${encodeURIComponent(appointmentId)}/photos`);
+  return data;
+}
+
+export type UploadPhotoParams = {
+  appointmentId: string;
+  kind: PhotoKind;
+  file: Blob;
+  /** Tên tệp gửi kèm; backend chỉ đọc loại tệp (`image/*`). */
+  fileName: string;
+  /** Phần trăm đã gửi (0 – 100) cho thanh tiến trình. */
+  onProgress?: (percent: number) => void;
+};
+
+/**
+ * POST /appointments/{id}/photos (multipart `kind`, `file`) – FR-EXE-09. Ảnh `Before` khi lịch Đã tiếp nhận, `After` khi
+ * Đang thực hiện, sai trạng thái → 409 INVALID_TRANSITION; tệp không phải ảnh hoặc quá 50 MB → 400.
+ */
+export async function uploadAppointmentPhoto({ appointmentId, kind, file, fileName, onProgress }: UploadPhotoParams) {
+  const form = new FormData();
+  form.append("kind", kind);
+  form.append("file", file, fileName);
+  const { data } = await apiClient.post<PhotoCreated>(
+    `/appointments/${encodeURIComponent(appointmentId)}/photos`,
+    form,
+    {
+      // Client mặc định gửi JSON; giữ header JSON thì Axios đổi FormData thành JSON. Đặt multipart để Axios gửi nguyên
+      // FormData, trình duyệt tự điền `boundary`.
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event) => {
+        if (onProgress && event.total) onProgress(Math.round((event.loaded / event.total) * 100));
+      },
+    },
+  );
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/start – FR-EXE-03. Đã tiếp nhận → Đang thực hiện. 409 `PHOTO_REQUIRED` (chưa có ảnh trước hợp
+ * lệ, BR-20), `COST_CONFIRMATION_PENDING` (BR-23), `INVALID_TRANSITION` (lịch không còn ở Đã tiếp nhận).
+ */
+export async function startAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/start`);
+  return data;
+}
+
+/** PATCH /appointments/{id}/services/{serviceId} – FR-EXE-03. Chỉ khi Đang thực hiện, không thì 409 INVALID_TRANSITION. */
+export async function updateServiceProgress(appointmentId: string, serviceId: string, body: ServiceProgressRequest) {
+  await apiClient.patch(
+    `/appointments/${encodeURIComponent(appointmentId)}/services/${encodeURIComponent(serviceId)}`,
+    body,
+  );
+}
+
+/**
+ * POST /appointments/{id}/complete – FR-EXE-04. Đang thực hiện → Hoàn tất, hình thành khoản thanh toán spa. 409
+ * `SERVICES_INCOMPLETE` (BR-06), `PHOTO_REQUIRED` (chưa có ảnh sau, BR-20), `INVALID_TRANSITION`.
+ */
+export async function completeAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/complete`);
   return data;
 }
