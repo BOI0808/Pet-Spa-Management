@@ -1,4 +1,5 @@
 using System.Globalization;
+using PetSpa.Application.Common;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PetSpa.Application.Ports;
@@ -54,6 +55,54 @@ public sealed class HotelCatalogRepository(AppDbContext db) : IHotelCatalogRepos
             .ExecuteUpdateAsync(c => c.SetProperty(x => x.IsActive, isActive), ct);
 
         return affected > 0;
+    }
+
+    public async Task<PagedResult<CageStatus>> ListCagesAsync(
+        int page, int pageSize, CancellationToken ct = default)
+    {
+        var cages = db.Set<Cage>().AsNoTracking();
+
+        var total = await cages.CountAsync(ct);
+        var items = await cages
+            .OrderBy(c => c.Code)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var cageIds = items.Select(c => c.CageId).ToList();
+
+        var occupants = await (
+            from stay in db.Set<HotelAppointment>().AsNoTracking()
+            join pet in db.Set<Pet>().AsNoTracking() on stay.PetId equals pet.PetId
+            join customer in db.Set<Customer>().AsNoTracking() on stay.CustomerId equals customer.CustomerId
+            where stay.Status == AppointmentStatus.InStay
+                && stay.CageId != null
+                && cageIds.Contains(stay.CageId.Value)
+            orderby stay.PlannedCheckIn
+            select new
+            {
+                stay.CageId,
+                PetId = pet.PetId,
+                PetName = pet.Name,
+                CustomerId = customer.CustomerId,
+                CustomerName = customer.FullName,
+                stay.PlannedCheckOut,
+            })
+            .ToListAsync(ct);
+
+        var occupantByCage = occupants
+            .GroupBy(o => o.CageId!.Value)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var result = items
+            .Select(c => new CageStatus(
+                c,
+                occupantByCage.TryGetValue(c.CageId, out var o)
+                    ? new CageOccupant(o.PetId, o.PetName, o.CustomerId, o.CustomerName, o.PlannedCheckOut)
+                    : null))
+            .ToList();
+
+        return new PagedResult<CageStatus>(result, page, pageSize, total);
     }
 
     public async Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default)

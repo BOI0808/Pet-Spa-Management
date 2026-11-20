@@ -133,6 +133,7 @@ public sealed class WeightCheckServiceTests
         public Task AddCageAsync(Cage cage, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<PagedResult<CageStatus>> ListCagesAsync(int page, int pageSize, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => throw new NotImplementedException();
     }
