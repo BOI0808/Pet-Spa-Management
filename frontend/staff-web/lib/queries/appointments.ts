@@ -208,15 +208,16 @@ export function useAppointmentPhotos(appointmentId: string, { enabled = true }: 
 }
 
 /**
- * Tải ảnh trước/sau (SW-11 vùng 3, 4). Xong thì tải lại danh sách ảnh. 409 INVALID_TRANSITION (lịch vừa đổi trạng thái ở
- * nơi khác) thì tải lại cả chi tiết lịch để màn hiện đúng vùng tải ảnh (SA 6.6).
+ * Tải ảnh trước/sau (SW-11 vùng 3, 4). Xong thì tải lại danh sách ảnh; trả về promise của lần tải lại để `mutateAsync`
+ * chờ tới khi ảnh mới có trong danh sách, ô tải không nháy lại giữa chừng. 409 INVALID_TRANSITION (lịch vừa đổi trạng
+ * thái ở nơi khác) thì tải lại cả chi tiết lịch để màn hiện đúng vùng tải ảnh (SA 6.6).
  */
 export function useUploadPhoto() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: UploadPhotoParams) => uploadAppointmentPhoto(params),
     onSuccess: (_result, { appointmentId }) =>
-      void queryClient.invalidateQueries({ queryKey: appointmentKeys.photos(appointmentId), exact: true }),
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.photos(appointmentId), exact: true }),
     onError: (error, { appointmentId }) => {
       if (error.status === 409) void queryClient.invalidateQueries({ queryKey: appointmentKeys.detail(appointmentId) });
     },

@@ -8,10 +8,12 @@ type ServiceTaskProps = {
   /** Giá hoặc nút bên phải. */
   aside?: ReactNode;
   done: boolean;
+  /** Phần dưới dòng phụ: ô ghi chú khi đang làm, hộp ghi chú khi đã xong (SW-11 vùng 8). */
+  children?: ReactNode;
 };
 
 /** Một dòng dịch vụ có vòng tick (`.svc-task` của ui-demo); đã xong thì nền xanh nhạt, tick xanh. */
-export function ServiceTask({ name, detail, aside, done }: ServiceTaskProps) {
+export function ServiceTask({ name, detail, aside, done, children }: ServiceTaskProps) {
   return (
     <li
       className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-2xl border p-4 ${
@@ -29,6 +31,7 @@ export function ServiceTask({ name, detail, aside, done }: ServiceTaskProps) {
       <div className="min-w-0">
         <div className="break-words font-semibold">{name}</div>
         {detail && <div className="break-words text-xs leading-[18px] text-muted">{detail}</div>}
+        {children}
       </div>
       {aside}
     </li>

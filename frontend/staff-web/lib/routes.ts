@@ -44,6 +44,9 @@ export function bookForCustomerRoute({
 /** SW-03 Chi tiết lịch hẹn (dưới đường dẫn của SW-02, theo User-Flows 2.2). */
 export const appointmentDetailRoute = (appointmentId: string) => `${ROUTES.appointments}/${appointmentId}`;
 
+/** SW-11 Thực hiện dịch vụ của nhân viên spa (User-Flows 2.2): đường dẫn con của SW-03. */
+export const serviceExecutionRoute = (appointmentId: string) => `${appointmentDetailRoute(appointmentId)}/thuc-hien`;
+
 /** SW-02 của một ngày (`?date=YYYY-MM-DD`); ngày trống thì về hôm nay. */
 export const appointmentsOnDateRoute = (date: string) =>
   date ? `${ROUTES.appointments}?date=${encodeURIComponent(date)}` : ROUTES.appointments;
