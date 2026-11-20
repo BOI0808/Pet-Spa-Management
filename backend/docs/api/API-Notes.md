@@ -192,7 +192,7 @@ Chỉ chuyển đúng trình tự tiến; `Cancelled` từ mọi trạng thái t
 | 409 | `DUPLICATE_CONTACT` | `/auth/register`, `/customers/walk-in`, `PUT /me`, `POST /staff` |
 | 409 | `SLOT_FULL` | `POST /appointments/spa`, `PUT /appointments/{id}` |
 | 409 | `NO_CAPACITY` | `POST /appointments/hotel`, `PUT /appointments/{id}` |
-| 409 | `STAFF_CONFLICT`, `CAGE_CONFLICT`, `STAFF_COUNT_MISMATCH` | `/confirm`; `PUT /appointments/{id}` (QL đổi nhân viên/chuồng) |
+| 409 | `STAFF_CONFLICT`, `CAGE_CONFLICT`, `STAFF_COUNT_MISMATCH` | `/confirm`; `PUT /appointments/{id}` (QL đổi nhân viên/chuồng); `/check-in` (lưu trú: `CAGE_CONFLICT` khi chuồng đã gán không còn phù hợp) |
 | 409 | `STAFF_OUT_OF_SHIFT` (Đề xuất) | `/confirm`; `PUT /appointments/{id}` (QL) |
 | 409 | `INVALID_TRANSITION` | Mọi endpoint đổi trạng thái; `/suggestions` khi lịch không `Pending`; `POST /photos` khi lịch không ở `Received`/`InProgress` |
 | 409 | `CHANGE_WINDOW_CLOSED` | `PUT /appointments/{id}`, `/cancel` |
