@@ -23765,6 +23765,207 @@
                 }
               ],
               "description": "### Quản lý cập nhật trực tiếp trạng thái thực hiện (FR-EXE-05, BR-05, BR-06, BR-20)\n\nChạy sau 07.P.4. Dùng lịch E2 (nhân viên A, Đã tiếp nhận). Quản lý không được phân công cho E2 nhưng vẫn bắt đầu, cập nhật tiến độ, hoàn tất được, với điều kiện đúng trình tự vòng đời và đủ BR-06, BR-20. Ảnh Before/After vẫn do nhân viên A tải (quản lý không có quyền tải ảnh, đã thử ở 07.P.3)."
+            },
+            {
+              "name": "07.P.6 Nhân viên spa xem lịch sử công việc – FR-EXE-06",
+              "item": [
+                {
+                  "name": "GET /appointments – nhân viên A thấy lịch sử đã hoàn tất của mình, không thấy lịch của B (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const ids = body.items.map((a) => a.appointmentId);",
+                          "",
+                          "    pm.test(\"Thấy lịch sử E1 và E2 đã hoàn tất của mình\", function () {",
+                          "        pm.expect(ids).to.include(pm.environment.get(\"prgApptE1\"));",
+                          "        pm.expect(ids).to.include(pm.environment.get(\"prgApptE2\"));",
+                          "    });",
+                          "",
+                          "    pm.test(\"Mọi lịch trả về đều Completed\", function () {",
+                          "        pm.expect(body.items.every((a) => a.status === \"Completed\")).to.be.true;",
+                          "    });",
+                          "",
+                          "    pm.test(\"Không thấy lịch E3 của nhân viên B\", function () {",
+                          "        pm.expect(ids).to.not.include(pm.environment.get(\"prgApptE3\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments?type=Spa&status=Completed&date={{prgDate}}&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments"
+                      ],
+                      "query": [
+                        {
+                          "key": "type",
+                          "value": "Spa"
+                        },
+                        {
+                          "key": "status",
+                          "value": "Completed"
+                        },
+                        {
+                          "key": "date",
+                          "value": "{{prgDate}}"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments – nhân viên B chỉ thấy lịch của mình (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const ids = body.items.map((a) => a.appointmentId);",
+                          "",
+                          "    pm.test(\"Chỉ thấy lịch E3 của mình\", function () {",
+                          "        pm.expect(ids).to.eql([pm.environment.get(\"prgApptE3\")]);",
+                          "    });",
+                          "",
+                          "    pm.test(\"Không thấy lịch của nhân viên A\", function () {",
+                          "        pm.expect(ids).to.not.include(pm.environment.get(\"prgApptE1\"));",
+                          "        pm.expect(ids).to.not.include(pm.environment.get(\"prgApptE2\"));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments?type=Spa&date={{prgDate}}&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments"
+                      ],
+                      "query": [
+                        {
+                          "key": "type",
+                          "value": "Spa"
+                        },
+                        {
+                          "key": "date",
+                          "value": "{{prgDate}}"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – nhân viên B xem lịch của nhân viên A (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Nhân viên spa xem lịch sử công việc đã thực hiện (FR-EXE-06, BR-16)\n\nChạy sau 07.P.5. Nhân viên A đã hoàn tất E1, E2; nhân viên B chỉ có E3 (Đã tiếp nhận). Khi lịch Hoàn tất, giữ chỗ nhân viên được nhả (isHolding = false) nhưng dòng phân công được giữ lại làm lịch sử công việc."
             }
           ],
           "description": "### Cập nhật tiến độ, hoàn tất, ảnh minh chứng, giám sát (FR-EXE-03, FR-EXE-04, FR-EXE-05, FR-EXE-06, FR-EXE-08, FR-EXE-09)\n\nChạy theo thứ tự 07.P.0 → 07.P.8, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình Supabase Storage (Storage__Url, Storage__ServiceKey, Storage__Bucket); tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman (bản mẫu ở backend/docs/api/postman-files).\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 07.P.0. Folder 07.P.1 và 07.P.3 có bước SQL xen giữa (xem mô tả từng folder). Khác folder 06.C, folder này không chạy tự động bằng Runner hoặc Newman được vì mọi request sau bước SQL của 07.P.1 đều cần lịch ở trạng thái Đã tiếp nhận; request cuối 07.P.1 báo đỏ nếu chưa chạy SQL.\n\nPhạm vi: chỉ kiểm thử start, cập nhật tiến độ dịch vụ, complete, ảnh Before/After, xem danh sách/chi tiết lịch theo vai trò. Tiếp nhận, cân nặng, chi phí mới, thanh toán thuộc task 169; thông báo thuộc task 170; tác vụ tự động thuộc task 171.\n\nMỗi lần chạy sinh ra một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở 07.P.0 (xem mô tả 07.P.0), rồi gửi lại request vừa lỗi. Mỗi tài khoản khách chỉ đặt tối đa 10 lần mỗi phút, đăng nhập tối đa 10 lần mỗi phút theo IP (429 RATE_LIMITED thì chờ 1 phút)."
