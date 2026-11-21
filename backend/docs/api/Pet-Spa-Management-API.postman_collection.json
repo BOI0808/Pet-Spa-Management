@@ -21066,6 +21066,416 @@
                 }
               ],
               "description": "### Tạo lịch thử và đưa về Đã tiếp nhận (task 168)\n\nChạy sau 07.P.0. Đặt lịch, xác nhận đã được kiểm thử ở task 165, 166; folder này chỉ dựng dữ liệu.\n\nSau khi chạy xong có 4 lịch:\n\n- E1: lịch spa của khách 1, 2 dịch vụ (tắm + cắt tỉa), nhân viên A, 09:00. Dùng cho luồng nhân viên spa: ảnh, bắt đầu, tiến độ, hoàn tất.\n- E2: lịch spa của khách 1, 1 dịch vụ, nhân viên A, 13:00. Dùng cho luồng quản lý cập nhật trực tiếp.\n- E3: lịch spa của khách 2, 1 dịch vụ, nhân viên B, 09:00. Dùng để thử đang chờ xác nhận chi phí mới và phạm vi xem của nhân viên khác.\n- H1: lịch lưu trú của khách 1, Chờ xác nhận. Dùng cho giám sát cả spa và lưu trú.\n\nQuy trình:\n\n1. Gửi 7 request đầu của folder này.\n\n2. Chạy SQL trên Supabase (thay `<prgRunId>` bằng giá trị biến môi trường prgRunId, có 2 chỗ). Câu 1 đưa E1, E2, E3 từ Đã xác nhận sang Đã tiếp nhận (API tiếp nhận chỉ chạy đúng ngày hẹn nên dùng SQL). Câu 2 tạo yêu cầu xác nhận chi phí mới đang chờ cho E3 (E3 là lịch spa duy nhất của khách 0900000102 trong lần chạy này):\n\n```sql\nUPDATE \"Appointment\" a\nSET \"Status\" = 'Received', \"UpdatedAt\" = now()\nFROM \"Pet\" p\nWHERE p.\"PetId\" = a.\"PetId\"\n  AND a.\"Status\" = 'Confirmed'\n  AND p.\"Name\" LIKE '%<prgRunId>';\n\nINSERT INTO \"CostConfirmation\"\n  (\"ConfirmationId\",\"AppointmentId\",\"ActualWeightKg\",\"NewSizeGroup\",\"OldAmount\",\"NewAmount\",\"Status\",\"CreatedAt\",\"ExpiresAt\")\nSELECT gen_random_uuid(), a.\"AppointmentId\", 12, 'Medium', 100000, 130000, 'Pending', now(), now() + interval '30 minutes'\nFROM \"Appointment\" a\nJOIN \"Pet\" p ON p.\"PetId\" = a.\"PetId\"\nJOIN \"Customer\" c ON c.\"CustomerId\" = a.\"CustomerId\"\nWHERE a.\"Status\" = 'Received'\n  AND p.\"Name\" LIKE '%<prgRunId>'\n  AND c.\"Phone\" = '0900000102';\n```\n\n3. Gửi request cuối (cổng kiểm tra). Nếu request này đỏ nghĩa là chưa chạy SQL hoặc thay sai prgRunId."
+            },
+            {
+              "name": "07.P.2 Quyền thao tác tiến độ – FR-EXE-03, BR-05, BR-16",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/start – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – khách hàng không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – nhân viên spa B không được phân công (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – lịch không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/11111111-1111-1111-1111-111111111111/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "11111111-1111-1111-1111-111111111111",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService1Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService1Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – nhân viên spa B không được phân công (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService1Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService1Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – nhân viên spa B không được phân công (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Chỉ nhân viên spa được phân công hoặc quản lý mới cập nhật tiến độ (FR-EXE-03, BR-05, BR-16)\n\nChạy sau 07.P.1. Dùng lịch E1 (Đã tiếp nhận, nhân viên A). Các request chỉ kiểm tra từ chối quyền nên không đổi trạng thái lịch. Nhân viên B không được phân công cho E1."
             }
           ],
           "description": "### Cập nhật tiến độ, hoàn tất, ảnh minh chứng, giám sát (FR-EXE-03, FR-EXE-04, FR-EXE-05, FR-EXE-06, FR-EXE-08, FR-EXE-09)\n\nChạy theo thứ tự 07.P.0 → 07.P.8, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình Supabase Storage (Storage__Url, Storage__ServiceKey, Storage__Bucket); tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman (bản mẫu ở backend/docs/api/postman-files).\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 07.P.0. Folder 07.P.1 và 07.P.3 có bước SQL xen giữa (xem mô tả từng folder). Khác folder 06.C, folder này không chạy tự động bằng Runner hoặc Newman được vì mọi request sau bước SQL của 07.P.1 đều cần lịch ở trạng thái Đã tiếp nhận; request cuối 07.P.1 báo đỏ nếu chưa chạy SQL.\n\nPhạm vi: chỉ kiểm thử start, cập nhật tiến độ dịch vụ, complete, ảnh Before/After, xem danh sách/chi tiết lịch theo vai trò. Tiếp nhận, cân nặng, chi phí mới, thanh toán thuộc task 169; thông báo thuộc task 170; tác vụ tự động thuộc task 171.\n\nMỗi lần chạy sinh ra một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở 07.P.0 (xem mô tả 07.P.0), rồi gửi lại request vừa lỗi. Mỗi tài khoản khách chỉ đặt tối đa 10 lần mỗi phút, đăng nhập tối đa 10 lần mỗi phút theo IP (429 RATE_LIMITED thì chờ 1 phút)."
