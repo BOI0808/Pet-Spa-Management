@@ -19449,64 +19449,9 @@
           "response": []
         },
         {
-          "name": "/appointments/{id}/start",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}/services/{serviceId}",
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}/complete",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
           "name": "/appointments/{id}/check-out",
           "request": {
             "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}/photos",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "/appointments/{id}/photos",
-          "request": {
-            "method": "GET",
             "header": [],
             "url": {
               "raw": ""
@@ -24301,6 +24246,391 @@
                 }
               ],
               "description": "### Quản lý giám sát tiến độ thực hiện toàn bộ lịch hẹn spa và lưu trú (FR-EXE-08)\n\nChạy sau 07.P.6. Tại thời điểm này: E1, E2 đã Completed; E3 Received (đang chờ xác nhận chi phí mới); H1 lưu trú Pending. Lịch hẹn của lần chạy này là những lịch tạo mới nhất nên nằm đầu danh sách khi sắp xếp created_desc."
+            },
+            {
+              "name": "07.P.8 Dọn dữ liệu thử (task 168)",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch E3 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE3}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch lưu trú H1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgHotelH1}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgHotelH1}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /cages/{id}/status – ngừng dùng chuồng Dog/Small (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/cages/{{prgCageId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "cages",
+                        "{{prgCageId}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /services/{id}/status – ngừng cung cấp dịch vụ spa 1 (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services/{{prgService1Id}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services",
+                        "{{prgService1Id}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /services/{id}/status – ngừng cung cấp dịch vụ spa 2 (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204 No Content\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services/{{prgService2Id}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services",
+                        "{{prgService2Id}}",
+                        "status"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên A (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(body.returnedToPending).to.eql(0);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{prgStaffAId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{prgStaffAId}}",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên B (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(body.returnedToPending).to.eql(0);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{prgStaffBId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{prgStaffBId}}",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Dọn dữ liệu thử (task 168)\n\nHủy lịch E3 (còn Đã tiếp nhận) và H1 (còn Chờ xác nhận), ngừng dùng chuồng, ngừng cung cấp 2 dịch vụ thử, vô hiệu hóa nhân viên A và B để danh mục không đầy rác sau mỗi lần chạy. Chạy cuối cùng.\n\nKhông xóa ca làm, lịch hẹn, thú cưng, ảnh thử: các dòng này gắn với lịch hẹn nên hệ thống không cho xóa. Dữ liệu nằm ở ngày rất xa trong tương lai nên không ảnh hưởng các folder khác."
             }
           ],
           "description": "### Cập nhật tiến độ, hoàn tất, ảnh minh chứng, giám sát (FR-EXE-03, FR-EXE-04, FR-EXE-05, FR-EXE-06, FR-EXE-08, FR-EXE-09)\n\nChạy theo thứ tự 07.P.0 → 07.P.8, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình Supabase Storage (Storage__Url, Storage__ServiceKey, Storage__Bucket); tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman (bản mẫu ở backend/docs/api/postman-files).\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 07.P.0. Folder 07.P.1 và 07.P.3 có bước SQL xen giữa (xem mô tả từng folder). Khác folder 06.C, folder này không chạy tự động bằng Runner hoặc Newman được vì mọi request sau bước SQL của 07.P.1 đều cần lịch ở trạng thái Đã tiếp nhận; request cuối 07.P.1 báo đỏ nếu chưa chạy SQL.\n\nPhạm vi: chỉ kiểm thử start, cập nhật tiến độ dịch vụ, complete, ảnh Before/After, xem danh sách/chi tiết lịch theo vai trò. Tiếp nhận, cân nặng, chi phí mới, thanh toán thuộc task 169; thông báo thuộc task 170; tác vụ tự động thuộc task 171.\n\nMỗi lần chạy sinh ra một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở 07.P.0 (xem mô tả 07.P.0), rồi gửi lại request vừa lỗi. Mỗi tài khoản khách chỉ đặt tối đa 10 lần mỗi phút, đăng nhập tối đa 10 lần mỗi phút theo IP (429 RATE_LIMITED thì chờ 1 phút)."
