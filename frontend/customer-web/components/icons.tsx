@@ -31,6 +31,7 @@ const ICON_PATHS = {
   ),
   "chev-d": <path d="m6 9 6 6 6-6" />,
   "chev-r": <path d="m9 18 6-6-6-6" />,
+  "arrow-r": <path d="M5 12h14M12 5l7 7-7 7" />,
   "chev-l": <path d="m15 18-6-6 6-6" />,
   plus: <path d="M12 5v14M5 12h14" />,
   dots: (

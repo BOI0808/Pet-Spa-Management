@@ -38,6 +38,33 @@ function useSpaPricing(appointment: AppointmentDetail, pet: Pet | null) {
     pet ? findPricing(services.data, serviceId, pet.species, appointment.sizeGroup) : undefined;
 }
 
+/**
+ * Chú thích khi chờ xác nhận chi phí (vùng 4): “Giá đang theo nhóm Nhỏ. Nếu bạn đồng ý, giá chuyển theo nhóm Vừa:
+ * 180.000đ và 150.000đ. Giờ hẹn giữ nguyên.” Chưa tra được giá nhóm mới thì bỏ phần liệt kê giá.
+ */
+function PendingPriceNote({ appointment, pet }: DetailCardProps) {
+  const pending = appointment.pendingCostConfirmation;
+  const newGroup = pending?.status === "Pending" ? pending.newSizeGroup : null;
+  const services = useServices(pet && newGroup ? { species: pet.species, sizeGroup: newGroup } : {}, {
+    enabled: pet !== null && newGroup !== null,
+  });
+  if (!newGroup) return null;
+  const prices = (appointment.services ?? []).map((service) =>
+    pet ? findPricing(services.data, service.serviceId, pet.species, newGroup)?.price : undefined,
+  );
+  const known = prices.length > 0 && prices.every((price) => price !== undefined);
+  const list = known ? (prices as number[]).map(formatMoney) : [];
+  const priceText =
+    list.length > 1 ? `${list.slice(0, -1).join(", ")} và ${list[list.length - 1]}` : (list[0] ?? "");
+  return (
+    <p className="mt-3 text-[13px] leading-[18px] text-muted">
+      Giá đang theo nhóm {SIZE_GROUP_LABELS[appointment.sizeGroup]}. Nếu bạn đồng ý, giá chuyển theo nhóm{" "}
+      {SIZE_GROUP_LABELS[newGroup]}
+      {priceText ? `: ${priceText}` : ""}. Giờ hẹn giữ nguyên.
+    </p>
+  );
+}
+
 /** Vùng 4 (spa) – mỗi dịch vụ một dòng, tick xanh khi xong. */
 export function SpaServicesCard({ appointment, pet }: DetailCardProps) {
   const pricingOf = useSpaPricing(appointment, pet);
@@ -81,6 +108,7 @@ export function SpaServicesCard({ appointment, pet }: DetailCardProps) {
             })}
           </ul>
         )}
+        <PendingPriceNote appointment={appointment} pet={pet} />
       </CardBody>
     </Card>
   );

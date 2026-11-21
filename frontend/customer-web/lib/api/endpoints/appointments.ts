@@ -4,6 +4,8 @@ import type {
   AppointmentPage,
   AppointmentStatus,
   AppointmentType,
+  CostConfirmationRespondRequest,
+  CostConfirmationRespondResult,
   Payment,
   Photo,
   SpaBookingCreated,
@@ -80,5 +82,18 @@ export async function updateAppointment(appointmentId: string, body: UpdateAppoi
  */
 export async function cancelAppointment(appointmentId: string) {
   const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/cancel`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/cost-confirmation/respond – FR-EXE-11, BR-23. `accept = true`: hồ sơ thú cưng và nhóm kích cỡ
+ * cập nhật, lịch tiếp tục theo chi phí mới; `false`: lịch Đã hủy, lý do `CostNotConfirmed`.
+ * 409 `COST_CONFIRMATION_EXPIRED` khi quá hạn, 404 khi không còn yêu cầu đang chờ.
+ */
+export async function respondCostConfirmation(appointmentId: string, body: CostConfirmationRespondRequest) {
+  const { data } = await apiClient.post<CostConfirmationRespondResult>(
+    `/appointments/${encodeURIComponent(appointmentId)}/cost-confirmation/respond`,
+    body,
+  );
   return data;
 }
