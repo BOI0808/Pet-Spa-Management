@@ -10,8 +10,8 @@ import { Tag } from "@/components/ui/tag";
 import type { Appointment } from "@/lib/api/types";
 import { useAppointment } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { appointmentDetailRoute } from "@/lib/routes";
-import { describePetKind, serviceNames, ticketStub } from "../appointments";
+import { appointmentDetailRoute, serviceExecutionRoute } from "@/lib/routes";
+import { canOpenExecution, describePetKind, serviceNames, ticketStub } from "../appointments";
 
 type AssignedTicketProps = {
   appointment: Appointment;
@@ -23,7 +23,8 @@ type AssignedTicketProps = {
 /**
  * Một phiếu hẹn của nhân viên spa (UI-Screens SW-02 vùng 5, 6). Danh sách không có dịch vụ, giống loài, ghi chú
  * (G-05) nên mỗi phiếu tải thêm chi tiết lịch và hồ sơ bé; backend chỉ cho xem hồ sơ của lịch được phân công.
- * Cả phiếu là liên kết sang SW-03; màn thực hiện SW-11 làm ở thẻ 131.
+ * Cả phiếu là liên kết: lịch Đã tiếp nhận, Đang thực hiện mở thẳng SW-11 Thực hiện dịch vụ (nút “Mở” của UI-Screens
+ * SW-02 vùng 5), lịch khác mở SW-03 (“Xem”).
  */
 export function AssignedTicket({ appointment, today, compact = false }: AssignedTicketProps) {
   // Chi tiết không tự tải lại theo giờ (góp ý review PR #56): danh sách tải lại 60 giây/lần, khi lịch đổi
@@ -73,7 +74,11 @@ export function AssignedTicket({ appointment, today, compact = false }: Assigned
   return (
     <li>
       <AppointmentTicket
-        href={appointmentDetailRoute(appointment.appointmentId)}
+        href={
+          canOpenExecution(appointment)
+            ? serviceExecutionRoute(appointment.appointmentId)
+            : appointmentDetailRoute(appointment.appointmentId)
+        }
         stub={ticketStub(appointment, today)}
         media={
           // Hồ sơ bé lỗi thì hiện dấu chân thay cho khung xương; phiếu vẫn có tên bé từ danh sách.

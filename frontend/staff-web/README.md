@@ -28,16 +28,18 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/services` | SW-14 Danh mục dịch vụ (chỉ xem) |
 | `features/appointments` | SW-02 Lịch hẹn (nhân viên spa: lịch được phân công; lễ tân: lịch toàn cửa hàng theo ngày), SW-03 Chi tiết lịch hẹn – thẻ lịch hẹn chép từ customer-web |
 | `features/check-in` | SW-07 Tiếp nhận: lịch hôm nay, tiếp nhận lịch spa kèm cân nặng thực tế, đối chiếu cân nặng lịch lưu trú, đếm ngược và ghi nhận phản hồi chi phí mới của khách (SW-07·D1) |
+| `features/service-execution` | SW-11 Thực hiện dịch vụ (nhân viên spa): tải ảnh trước/sau, bắt đầu, đánh dấu từng dịch vụ, hoàn tất lịch spa |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh trên của web nhân viên, menu thả xuống, `PageHeader` |
-| `components/ui`, `components/domain` | Thành phần dùng chung chép từ customer-web: `Button`, `Card`, `Field`, `ChoiceCard`, `Tag`, `Tabs`, `SegmentedControl`, `PetAvatar`, `DateStrip`, `SlotPicker`, `ServiceOption`… |
+| `components/ui`, `components/domain` | Thành phần dùng chung chép từ customer-web: `Button`, `Card`, `Field`, `ChoiceCard`, `Tag`, `Tabs`, `SegmentedControl`, `PetAvatar`, `DateStrip`, `SlotPicker`, `ServiceOption`, `PhotoTile`, `PhotoUpload`… |
 | `components/feedback` | Hiển thị lỗi và gợi ý: `Alert`, `ErrorAlert`, `ForbiddenState`, `NotFoundState`, `FieldError`, toast |
 | `lib/api` | `apiClient` (Axios), chuẩn hóa error envelope thành `ApiError`, hàm gọi API theo tài nguyên (`endpoints/`) |
 | `lib/queries` | Khóa query và hook TanStack Query theo tài nguyên |
 | `lib/format.ts`, `lib/labels.ts`, `lib/validation.ts` | Định dạng hiển thị, nhãn enum, luật kiểm tra form (giống customer-web) |
 | `lib/time.ts` | Ngày giờ theo múi giờ cửa hàng `Asia/Ho_Chi_Minh` (giống customer-web) |
+| `lib/image-resize.ts` | Thu nhỏ ảnh trước khi tải lên (cạnh dài 1600px, JPEG 0,8) |
 | `lib/serving-customer.ts` | Khách đang phục vụ (SW-04 → SW-05, SW-06) |
 | `lib/routes.ts` | Đường dẫn các màn hình SW-01 → SW-15 |
 | `lib/staff-role.ts` | Vai trò nhân viên: lễ tân, nhân viên spa |
@@ -68,6 +70,8 @@ Chạy được khi backend đang chạy và đã có tài khoản nhân viên (
 - Chưa biết vai trò (đang tải `GET /me`) thì menu hiện khung xương, không hiện mục nào.
 - Lễ tân hoặc nhân viên spa gõ thẳng đường dẫn của vai trò kia thì `SessionGate` hiện `ForbiddenState`. Việc này chỉ chạy khi trang
   đã tồn tại; đường dẫn chưa có trang thì Next.js trả 404.
+- SW-11 (`/lich-hen/[appointmentId]/thuc-hien`) nằm dưới đường dẫn của SW-02 mà cả hai vai trò vào được, nên màn tự hiện
+  `ForbiddenState` cho lễ tân.
 - Ẩn menu và chặn màn chỉ là giao diện; quyền thật luôn do backend kiểm tra.
 
 ## Gọi API và hiển thị lỗi
@@ -88,6 +92,17 @@ Phần này giống Web khách hàng để 3 web dùng chung một cách:
 - API chưa có `GET /customers/{id}` (UI-Screens G-14), nên khách lễ tân chọn ở SW-04 được giữ trong `sessionStorage`
   (khóa `ps.servingCustomer`, chỉ thông tin hiển thị) để SW-05 và SW-06 dùng tiếp. Tải lại trang vẫn còn, đóng tab thì mất.
 - Đăng xuất hoặc hết phiên thì xóa (`clearServingCustomer` trong `useSession`).
+
+## Ảnh minh chứng (SW-11)
+
+- Chỉ nhận `image/*`, tối đa 50 MB (cùng giới hạn backend), kiểm tra trên tệp gốc. Ảnh được thu nhỏ bằng `canvas`
+  (`lib/image-resize.ts`) trước khi gửi; trình duyệt không đọc được định dạng (ví dụ HEIC trên Chrome) thì gửi nguyên tệp.
+- Gửi `FormData { kind, file }` với header `multipart/form-data`: `apiClient` mặc định gửi JSON, giữ header đó thì Axios
+  đổi `FormData` thành JSON.
+- Ảnh xem bằng URL tạm thời của `GET /appointments/{id}/photos` qua thẻ `img` thường; URL được dùng lại trong 40 phút,
+  ảnh không tải được thì lấy URL mới (`refreshUrls`), giống customer-web.
+- “Hợp lệ” của ảnh trước = lịch đang mở đã có ảnh `Before` (UI-Screens G-13); điều kiện cuối cùng do backend kiểm tra
+  (409 `PHOTO_REQUIRED`).
 - Đường dẫn SW-05 chứa `customerId`; khác khách đang phục vụ thì màn hiện "Chưa chọn khách hàng" và nút về SW-04.
 - SW-06 cũng vậy: chưa chọn khách, hoặc `?customerId=` khác khách đang phục vụ, thì hiện "Chưa chọn khách hàng" và nút "Tìm khách".
   Lịch spa và lưu trú gửi kèm `customerId` của khách đang phục vụ (lễ tân đặt thay, không áp dụng khóa tự đặt lịch).
