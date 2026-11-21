@@ -121,6 +121,9 @@ function ServiceRow({ service, status, note, onNoteChange, onMarkDone, saving, l
           {(control) => (
             <Textarea
               {...control}
+              // Mỗi dịch vụ một ô “Ghi chú”: tên đọc lên kèm tên dịch vụ để trình đọc màn hình phân biệt (góp ý review
+              // PR #77). Nhãn nhìn thấy giữ “Ghi chú” như ui-demo.
+              aria-label={`Ghi chú cho ${name}`}
               value={note}
               onChange={(event) => onNoteChange(event.target.value)}
               disabled={saving}
@@ -138,11 +141,23 @@ type ServicesCardProps = {
   petName: string;
   hasBeforePhoto: boolean;
   hasAfterPhoto: boolean;
+  /**
+   * Danh sách ảnh đã tải xong. Đang tải hoặc tải lỗi thì chưa biết lịch có ảnh hay chưa: khóa nút nhưng không hiện lý do
+   * về ảnh (góp ý review PR #77).
+   */
+  photosLoaded: boolean;
   /** Backend trả 409 `PHOTO_REQUIRED`: màn tô vùng ảnh tương ứng (vùng 3 hoặc 4). */
   onPhotoRequired: (kind: PhotoKind) => void;
 };
 
-export function ServicesCard({ appointment, petName, hasBeforePhoto, hasAfterPhoto, onPhotoRequired }: ServicesCardProps) {
+export function ServicesCard({
+  appointment,
+  petName,
+  hasBeforePhoto,
+  hasAfterPhoto,
+  photosLoaded,
+  onPhotoRequired,
+}: ServicesCardProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const updateService = useUpdateServiceProgress(appointment.appointmentId);
@@ -198,11 +213,20 @@ export function ServicesCard({ appointment, petName, hasBeforePhoto, hasAfterPho
   let footer = null;
   if (status === "Received") {
     const blockers = startBlockers(appointment, hasBeforePhoto);
-    const reasons = shownServerReason && !blockers.includes(shownServerReason) ? [...blockers, shownServerReason] : blockers;
+    const knownBlockers = photosLoaded ? blockers : blockers.filter((reason) => reason !== REASONS.beforePhoto);
+    const reasons =
+      shownServerReason && !knownBlockers.includes(shownServerReason) ? [...knownBlockers, shownServerReason] : knownBlockers;
     footer = (
       <>
         {start.error && !reasonFromError(start.error, "start") && <ErrorAlert error={start.error} className="mb-3" />}
-        <Button variant="primary" size="lg" block disabled={blockers.length > 0} loading={start.isPending} onClick={handleStart}>
+        <Button
+          variant="primary"
+          size="lg"
+          block
+          disabled={!photosLoaded || blockers.length > 0}
+          loading={start.isPending}
+          onClick={handleStart}
+        >
           <Icon name="play" className="size-[18px]" />
           Bắt đầu thực hiện
         </Button>
@@ -212,7 +236,9 @@ export function ServicesCard({ appointment, petName, hasBeforePhoto, hasAfterPho
       </>
     );
   } else if (status === "InProgress") {
-    const ready = canComplete(appointment, hasAfterPhoto);
+    const ready = photosLoaded && canComplete(appointment, hasAfterPhoto);
+    // Lý do gộp cả ảnh sau nên chỉ hiện khi đã biết lịch có ảnh hay chưa.
+    const showReason = shownServerReason !== null || (photosLoaded && !ready);
     footer = (
       <>
         {complete.error && !reasonFromError(complete.error, "complete") && (
@@ -222,7 +248,7 @@ export function ServicesCard({ appointment, petName, hasBeforePhoto, hasAfterPho
           <Icon name="check-circle" className="size-[18px]" />
           Hoàn tất lịch hẹn
         </Button>
-        {(!ready || shownServerReason) && <ReasonLine reason={shownServerReason ?? REASONS.complete} />}
+        {showReason && <ReasonLine reason={shownServerReason ?? REASONS.complete} />}
       </>
     );
   }

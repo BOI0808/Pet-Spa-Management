@@ -136,6 +136,7 @@ function ServiceExecutionView({ appointment, pet, petPending }: ServiceExecution
           petName={petName}
           hasBeforePhoto={hasBeforePhoto}
           hasAfterPhoto={hasAfterPhoto}
+          photosLoaded={photos.isSuccess}
           onPhotoRequired={setPhotoRequired}
         />
       </div>
