@@ -19498,6 +19498,9 @@
                           "}",
                           "if (!pm.variables.get(\"managerPhone\") && pm.variables.get(\"managerUserName\")) {",
                           "    pm.variables.set(\"managerPhone\", pm.variables.get(\"managerUserName\"));",
+                          "}",
+                          "if (!pm.environment.get(\"testPassword\") || pm.environment.get(\"testPassword\") === \"Test@123\") {",
+                          "    pm.environment.set(\"testPassword\", \"Test@1234\");",
                           "}"
                         ]
                       }
@@ -20119,7 +20122,7 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Postman Tiến độ Tắm {{prgRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 168\",\n  \"latestStartTime\": \"12:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+                      "raw": "{\n  \"name\": \"Postman Tiến độ Tắm {{prgRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 168\",\n  \"latestStartTime\": \"12:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 150000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 200000,\n      \"durationMinutes\": 120,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 250000,\n      \"durationMinutes\": 150,\n      \"staffRequired\": 2\n    }\n  ]\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -20179,7 +20182,7 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Postman Tiến độ Cắt tỉa {{prgRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 168\",\n  \"latestStartTime\": \"18:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 100000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    }\n  ]\n}",
+                      "raw": "{\n  \"name\": \"Postman Tiến độ Cắt tỉa {{prgRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 168\",\n  \"latestStartTime\": \"18:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 100000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 130000,\n      \"durationMinutes\": 75,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 160000,\n      \"durationMinutes\": 90,\n      \"staffRequired\": 2\n    }\n  ]\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -24595,6 +24598,28 @@
                           "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
                           "        pm.expect(body.returnedToPending).to.eql(0);",
                           "    });",
+                          "}",
+                          "",
+                          "// Dọn dẹp toàn bộ biến môi trường tạm của task 168 (prg*)",
+                          "const prgVars = [",
+                          "    \"prgRunId\", \"prgDate\", \"prgSlot0900\", \"prgSlot1300\",",
+                          "    \"prgShiftStart\", \"prgShiftEnd\", \"prgStaffAPhone\", \"prgStaffBPhone\",",
+                          "    \"prgStaffAId\", \"prgStaffBId\", \"prgStaffAToken\", \"prgStaffBToken\",",
+                          "    \"prgPet1Id\", \"prgPet2Id\", \"prgPet3Id\", \"prgService1Id\", \"prgService2Id\",",
+                          "    \"prgCageId\", \"prgApptE1\", \"prgApptE2\", \"prgApptE3\",",
+                          "    \"prgHotelIn\", \"prgHotelOut\", \"prgHotelH1\"",
+                          "];",
+                          "prgVars.forEach(function (v) {",
+                          "    pm.environment.unset(v);",
+                          "});",
+                          "",
+                          "if (pm.environment && typeof pm.environment.toObject === \"function\") {",
+                          "    const envObj = pm.environment.toObject();",
+                          "    Object.keys(envObj).forEach(function (key) {",
+                          "        if (key.startsWith(\"prg\")) {",
+                          "            pm.environment.unset(key);",
+                          "        }",
+                          "    });",
                           "}"
                         ]
                       }
@@ -24798,7 +24823,7 @@
     },
     {
       "key": "testPassword",
-      "value": "Test@123",
+      "value": "Test@1234",
       "type": "string"
     },
     {
