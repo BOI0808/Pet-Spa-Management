@@ -22460,6 +22460,877 @@
                 }
               ],
               "description": "### Ảnh minh chứng trước/sau chăm sóc (FR-EXE-09, BR-16, BR-20)\n\nChạy sau 07.P.2. Dùng lịch E1 (Đã tiếp nhận, nhân viên A, thú cưng 1 chưa có ảnh Before nào). Request tải ảnh dùng tệp postman-photo.jpg trong Working directory của Postman. Ảnh được lưu thật trên Supabase Storage.\n\nQuy trình:\n\n1. Gửi 15 request đầu (đến hết request GET ảnh của lễ tân).\n\n2. Làm ảnh Before của E1 quá hạn 7 ngày bằng SQL trên Supabase (thay `<prgApptE1>` bằng giá trị biến môi trường prgApptE1):\n\n```sql\nUPDATE \"AppointmentPhoto\"\nSET \"UploadedAt\" = now() - interval '8 days'\nWHERE \"AppointmentId\" = '<prgApptE1>'::uuid\n  AND \"Kind\" = 'Before';\n```\n\n3. Gửi 2 request cuối. Request cuối tải ảnh Before mới để E1 bắt đầu được ở folder 07.P.4.\n\nẢnh Before hợp lệ là ảnh Before gần nhất của thú cưng, tải lên trong 7 ngày (Photo.ValidityDays). Request đầu tiên chạy trước khi có ảnh nào nên thú cưng chưa có ảnh Before."
+            },
+            {
+              "name": "07.P.4 Nhân viên spa bắt đầu, cập nhật tiến độ, hoàn tất – FR-EXE-03, FR-EXE-04",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/complete – lịch chưa bắt đầu (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – lịch chưa bắt đầu (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService1Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService1Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – đang chờ khách xác nhận chi phí mới (409 COST_CONFIRMATION_PENDING)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là COST_CONFIRMATION_PENDING\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"COST_CONFIRMATION_PENDING\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffBToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE3}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE3}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – nhân viên A bắt đầu E1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang InProgress\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"InProgress\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – thiếu isDone (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService1Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService1Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"note\": \"Thiếu isDone\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – dịch vụ không thuộc lịch (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/11111111-1111-1111-1111-111111111111",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "11111111-1111-1111-1111-111111111111"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – đánh dấu dịch vụ 1 xong kèm ghi chú (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService1Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService1Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true,\n  \"note\": \"Tắm xong, lông sạch\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – dịch vụ 1 xong có ghi chú, dịch vụ 2 chưa xong (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const s1 = body.services.find((s) => s.serviceId === pm.environment.get(\"prgService1Id\"));",
+                          "    const s2 = body.services.find((s) => s.serviceId === pm.environment.get(\"prgService2Id\"));",
+                          "",
+                          "    pm.test(\"Lịch ở trạng thái InProgress\", function () {",
+                          "        pm.expect(body.status).to.eql(\"InProgress\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Dịch vụ 1 đã xong, có thời điểm xong và ghi chú\", function () {",
+                          "        pm.expect(s1.isDone).to.be.true;",
+                          "        pm.expect(s1.doneAt).to.be.a(\"string\");",
+                          "        pm.expect(s1.note).to.eql(\"Tắm xong, lông sạch\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Dịch vụ 2 chưa xong\", function () {",
+                          "        pm.expect(s2.isDone).to.be.false;",
+                          "        pm.expect(s2.doneAt).to.be.null;",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – còn dịch vụ chưa xong (409 SERVICES_INCOMPLETE)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SERVICES_INCOMPLETE\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SERVICES_INCOMPLETE\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – đánh dấu dịch vụ 2 xong (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/services/{{prgService2Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "services",
+                        "{{prgService2Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – chưa có ảnh After (409 PHOTO_REQUIRED)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là PHOTO_REQUIRED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"PHOTO_REQUIRED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/photos – nhân viên A tải ảnh After (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có photoId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().photoId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "photos"
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "kind",
+                          "value": "After",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "postman-photo.jpg"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/photos – nhân viên A thấy đủ ảnh Before và After (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "",
+                          "    pm.test(\"Có 3 ảnh: 2 Before (cũ trước) và 1 After\", function () {",
+                          "        pm.expect(body.map((p) => p.kind)).to.eql([\"Before\", \"Before\", \"After\"]);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "photos"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – nhân viên A hoàn tất E1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Completed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Completed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – lịch E1 đã hoàn tất, dịch vụ xong, hết giữ chỗ nhân viên (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "",
+                          "    pm.test(\"Lịch ở trạng thái Completed\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Completed\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Mọi dịch vụ đã xong\", function () {",
+                          "        pm.expect(body.services).to.have.lengthOf(2);",
+                          "        pm.expect(body.services.every((s) => s.isDone)).to.be.true;",
+                          "    });",
+                          "",
+                          "    pm.test(\"Nhân viên A vẫn gắn với lịch nhưng không còn giữ chỗ\", function () {",
+                          "        pm.expect(body.staff).to.have.lengthOf(1);",
+                          "        pm.expect(body.staff[0].staffId).to.eql(pm.environment.get(\"prgStaffAId\"));",
+                          "        pm.expect(body.staff[0].isHolding).to.be.false;",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – lịch đã hoàn tất (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE1}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Nhân viên spa cập nhật tiến độ và hoàn tất lịch spa (FR-EXE-03, FR-EXE-04, BR-05, BR-06, BR-20, BR-23)\n\nChạy sau 07.P.3. Dùng lịch E1 (nhân viên A, đã có ảnh Before hợp lệ). Lịch E1 có 2 dịch vụ: dịch vụ 1 (tắm) và dịch vụ 2 (cắt tỉa). Request 3 dùng lịch E3 (nhân viên B) đang có yêu cầu xác nhận chi phí mới ở trạng thái chờ (tạo bằng SQL ở 07.P.1).\n\nThứ tự chặn hoàn tất: sai trạng thái, rồi dịch vụ chưa xong (SERVICES_INCOMPLETE), rồi chưa có ảnh After (PHOTO_REQUIRED)."
             }
           ],
           "description": "### Cập nhật tiến độ, hoàn tất, ảnh minh chứng, giám sát (FR-EXE-03, FR-EXE-04, FR-EXE-05, FR-EXE-06, FR-EXE-08, FR-EXE-09)\n\nChạy theo thứ tự 07.P.0 → 07.P.8, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình Supabase Storage (Storage__Url, Storage__ServiceKey, Storage__Bucket); tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman (bản mẫu ở backend/docs/api/postman-files).\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 07.P.0. Folder 07.P.1 và 07.P.3 có bước SQL xen giữa (xem mô tả từng folder). Khác folder 06.C, folder này không chạy tự động bằng Runner hoặc Newman được vì mọi request sau bước SQL của 07.P.1 đều cần lịch ở trạng thái Đã tiếp nhận; request cuối 07.P.1 báo đỏ nếu chưa chạy SQL.\n\nPhạm vi: chỉ kiểm thử start, cập nhật tiến độ dịch vụ, complete, ảnh Before/After, xem danh sách/chi tiết lịch theo vai trò. Tiếp nhận, cân nặng, chi phí mới, thanh toán thuộc task 169; thông báo thuộc task 170; tác vụ tự động thuộc task 171.\n\nMỗi lần chạy sinh ra một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở 07.P.0 (xem mô tả 07.P.0), rồi gửi lại request vừa lỗi. Mỗi tài khoản khách chỉ đặt tối đa 10 lần mỗi phút, đăng nhập tối đa 10 lần mỗi phút theo IP (429 RATE_LIMITED thì chờ 1 phút)."
