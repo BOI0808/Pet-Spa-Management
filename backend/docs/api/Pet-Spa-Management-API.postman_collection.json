@@ -23331,6 +23331,440 @@
                 }
               ],
               "description": "### Nhân viên spa cập nhật tiến độ và hoàn tất lịch spa (FR-EXE-03, FR-EXE-04, BR-05, BR-06, BR-20, BR-23)\n\nChạy sau 07.P.3. Dùng lịch E1 (nhân viên A, đã có ảnh Before hợp lệ). Lịch E1 có 2 dịch vụ: dịch vụ 1 (tắm) và dịch vụ 2 (cắt tỉa). Request 3 dùng lịch E3 (nhân viên B) đang có yêu cầu xác nhận chi phí mới ở trạng thái chờ (tạo bằng SQL ở 07.P.1).\n\nThứ tự chặn hoàn tất: sai trạng thái, rồi dịch vụ chưa xong (SERVICES_INCOMPLETE), rồi chưa có ảnh After (PHOTO_REQUIRED)."
+            },
+            {
+              "name": "07.P.5 Quản lý cập nhật trực tiếp trạng thái thực hiện – FR-EXE-05",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/complete – quản lý hoàn tất lịch chưa bắt đầu (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/photos – nhân viên A tải ảnh Before cho E2 (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có photoId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().photoId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "photos"
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "kind",
+                          "value": "Before",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "postman-photo.jpg"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – quản lý bắt đầu E2 dù không được phân công (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang InProgress\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"InProgress\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "start"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – quản lý hoàn tất khi dịch vụ chưa xong (409 SERVICES_INCOMPLETE)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là SERVICES_INCOMPLETE\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"SERVICES_INCOMPLETE\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – quản lý đánh dấu dịch vụ xong (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/services/{{prgService2Id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "services",
+                        "{{prgService2Id}}"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true,\n  \"note\": \"Quản lý cập nhật trực tiếp\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – quản lý hoàn tất khi chưa có ảnh After (409 PHOTO_REQUIRED)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là PHOTO_REQUIRED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"PHOTO_REQUIRED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/photos – nhân viên A tải ảnh After cho E2 (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có photoId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().photoId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{prgStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "photos"
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "kind",
+                          "value": "After",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "postman-photo.jpg"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – quản lý hoàn tất E2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Completed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Completed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{prgApptE2}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{prgApptE2}}",
+                        "complete"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Quản lý cập nhật trực tiếp trạng thái thực hiện (FR-EXE-05, BR-05, BR-06, BR-20)\n\nChạy sau 07.P.4. Dùng lịch E2 (nhân viên A, Đã tiếp nhận). Quản lý không được phân công cho E2 nhưng vẫn bắt đầu, cập nhật tiến độ, hoàn tất được, với điều kiện đúng trình tự vòng đời và đủ BR-06, BR-20. Ảnh Before/After vẫn do nhân viên A tải (quản lý không có quyền tải ảnh, đã thử ở 07.P.3)."
             }
           ],
           "description": "### Cập nhật tiến độ, hoàn tất, ảnh minh chứng, giám sát (FR-EXE-03, FR-EXE-04, FR-EXE-05, FR-EXE-06, FR-EXE-08, FR-EXE-09)\n\nChạy theo thứ tự 07.P.0 → 07.P.8, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình Supabase Storage (Storage__Url, Storage__ServiceKey, Storage__Bucket); tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman (bản mẫu ở backend/docs/api/postman-files).\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 07.P.0. Folder 07.P.1 và 07.P.3 có bước SQL xen giữa (xem mô tả từng folder). Khác folder 06.C, folder này không chạy tự động bằng Runner hoặc Newman được vì mọi request sau bước SQL của 07.P.1 đều cần lịch ở trạng thái Đã tiếp nhận; request cuối 07.P.1 báo đỏ nếu chưa chạy SQL.\n\nPhạm vi: chỉ kiểm thử start, cập nhật tiến độ dịch vụ, complete, ảnh Before/After, xem danh sách/chi tiết lịch theo vai trò. Tiếp nhận, cân nặng, chi phí mới, thanh toán thuộc task 169; thông báo thuộc task 170; tác vụ tự động thuộc task 171.\n\nMỗi lần chạy sinh ra một ngày thử ngẫu nhiên trong khoảng 200 đến 3000 ngày sau hôm nay (múi giờ +07:00) để không đụng dữ liệu của lần chạy khác. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở 07.P.0 (xem mô tả 07.P.0), rồi gửi lại request vừa lỗi. Mỗi tài khoản khách chỉ đặt tối đa 10 lần mỗi phút, đăng nhập tối đa 10 lần mỗi phút theo IP (429 RATE_LIMITED thì chờ 1 phút)."
