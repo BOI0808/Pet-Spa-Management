@@ -98,6 +98,7 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentQueryRepository, AppointmentQueryRepository>();
         services.AddScoped<IAppointmentChangeRepository, AppointmentChangeRepository>();
         services.AddScoped<ICostConfirmationRepository, CostConfirmationRepository>();
+        services.AddScoped<IAutoCancelRepository, AutoCancelRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
         services.AddScoped<ISpaProgressRepository, SpaProgressRepository>();
 
