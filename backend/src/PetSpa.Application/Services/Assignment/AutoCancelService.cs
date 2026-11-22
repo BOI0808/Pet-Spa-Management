@@ -16,7 +16,12 @@ public sealed class AutoCancelService(
     IConcurrencyGuard concurrencyGuard)
 {
     // Trả về số lịch hẹn đã bị hủy trong lần chạy này.
-    public Task<int> RunAsync(CancellationToken ct = default) => CancelNoShowAsync(ct);
+    public async Task<int> RunAsync(CancellationToken ct = default)
+    {
+        var processed = await CancelNoShowAsync(ct);
+        processed += await CancelUnconfirmedCostAsync(ct);
+        return processed;
+    }
 
     // Lịch Đã xác nhận quá thời gian giữ chỗ sau giờ hẹn mà chưa được tiếp nhận.
     // Lịch lưu trú không cần thao tác giải phóng chuồng riêng: chuồng chỉ bị giữ khi lịch ở Confirmed/InStay.
@@ -55,6 +60,48 @@ public sealed class AutoCancelService(
 
         return processed;
     }
+
+    // Khách không phản hồi chi phí mới trong CostConfirm.TimeoutMinutes (30 phút).
+    // ExpiresAt đã được chốt lúc tạo yêu cầu (CreatedAt + CostConfirm.TimeoutMinutes) nên chỉ cần so với hiện tại.
+    private async Task<int> CancelUnconfirmedCostAsync(CancellationToken ct)
+    {
+        var ids = await candidates.ListExpiredCostConfirmationAppointmentIdsAsync(DateTimeOffset.UtcNow, ct);
+
+        var processed = 0;
+        foreach (var id in ids)
+        {
+            var cancelled = await concurrencyGuard.RunAsync(async () =>
+            {
+                await concurrencyGuard.LockAppointmentAsync(id, ct);
+
+                var found = await appointments.FindWithOwnerAsync(id, asNoTracking: false, ct);
+                var confirmation = await costConfirmations.FindPendingAsync(id, ct);
+                if (found is null || confirmation is null || confirmation.ExpiresAt >= DateTimeOffset.UtcNow)
+                    return false;
+
+                var appointment = found.Appointment;
+                if (appointment.Status != AwaitingStatus(appointment))
+                    return false;
+
+                confirmation.Expire();
+                appointment.Cancel(CancelReason.CostNotConfirmed);
+
+                if (appointment is SpaAppointment)
+                    await appointments.ReleaseStaffHoldsAsync(id, ct);
+
+                return true;
+            }, ct);
+
+            if (cancelled) processed++;
+        }
+
+        return processed;
+    }
+
+    // Trạng thái lịch hẹn trong lúc chờ khách phản hồi chi phí mới:
+    // spa "Đã tiếp nhận", lưu trú "Đã xác nhận" (cùng quy ước với CostConfirmationService).
+    private static AppointmentStatus AwaitingStatus(Appointment appointment) =>
+        appointment is SpaAppointment ? AppointmentStatus.Received : AppointmentStatus.Confirmed;
 
     private static bool IsNoShow(Appointment appointment, DateTimeOffset cutoff)
     {

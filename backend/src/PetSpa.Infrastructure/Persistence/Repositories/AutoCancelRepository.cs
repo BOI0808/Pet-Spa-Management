@@ -24,4 +24,11 @@ public sealed class AutoCancelRepository(AppDbContext db) : IAutoCancelRepositor
 
         return [.. spa, .. hotel];
     }
+
+    public async Task<IReadOnlyList<Guid>> ListExpiredCostConfirmationAppointmentIdsAsync(
+        DateTimeOffset now, CancellationToken ct = default) =>
+        await db.Set<CostConfirmation>().AsNoTracking()
+            .Where(c => c.Status == ConfirmationStatus.Pending && c.ExpiresAt < now)
+            .Select(c => c.AppointmentId)
+            .ToListAsync(ct);
 }
