@@ -1,9 +1,10 @@
 "use client";
 
 // CW-09 Chi tiết lịch hẹn: theo dõi trạng thái (vùng 1, 2, 4, 6, 7), đổi/hủy (vùng 8, D1 – [112]),
-// ảnh trước/sau (vùng 5 – [113]), xác nhận chi phí mới (vùng 3, D2 – [114]) – UI-Screens.md
-// Phần còn lại của màn làm ở thẻ khác: thanh toán trực tuyến và kết quả (vùng 7 nút, vùng 9) – [116].
-import { useParams } from "next/navigation";
+// ảnh trước/sau (vùng 5 – [113]), xác nhận chi phí mới (vùng 3, D2 – [114]),
+// thanh toán trực tuyến và kết quả (vùng 7 nút, vùng 9, D3 – [116]) – UI-Screens.md
+import { useParams, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { Lifecycle } from "@/components/domain/lifecycle";
 import { PetAvatar } from "@/components/domain/pet-avatar";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -17,14 +18,15 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
-import type { AppointmentDetail, Pet } from "@/lib/api/types";
+import type { AppointmentDetail, Payment, Pet } from "@/lib/api/types";
 import { formatAppointmentCode } from "@/lib/format";
-import { useAppointment } from "@/lib/queries/appointments";
+import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
 import { ROUTES } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
 import {
   cancelReasonText,
+  findPayment,
   formatLongDate,
   formatSlotRange,
   formatTimeOnDate,
@@ -33,7 +35,10 @@ import {
 import { AppointmentInfoCard, HotelStayCard, PaymentCard, SpaServicesCard } from "../components/appointment-detail-cards";
 import { ChangeCancelCard } from "../components/change-cancel-card";
 import { CostConfirmationBanner } from "../components/cost-confirmation-banner";
+import { OnlinePaymentDialog } from "../components/online-payment-dialog";
+import { PaymentResultCard } from "../components/payment-result-card";
 import { PhotosCard } from "../components/photos-card";
+import { PAYMENT_RETURN_PARAM, PAYMENT_RETURN_VALUE } from "../online-payment";
 
 /** Bố cục 2 cột (`.split` của ui-demo): nội dung chính trái, thẻ phụ phải 360px; dưới 1180px còn 1 cột. */
 const splitClass = "grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-[1180px]:grid-cols-1";
@@ -70,9 +75,23 @@ function DetailHeader({ appointment, pet }: { appointment: AppointmentDetail; pe
   );
 }
 
-function AppointmentDetailView({ appointment, pet }: { appointment: AppointmentDetail; pet: Pet | null }) {
+type DetailViewProps = {
+  appointment: AppointmentDetail;
+  pet: Pet | null;
+  /** Vừa quay về từ cổng thanh toán (`?payment=return`). */
+  isPaymentReturn: boolean;
+};
+
+function AppointmentDetailView({ appointment, pet, isPaymentReturn }: DetailViewProps) {
   const isCancelled = appointment.status === "Cancelled";
   const petName = appointment.petName ?? pet?.name ?? "bé";
+  // CW-09·D3 mở từ nút ở vùng 7 hoặc nút “Thử lại” ở vùng 9; luôn lấy khoản spa mới nhất trong bộ nhớ đệm.
+  const [payOpen, setPayOpen] = useState(false);
+  const payments = useAppointmentPayments(appointment.appointmentId);
+  const spaPayment: Payment | undefined = findPayment(payments.data, "Spa");
+  const canPayOnline =
+    appointment.type === "Spa" && appointment.status === "Completed" && spaPayment?.status === "Unpaid";
+  const showPaymentResult = isPaymentReturn && appointment.type === "Spa";
   return (
     <>
       <Breadcrumb
@@ -81,6 +100,10 @@ function AppointmentDetailView({ appointment, pet }: { appointment: AppointmentD
           { label: formatAppointmentCode(appointment.appointmentId) },
         ]}
       />
+      {/* Vùng 9 – kết quả thanh toán khi quay về từ cổng (UF-11); chỉ lịch spa mới thanh toán trực tuyến. */}
+      {showPaymentResult && (
+        <PaymentResultCard appointment={appointment} onRetry={() => setPayOpen(true)} />
+      )}
       <DetailHeader appointment={appointment} pet={pet} />
 
       {/* Vùng 2 – vòng đời */}
@@ -115,7 +138,11 @@ function AppointmentDetailView({ appointment, pet }: { appointment: AppointmentD
         </div>
         <aside className="flex min-w-0 flex-col gap-4">
           <AppointmentInfoCard appointment={appointment} pet={pet} />
-          <PaymentCard appointment={appointment} pet={pet} />
+          <PaymentCard
+            appointment={appointment}
+            pet={pet}
+            onPayOnline={showPaymentResult ? undefined : () => setPayOpen(true)}
+          />
           {/* Vùng 8 – đổi hoặc hủy (FR-CHG-01, FR-CHG-02) */}
           <ChangeCancelCard appointment={appointment} />
           {isCancelled && appointment.type === "Spa" && (
@@ -126,6 +153,17 @@ function AppointmentDetailView({ appointment, pet }: { appointment: AppointmentD
           )}
         </aside>
       </div>
+
+      {/* CW-09·D3 – thanh toán trực tuyến (FR-PAY-03) */}
+      {spaPayment && (
+        <OnlinePaymentDialog
+          open={payOpen && canPayOnline}
+          appointment={appointment}
+          payment={spaPayment}
+          petName={petName}
+          onClose={() => setPayOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -152,6 +190,8 @@ export function AppointmentDetailSkeleton() {
 
 export function AppointmentDetailScreen() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
+  const searchParams = useSearchParams();
+  const isPaymentReturn = searchParams.get(PAYMENT_RETURN_PARAM) === PAYMENT_RETURN_VALUE;
   const appointment = useAppointment(appointmentId, { live: true });
   // GET /pets/{id} (không phải GET /pets) để lịch cũ của hồ sơ đã gỡ vẫn có loài, giống và giá.
   // Lỗi thì vẫn hiện lịch với tên từ `petName`, không có giá theo loài.
@@ -180,5 +220,5 @@ export function AppointmentDetailScreen() {
   }
 
   const pet = petQuery.data ?? null;
-  return <AppointmentDetailView appointment={appointment.data} pet={pet} />;
+  return <AppointmentDetailView appointment={appointment.data} pet={pet} isPaymentReturn={isPaymentReturn} />;
 }

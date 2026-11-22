@@ -5,6 +5,7 @@ import { PaymentBadge } from "@/components/domain/status-badge";
 import { ServiceTask } from "@/components/domain/service-task";
 import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { DescriptionList, KeyValue } from "@/components/ui/key-value";
@@ -216,15 +217,43 @@ function EstimateAmount({ label, amount, note }: { label: string; amount: number
   );
 }
 
-/** Vùng 7 (spa): tạm tính trước khi hoàn tất, khoản spa khi đã có. Nút thanh toán trực tuyến thuộc thẻ [116]. */
-function SpaPayment({ appointment, pet, payments }: DetailCardProps & { payments: Payment[] }) {
+type PayOnlineProps = {
+  /**
+   * Mở CW-09·D3 với khoản spa chưa thanh toán (FR-PAY-03). Không truyền thì ẩn nút, vd. khi vùng 9 đang hiện kết quả
+   * thanh toán và đã có nút “Thử lại” (mỗi màn tối đa một nút chính – ui-demo).
+   */
+  onPayOnline?: (payment: Payment) => void;
+};
+
+/**
+ * Vùng 7 (spa): tạm tính trước khi hoàn tất, khoản spa khi đã có. Khoản `Unpaid` của lịch `Completed` có nút
+ * “Thanh toán trực tuyến” (BR-09: chỉ lịch spa đã hoàn tất); backend vẫn kiểm tra lại (409 `PAYMENT_NOT_DUE`).
+ */
+function SpaPayment({
+  appointment,
+  pet,
+  payments,
+  onPayOnline,
+}: DetailCardProps & PayOnlineProps & { payments: Payment[] }) {
   const pricingOf = useSpaPricing(appointment, pet);
   const spaPayment = findPayment(payments, "Spa");
   if (spaPayment) {
+    const canPayOnline = spaPayment.status === "Unpaid" && appointment.status === "Completed";
     return (
       <>
         <PaymentAmount payment={spaPayment} />
-        {spaPayment.status === "Unpaid" && (
+        {canPayOnline && (
+          <>
+            {onPayOnline && (
+              <Button variant="primary" block className="mt-4" onClick={() => onPayOnline(spaPayment)}>
+                <Icon name="card" />
+                Thanh toán trực tuyến
+              </Button>
+            )}
+            <p className="mt-2 text-xs text-muted">Hoặc thanh toán tại quầy (tiền mặt, chuyển khoản QR) khi đón bé.</p>
+          </>
+        )}
+        {spaPayment.status === "Unpaid" && !canPayOnline && (
           <p className="mt-2 text-xs text-muted">Bạn có thể thanh toán tại quầy (tiền mặt, chuyển khoản QR) khi đón bé.</p>
         )}
       </>
@@ -296,7 +325,7 @@ function HotelPayment({ appointment, pet, payments }: DetailCardProps & { paymen
 }
 
 /** Vùng 7 – Thanh toán. Lịch đã hủy không có khoản nào thì ẩn thẻ; lỗi khi tải vẫn hiện để thử lại. */
-export function PaymentCard({ appointment, pet }: DetailCardProps) {
+export function PaymentCard({ appointment, pet, onPayOnline }: DetailCardProps & PayOnlineProps) {
   const payments = useAppointmentPayments(appointment.appointmentId);
   if (appointment.status === "Cancelled" && (payments.isPending || payments.data?.length === 0)) return null;
 
@@ -318,7 +347,7 @@ export function PaymentCard({ appointment, pet }: DetailCardProps) {
       </div>
     );
   } else if (appointment.type === "Spa") {
-    content = <SpaPayment appointment={appointment} pet={pet} payments={payments.data} />;
+    content = <SpaPayment appointment={appointment} pet={pet} payments={payments.data} onPayOnline={onPayOnline} />;
   } else {
     content = <HotelPayment appointment={appointment} pet={pet} payments={payments.data} />;
   }
