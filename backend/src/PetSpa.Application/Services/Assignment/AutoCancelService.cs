@@ -34,28 +34,36 @@ public sealed class AutoCancelService(
         var processed = 0;
         foreach (var id in ids)
         {
-            var cancelled = await concurrencyGuard.RunAsync(async () =>
+            try
             {
-                await concurrencyGuard.LockAppointmentAsync(id, ct);
+                var cancelled = await concurrencyGuard.RunAsync(async () =>
+                {
+                    await concurrencyGuard.LockAppointmentAsync(id, ct);
 
-                var found = await appointments.FindWithOwnerAsync(id, asNoTracking: false, ct);
-                if (found is null || !IsNoShow(found.Appointment, cutoff))
-                    return false;
+                    var found = await appointments.FindWithOwnerAsync(id, asNoTracking: false, ct);
+                    if (found is null || !IsNoShow(found.Appointment, cutoff))
+                        return false;
 
-                var appointment = found.Appointment;
-                appointment.Cancel(CancelReason.NoShow);
+                    var appointment = found.Appointment;
+                    appointment.Cancel(CancelReason.NoShow);
 
-                // Giống các luồng hủy khác: đóng yêu cầu xác nhận chi phí đang chờ (nếu có).
-                var pendingCost = await costConfirmations.FindPendingAsync(id, ct);
-                pendingCost?.Expire();
+                    // Giống các luồng hủy khác: đóng yêu cầu xác nhận chi phí đang chờ (nếu có).
+                    var pendingCost = await costConfirmations.FindPendingAsync(id, ct);
+                    pendingCost?.Expire();
 
-                if (appointment is SpaAppointment)
-                    await appointments.ReleaseStaffHoldsAsync(id, ct);
+                    if (appointment is SpaAppointment)
+                        await appointments.ReleaseStaffHoldsAsync(id, ct);
 
-                return true;
-            }, ct);
+                    return true;
+                }, ct);
 
-            if (cancelled) processed++;
+                if (cancelled) processed++;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Bỏ qua lỗi từng phần tử để không làm gián đoạn các lịch hẹn hợp lệ khác trong batch
+                continue;
+            }
         }
 
         return processed;
@@ -70,29 +78,39 @@ public sealed class AutoCancelService(
         var processed = 0;
         foreach (var id in ids)
         {
-            var cancelled = await concurrencyGuard.RunAsync(async () =>
+            try
             {
-                await concurrencyGuard.LockAppointmentAsync(id, ct);
+                var cancelled = await concurrencyGuard.RunAsync(async () =>
+                {
+                    await concurrencyGuard.LockAppointmentAsync(id, ct);
 
-                var found = await appointments.FindWithOwnerAsync(id, asNoTracking: false, ct);
-                var confirmation = await costConfirmations.FindPendingAsync(id, ct);
-                if (found is null || confirmation is null || confirmation.ExpiresAt >= DateTimeOffset.UtcNow)
-                    return false;
+                    var confirmation = await costConfirmations.FindPendingAsync(id, ct);
+                    if (confirmation is null || confirmation.ExpiresAt >= DateTimeOffset.UtcNow)
+                        return false;
 
-                var appointment = found.Appointment;
-                if (appointment.Status != AwaitingStatus(appointment))
-                    return false;
+                    // Luôn đóng yêu cầu chi phí đã quá hạn để tránh rò rỉ bản ghi zombie trong CSDL
+                    confirmation.Expire();
 
-                confirmation.Expire();
-                appointment.Cancel(CancelReason.CostNotConfirmed);
+                    var found = await appointments.FindWithOwnerAsync(id, asNoTracking: false, ct);
+                    if (found is null || found.Appointment.Status != AwaitingStatus(found.Appointment))
+                        return false;
 
-                if (appointment is SpaAppointment)
-                    await appointments.ReleaseStaffHoldsAsync(id, ct);
+                    var appointment = found.Appointment;
+                    appointment.Cancel(CancelReason.CostNotConfirmed);
 
-                return true;
-            }, ct);
+                    if (appointment is SpaAppointment)
+                        await appointments.ReleaseStaffHoldsAsync(id, ct);
 
-            if (cancelled) processed++;
+                    return true;
+                }, ct);
+
+                if (cancelled) processed++;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Bỏ qua lỗi từng phần tử để không làm gián đoạn các lịch hẹn hợp lệ khác trong batch
+                continue;
+            }
         }
 
         return processed;
