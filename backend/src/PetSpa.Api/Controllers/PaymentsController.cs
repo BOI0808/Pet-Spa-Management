@@ -62,6 +62,18 @@ public sealed class PaymentsController(PaymentService paymentService) : Controll
         return Ok(new OnlinePaymentCreatedResponse(result.PaymentUrl, result.TxnRef));
     }
 
+    [HttpGet("payments/ipn/vnpay")]
+    [AllowAnonymous]
+    [EndpointSummary("Webhook VNPAY (IPN) báo kết quả thanh toán trực tuyến")]
+    [EndpointDescription("Không dùng JWT; VNPAY gọi bằng query string kèm vnp_SecureHash. Chữ ký sai trả 401 UNAUTHENTICATED và không cập nhật gì. Chữ ký hợp lệ thì khóa khoản thanh toán, bỏ qua TxnRef đã xử lý, đối chiếu số tiền cổng xác nhận với số tiền phải trả (BR-17) rồi mới ghi nhận Paid (Method = Online). Phản hồi 200 theo đặc tả VNPAY { RspCode, Message }: 00 đã ghi nhận, 01 không thấy giao dịch, 02 đã xử lý trước đó, 04 sai số tiền.")]
+    public async Task<IActionResult> VnpayIpn(CancellationToken ct)
+    {
+        var parameters = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString());
+
+        var result = await paymentService.HandleGatewayCallbackAsync(parameters, ct);
+        return Ok(VnpayIpnResponse.From(result.Outcome));
+    }
+
     private string GetClientIp()
     {
         var address = HttpContext.Connection.RemoteIpAddress;
