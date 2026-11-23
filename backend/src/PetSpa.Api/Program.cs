@@ -59,6 +59,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddPetSpaAuthorization();
 builder.Services.AddPetSpaRateLimiting(builder.Configuration);
+builder.Services.AddSingleton(builder.Configuration.GetSection("Jobs").Get<JobsOptions>() ?? new JobsOptions());
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;

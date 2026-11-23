@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<AppointmentChangeService>();
         services.AddScoped<AppointmentPhotoService>();
         services.AddScoped<SpaProgressService>();
+        services.AddScoped<AutoCancelService>();
         return services;
     }
 }
