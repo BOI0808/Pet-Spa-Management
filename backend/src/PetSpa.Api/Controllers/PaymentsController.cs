@@ -11,7 +11,7 @@ namespace PetSpa.Api.Controllers;
 
 [ApiController]
 [Route("api/v1")]
-public sealed class PaymentsController(PaymentService paymentService) : ControllerBase
+public sealed class PaymentsController(PaymentService paymentService, ILogger<PaymentsController> logger) : ControllerBase
 {
     [HttpGet("appointments/{id}/payments")]
     [Authorize]
@@ -71,7 +71,36 @@ public sealed class PaymentsController(PaymentService paymentService) : Controll
         var parameters = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString());
 
         var result = await paymentService.HandleGatewayCallbackAsync(parameters, ct);
+        LogGatewayCallback(result);
         return Ok(VnpayIpnResponse.From(result.Outcome));
+    }
+
+    private void LogGatewayCallback(GatewayCallbackResult result)
+    {
+        switch (result.Outcome)
+        {
+            case GatewayCallbackOutcome.Paid:
+                logger.LogInformation(
+                    "Webhook VNPAY: đã ghi nhận thanh toán thành công, TxnRef {TxnRef}, số tiền {Amount}",
+                    result.TxnRef, result.ConfirmedAmount);
+                break;
+            case GatewayCallbackOutcome.Failed:
+                logger.LogInformation(
+                    "Webhook VNPAY: cổng báo giao dịch không thành công, giữ nguyên chưa thanh toán, TxnRef {TxnRef}",
+                    result.TxnRef);
+                break;
+            case GatewayCallbackOutcome.AmountMismatch:
+                logger.LogWarning(
+                    "Webhook VNPAY: số tiền cổng xác nhận {Amount} không khớp số tiền phải trả, giữ nguyên chưa thanh toán, TxnRef {TxnRef}",
+                    result.ConfirmedAmount, result.TxnRef);
+                break;
+            case GatewayCallbackOutcome.TransactionNotFound:
+                logger.LogWarning("Webhook VNPAY: không tìm thấy giao dịch, TxnRef {TxnRef}", result.TxnRef);
+                break;
+            case GatewayCallbackOutcome.AlreadyProcessed:
+                logger.LogInformation("Webhook VNPAY: giao dịch đã được xử lý trước đó, bỏ qua, TxnRef {TxnRef}", result.TxnRef);
+                break;
+        }
     }
 
     private string GetClientIp()
