@@ -97,8 +97,15 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 
 ## Đổi và hủy lịch hẹn (MW-05, thẻ 148)
 
-- Trang `/lich-hen/[appointmentId]` mới có vùng đầu trang (thông tin lịch, trạng thái, nút "Đổi lịch" và "Hủy lịch"); thẻ 147 bổ sung danh sách MW-03 và các vùng giám sát, thẻ 149 bổ sung cập nhật trạng thái. Chưa có MW-03 nên vào trang bằng đường dẫn có mã lịch.
+- Trang `/lich-hen/[appointmentId]` mới có vùng đầu trang (thông tin lịch, trạng thái, nút "Đổi lịch" và "Hủy lịch"); thẻ 147 bổ sung danh sách MW-03 và các vùng giám sát, thẻ 149 bổ sung cập nhật trạng thái.
 - Đổi lịch: `PUT /appointments/{id}` (`useUpdateAppointment`). Backend bắt buộc đủ `slotStart + petId + serviceIds` (spa) hoặc `plannedCheckIn + plannedCheckOut + petId` (lưu trú) nên web luôn gửi lại thú cưng và dịch vụ hiện tại; `staffIds` chỉ gửi khi Quản lý đổi người (lịch Đã xác nhận). Quản lý chỉ đổi được lịch Chờ xác nhận hoặc Đã xác nhận (`canChangeAppointment`), trạng thái lịch giữ nguyên.
 - Mốc giờ spa chọn trong `SLOT_TIME_OPTIONS` vì `GET /spa/slots` không dành cho Quản lý; backend kiểm tra còn chỗ khi lưu (409 `SLOT_FULL`). Lịch lưu trú không gửi `cageId` nên giữ chuồng hiện tại; thẻ 150 nối `GET /cages` thì thêm chọn chuồng vào hộp thoại.
 - Hủy lịch: `POST /appointments/{id}/cancel` chỉ gửi `{ reason }` là `StoreUnable` hoặc `CustomerBeyondDeadline`; hủy được ở mọi trạng thái trừ Hoàn tất và Đã hủy (`canCancelAppointment`). Hoàn tiền xử lý ngoài hệ thống (BR-24).
 - Lỗi 409: `STAFF_OUT_OF_SHIFT` mở `OutOfShiftDialog` rồi gửi lại kèm `confirmOutOfShift: true`; `INVALID_TRANSITION` hiện toast lỗi; mọi lỗi 409 tải lại dữ liệu lịch hẹn. Chưa hiện thông báo "đã gửi thông báo cho khách" vì thông báo tự động do thẻ 97 nối.
+
+## Danh sách lịch hẹn (MW-03, thẻ 147)
+
+- Trang `/lich-hen` (`AppointmentListScreen`) liệt kê lịch spa và lưu trú của toàn cửa hàng bằng `GET /appointments` (`useAppointmentList`, 20 dòng mỗi trang). Bộ lọc loại, trạng thái, ngày và trang nằm trên URL: `?type=&status=&date=&page=` (`features/appointments/list-params.ts`); đổi bộ lọc thì về trang 1.
+- Không truyền `sort`: backend tự chọn thứ tự (có `date` hoặc trạng thái đang xử lý → giờ hẹn tăng dần; Hoàn tất/Đã hủy → giờ hẹn giảm dần; còn lại → mới tạo trước). `date` của lịch lưu trú khớp ngày nhận hoặc ngày trả.
+- `GET /appointments` chưa trả tên nhân viên (G-05) nên mỗi dòng lịch spa đã xác nhận trở đi gọi thêm `GET /appointments/{id}` (cùng khóa cache với trang chi tiết); lịch chờ xác nhận, đã hủy và lưu trú không gọi. Lịch lưu trú chỉ hiện "Đã gán chuồng"/"Chưa gán" cho đến khi thẻ 150 nối `GET /cages`.
+- Chưa làm: ô tìm theo mã, thú cưng, khách (API chưa có tham số tìm), khoảng ngày (API chỉ nhận một ngày), cột Thanh toán (không thuộc FR-EXE-08; MW-10 đã có ở thẻ 152). Nút "Xử lý" của lịch chờ xác nhận mở MW-04 kèm `?appointmentId=`.

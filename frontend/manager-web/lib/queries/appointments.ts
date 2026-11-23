@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   cancelAppointment,
   confirmHotelAppointment,
@@ -9,6 +9,7 @@ import {
   listAppointments,
   rejectAppointment,
   updateAppointment,
+  type AppointmentListParams,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
 import type { Appointment } from "@/lib/api/types";
@@ -35,7 +36,11 @@ export const appointmentKeys = {
   pendingCount: () => [...appointmentKeys.all, "pending-count"] as const,
   suggestions: (appointmentId: string) => [...appointmentKeys.all, "suggestions", appointmentId] as const,
   detail: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId] as const,
+  list: (params: AppointmentListParams) => [...appointmentKeys.all, "list", params] as const,
 };
+
+/** Số dòng mỗi trang của bảng MW-03 (UI-Screens MW-03 vùng 2). */
+export const APPOINTMENT_LIST_PAGE_SIZE = 20;
 
 async function fetchAllPendingAppointments(): Promise<PendingAppointmentsResult> {
   const firstPage = await listAppointments({
@@ -142,11 +147,25 @@ export function useSpaSuggestions(appointmentId: string) {
   });
 }
 
-/** Chi tiết lịch hẹn (MW-04 dùng `services` của lịch spa để nêu tên dịch vụ và tính tạm tính). */
-export function useAppointmentDetail(appointmentId: string) {
+/**
+ * Chi tiết lịch hẹn (MW-04 dùng `services` của lịch spa để nêu tên dịch vụ và tính tạm tính).
+ * `enabled: false` cho dòng MW-03 chưa cần nhân viên phụ trách (lịch chờ xác nhận, đã hủy, lưu trú).
+ */
+export function useAppointmentDetail(appointmentId: string, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: appointmentKeys.detail(appointmentId),
     queryFn: () => getAppointment(appointmentId),
+    enabled,
+  });
+}
+
+/** Một trang lịch hẹn toàn cửa hàng cho MW-03; giữ trang cũ trên màn hình trong lúc tải trang mới. */
+export function useAppointmentList(params: Omit<AppointmentListParams, "pageSize">) {
+  const listParams = { ...params, pageSize: APPOINTMENT_LIST_PAGE_SIZE };
+  return useQuery({
+    queryKey: appointmentKeys.list(listParams),
+    queryFn: () => listAppointments(listParams),
+    placeholderData: keepPreviousData,
   });
 }
 
