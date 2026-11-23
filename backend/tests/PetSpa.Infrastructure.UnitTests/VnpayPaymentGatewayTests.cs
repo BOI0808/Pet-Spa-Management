@@ -28,6 +28,32 @@ public class VnpayPaymentGatewayTests
 
     private static string QueryOf(string url) => url[(url.IndexOf('?') + 1)..];
 
+    private static Dictionary<string, string> CallbackValues(string responseCode = "00") => new()
+    {
+        ["vnp_TmnCode"] = "TESTCODE",
+        ["vnp_Amount"] = "30000000",
+        ["vnp_BankCode"] = "NCB",
+        ["vnp_OrderInfo"] = "Thanh toan lich hen spa abc123",
+        ["vnp_PayDate"] = "20261120100500",
+        ["vnp_ResponseCode"] = responseCode,
+        ["vnp_TransactionNo"] = "14123456",
+        ["vnp_TransactionStatus"] = responseCode,
+        ["vnp_TxnRef"] = "abc123",
+    };
+
+    private static Dictionary<string, string> Signed(Dictionary<string, string> values, string secret = HashSecret)
+    {
+        var signedData = string.Join(
+            "&",
+            values.OrderBy(p => p.Key, StringComparer.Ordinal)
+                .Select(p => $"{WebUtility.UrlEncode(p.Key)}={WebUtility.UrlEncode(p.Value)}"));
+        var hash = Convert.ToHexString(
+            HMACSHA512.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(signedData)))
+            .ToLowerInvariant();
+
+        return new Dictionary<string, string>(values) { ["vnp_SecureHash"] = hash };
+    }
+
     private static Dictionary<string, string> ParseQuery(string url) =>
         QueryOf(url).Split('&')
             .Select(pair => pair.Split('=', 2))
@@ -88,5 +114,82 @@ public class VnpayPaymentGatewayTests
         var gateway = new VnpayPaymentGateway(new VnpayOptions());
 
         Assert.Throws<InvalidOperationException>(() => gateway.CreatePaymentUrl(CreateRequest()));
+    }
+
+    [Fact]
+    public void VerifyCallback_WithValidSignature_ReturnsTxnRefAmountAndSuccess()
+    {
+        var callback = CreateGateway().VerifyCallback(Signed(CallbackValues()));
+
+        Assert.True(callback.SignatureValid);
+        Assert.Equal("abc123", callback.TxnRef);
+        Assert.Equal(300_000m, callback.Amount);
+        Assert.True(callback.Success);
+    }
+
+    [Fact]
+    public void VerifyCallback_WhenResponseCodeIsNotSuccess_ReturnsNotSuccess()
+    {
+        var callback = CreateGateway().VerifyCallback(Signed(CallbackValues("24")));
+
+        Assert.True(callback.SignatureValid);
+        Assert.False(callback.Success);
+    }
+
+    [Fact]
+    public void VerifyCallback_WithUppercaseHash_IsStillValid()
+    {
+        var parameters = Signed(CallbackValues());
+        parameters["vnp_SecureHash"] = parameters["vnp_SecureHash"].ToUpperInvariant();
+
+        Assert.True(CreateGateway().VerifyCallback(parameters).SignatureValid);
+    }
+
+    [Fact]
+    public void VerifyCallback_IgnoresSecureHashTypeAndEmptyValues()
+    {
+        var parameters = Signed(CallbackValues());
+        parameters["vnp_SecureHashType"] = "HmacSHA512";
+        parameters["vnp_BankTranNo"] = string.Empty;
+
+        Assert.True(CreateGateway().VerifyCallback(parameters).SignatureValid);
+    }
+
+    [Fact]
+    public void VerifyCallback_WhenAmountChangedAfterSigning_ReturnsInvalidSignature()
+    {
+        var parameters = Signed(CallbackValues());
+        parameters["vnp_Amount"] = "100";
+
+        var callback = CreateGateway().VerifyCallback(parameters);
+
+        Assert.False(callback.SignatureValid);
+        Assert.Equal(string.Empty, callback.TxnRef);
+        Assert.Null(callback.Amount);
+        Assert.False(callback.Success);
+    }
+
+    [Fact]
+    public void VerifyCallback_WhenSignedWithWrongSecret_ReturnsInvalidSignature()
+    {
+        var callback = CreateGateway().VerifyCallback(Signed(CallbackValues(), "OTHERSECRET"));
+
+        Assert.False(callback.SignatureValid);
+    }
+
+    [Fact]
+    public void VerifyCallback_WhenSecureHashMissing_ReturnsInvalidSignature()
+    {
+        var callback = CreateGateway().VerifyCallback(CallbackValues());
+
+        Assert.False(callback.SignatureValid);
+    }
+
+    [Fact]
+    public void VerifyCallback_WhenNotConfigured_ThrowsInvalidOperationException()
+    {
+        var gateway = new VnpayPaymentGateway(new VnpayOptions());
+
+        Assert.Throws<InvalidOperationException>(() => gateway.VerifyCallback(Signed(CallbackValues())));
     }
 }

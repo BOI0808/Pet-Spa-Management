@@ -67,6 +67,12 @@ public class PaymentServiceTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<Guid?> FindPaymentIdByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
+            Task.FromResult(Transactions.FirstOrDefault(t => t.TxnRef == txnRef)?.PaymentId);
+
+        public Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
+            Task.FromResult(Transactions.FirstOrDefault(t => t.TxnRef == txnRef));
     }
 
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard
@@ -126,12 +132,16 @@ public class PaymentServiceTests
     {
         public PaymentGateway Gateway => PaymentGateway.VNPAY;
         public PaymentGatewayRequest? LastRequest { get; private set; }
+        public PaymentGatewayCallback CallbackToReturn { get; set; } = new(true, string.Empty, null, false);
 
         public string CreatePaymentUrl(PaymentGatewayRequest request)
         {
             LastRequest = request;
             return $"https://pay.test/{request.TxnRef}";
         }
+
+        public PaymentGatewayCallback VerifyCallback(IReadOnlyDictionary<string, string> parameters) =>
+            CallbackToReturn;
     }
 
     private sealed class Fixture
@@ -572,5 +582,157 @@ public class PaymentServiceTests
             () => fixture.Service.InitiateOnlineAsync(CustomerOwner, PaymentId, PaymentGateway.VNPAY, "127.0.0.1"));
 
         Assert.Empty(fixture.Payments.Transactions);
+    }
+
+    private const string TxnRef = "txn123";
+    private static readonly IReadOnlyDictionary<string, string> NoParameters = new Dictionary<string, string>();
+
+    private static PaymentTransaction SetUpGatewayCallback(
+        Fixture fixture, decimal? amount, bool success, bool signatureValid = true)
+    {
+        var transaction = new PaymentTransaction
+        {
+            TxnId = Guid.NewGuid(),
+            PaymentId = PaymentId,
+            Gateway = PaymentGateway.VNPAY,
+            TxnRef = TxnRef,
+            RequestedAmount = Due,
+        };
+        fixture.Payments.Transactions.Add(transaction);
+        fixture.Payments.Stored = NewPayment(PaymentKind.Spa);
+        fixture.Payments.AppointmentStatus = AppointmentStatus.Completed;
+        fixture.Gateway.CallbackToReturn = new PaymentGatewayCallback(signatureValid, TxnRef, amount, success);
+        return transaction;
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenSignatureInvalid_ReturnsInvalidSignatureAndChangesNothing()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due, true, signatureValid: false);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.InvalidSignature, result.Outcome);
+        Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
+        Assert.Null(transaction.CallbackAt);
+        Assert.Empty(fixture.Guard.LockedPaymentIds);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenSuccessAndAmountMatches_MarksPaidOnlineAndRecordsTransaction()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due, true);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.Paid, result.Outcome);
+        Assert.Equal(TxnRef, result.TxnRef);
+        Assert.Equal(Due, result.ConfirmedAmount);
+
+        var payment = fixture.Payments.Stored!;
+        Assert.Equal(PaymentStatus.Paid, payment.Status);
+        Assert.Equal(PaymentMethod.Online, payment.Method);
+        Assert.Equal(Due, payment.ReceivedAmount);
+        Assert.NotNull(payment.PaidAt);
+        Assert.Null(payment.ConfirmedByUserId);
+
+        Assert.Equal(TransactionResult.Success, transaction.Result);
+        Assert.Equal(Due, transaction.ConfirmedAmount);
+        Assert.True(transaction.SignatureValid);
+        Assert.NotNull(transaction.CallbackAt);
+
+        Assert.Equal(PaymentId, Assert.Single(fixture.Guard.LockedPaymentIds));
+        Assert.Equal(AppointmentId, Assert.Single(fixture.Guard.LockedAppointmentIds));
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenAmountDiffers_ReturnsAmountMismatchAndKeepsUnpaid()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due - 1m, true);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.AmountMismatch, result.Outcome);
+        Assert.Equal(Due - 1m, result.ConfirmedAmount);
+        Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
+        Assert.Null(transaction.Result);
+        Assert.Null(transaction.CallbackAt);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenAmountMissing_ReturnsAmountMismatch()
+    {
+        var fixture = new Fixture();
+        SetUpGatewayCallback(fixture, null, true);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.AmountMismatch, result.Outcome);
+        Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenGatewayReportsFailure_RecordsFailedAndKeepsUnpaid()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due, false);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.Failed, result.Outcome);
+        Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
+        Assert.Equal(TransactionResult.Failed, transaction.Result);
+        Assert.True(transaction.SignatureValid);
+        Assert.NotNull(transaction.CallbackAt);
+        Assert.Empty(fixture.Guard.LockedAppointmentIds);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenTxnRefAlreadyProcessed_ReturnsAlreadyProcessedWithoutChangingPayment()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due, true);
+        await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+        var paidAt = fixture.Payments.Stored!.PaidAt;
+        var callbackAt = transaction.CallbackAt;
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.AlreadyProcessed, result.Outcome);
+        Assert.Equal(PaymentStatus.Paid, fixture.Payments.Stored.Status);
+        Assert.Equal(paidAt, fixture.Payments.Stored.PaidAt);
+        Assert.Equal(callbackAt, transaction.CallbackAt);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenPaymentAlreadyPaidAtCounter_ReturnsAlreadyProcessedAndRecordsTransaction()
+    {
+        var fixture = new Fixture();
+        var transaction = SetUpGatewayCallback(fixture, Due, true);
+        fixture.Payments.Stored!.MarkPaid(AppointmentStatus.Completed, PaymentMethod.Cash, Due, Receptionist.UserId);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.AlreadyProcessed, result.Outcome);
+        Assert.Equal(PaymentMethod.Cash, fixture.Payments.Stored.Method);
+        Assert.NotNull(transaction.CallbackAt);
+        Assert.Equal(TransactionResult.Success, transaction.Result);
+        Assert.Equal(Due, transaction.ConfirmedAmount);
+    }
+
+    [Fact]
+    public async Task HandleGatewayCallbackAsync_WhenTxnRefUnknown_ReturnsTransactionNotFound()
+    {
+        var fixture = new Fixture();
+        fixture.Gateway.CallbackToReturn = new PaymentGatewayCallback(true, "unknown", Due, true);
+
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
+
+        Assert.Equal(GatewayCallbackOutcome.TransactionNotFound, result.Outcome);
+        Assert.Equal("unknown", result.TxnRef);
+        Assert.Empty(fixture.Guard.LockedPaymentIds);
     }
 }
