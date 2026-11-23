@@ -1,6 +1,7 @@
 // SW-09 Thanh toán tại quầy – các hàm thuần: khoản nào đến hạn, mô tả phiếu, nơi quay về sau khi thu (UI-Screens.md).
 import type { Appointment, Payment, PaymentKind } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth } from "@/lib/format";
+import { PAYMENT_KIND_LABELS } from "@/lib/labels";
 import { checkInRoute, ROUTES } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 
@@ -20,6 +21,24 @@ export function dueKindOf(appointment: Appointment): PaymentKind | null {
 export function findDuePayment(appointment: Appointment, payments: Payment[] | undefined) {
   const kind = dueKindOf(appointment);
   return payments?.find((payment) => payment.kind === kind && payment.status === "Unpaid");
+}
+
+/**
+ * Câu báo khi lịch mở bằng `?appointmentId=` không có khoản để thu. Lịch ở trạng thái có khoản đến hạn mà backend chưa
+ * tạo khoản đó: tiền lưu trú thì báo rõ (trên develop 23/11 backend chưa tạo khoản Stay); phí trả muộn thì là bình
+ * thường – trả đúng giờ thì không phát sinh.
+ */
+export function noDueMessage(appointment: Appointment, payments: Payment[] | undefined) {
+  const kind = dueKindOf(appointment);
+  const paid = (payments ?? []).filter((payment) => payment.status === "Paid");
+  // Đã thu khoản đang đến hạn, hoặc lịch đã qua mọi lúc thu (lưu trú Hoàn tất…) mà có khoản đã thu.
+  if (paid.length > 0 && (kind === null || paid.some((payment) => payment.kind === kind))) {
+    return `Lịch này không còn khoản cần thu. Đã thu: ${paid.map((payment) => PAYMENT_KIND_LABELS[payment.kind].toLowerCase()).join(", ")}.`;
+  }
+  if (kind === "Stay") return "Lịch này chưa có khoản tiền lưu trú trên hệ thống, chưa thể thu tiền. Báo quản lý kiểm tra.";
+  if (kind === "LateFee") return "Lịch này không phát sinh phí trả muộn cần thu.";
+  if (kind === "Spa") return "Lịch này chưa có khoản spa trên hệ thống, chưa thể thu tiền. Báo quản lý kiểm tra.";
+  return "Lịch này chưa đến thời điểm thu tiền.";
 }
 
 /** Chữ dưới số tiền ở cuống phiếu (ui-demo SW-09). */

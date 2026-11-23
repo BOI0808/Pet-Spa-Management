@@ -13,14 +13,13 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
-import { PAYMENT_KIND_LABELS } from "@/lib/labels";
 import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
 import { appointmentDetailRoute } from "@/lib/routes";
 import { getStoreToday } from "@/lib/time";
 import { CounterPaymentCard } from "../components/counter-payment-card";
 import { DuePaymentList } from "../components/due-payment-list";
-import { findDuePayment } from "../payments";
+import { findDuePayment, noDueMessage } from "../payments";
 import { useDuePayments } from "../use-due-payments";
 
 function SelectedPanel({ appointmentId }: { appointmentId: string }) {
@@ -51,16 +50,11 @@ function SelectedPanel({ appointmentId }: { appointmentId: string }) {
 
   const payment = findDuePayment(appointment.data, payments.data);
   if (!payment) {
-    // Đã thu xong, chưa tới lúc thu (BR-07) hoặc lịch đã hủy: báo rõ thay vì hiện ô nhập.
-    const paid = payments.data?.filter((item) => item.status === "Paid") ?? [];
+    // Không có khoản để thu: báo rõ lý do thay vì hiện ô nhập.
     return (
       <Card>
         <div className="flex flex-col items-start gap-3 p-5">
-          <Alert tone="neutral">
-            {paid.length > 0
-              ? `Lịch này không còn khoản cần thu. Đã thu: ${paid.map((item) => PAYMENT_KIND_LABELS[item.kind].toLowerCase()).join(", ")}.`
-              : "Lịch này chưa đến thời điểm thu tiền."}
-          </Alert>
+          <Alert tone="neutral">{noDueMessage(appointment.data, payments.data)}</Alert>
           <ButtonLink href={appointmentDetailRoute(appointmentId)} variant="ghost" size="sm">
             Xem lịch hẹn
           </ButtonLink>
