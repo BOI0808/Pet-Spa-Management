@@ -67,6 +67,12 @@ public class PaymentServiceTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<Guid?> FindPaymentIdByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
+            Task.FromResult(Transactions.FirstOrDefault(t => t.TxnRef == txnRef)?.PaymentId);
+
+        public Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
+            Task.FromResult(Transactions.FirstOrDefault(t => t.TxnRef == txnRef));
     }
 
     private sealed class FakeConcurrencyGuard : IConcurrencyGuard

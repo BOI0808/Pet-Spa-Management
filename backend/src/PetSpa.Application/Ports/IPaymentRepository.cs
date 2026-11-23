@@ -18,5 +18,9 @@ public interface IPaymentRepository
 
     Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default);
 
+    Task<Guid?> FindPaymentIdByTxnRefAsync(string txnRef, CancellationToken ct = default);
+
+    Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default);
+
     void Add(Payment payment);
 }

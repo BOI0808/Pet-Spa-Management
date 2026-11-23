@@ -64,4 +64,17 @@ public sealed class PaymentRepository(AppDbContext db) : IPaymentRepository
         db.Set<PaymentTransaction>().Add(transaction);
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<Guid?> FindPaymentIdByTxnRefAsync(string txnRef, CancellationToken ct = default)
+    {
+        return await db.Set<PaymentTransaction>().AsNoTracking()
+            .Where(t => t.TxnRef == txnRef)
+            .Select(t => (Guid?)t.PaymentId)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default)
+    {
+        return await db.Set<PaymentTransaction>().FirstOrDefaultAsync(t => t.TxnRef == txnRef, ct);
+    }
 }
