@@ -6,7 +6,8 @@ public enum GatewayCallbackOutcome
     Failed,
     TransactionNotFound,
     AlreadyProcessed,
-    AmountMismatch
+    AmountMismatch,
+    InvalidSignature
 }
 
 public sealed record GatewayCallbackResult(GatewayCallbackOutcome Outcome, string TxnRef, decimal? ConfirmedAmount);

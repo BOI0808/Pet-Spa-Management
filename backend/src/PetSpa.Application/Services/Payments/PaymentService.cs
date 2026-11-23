@@ -79,7 +79,7 @@ public sealed class PaymentService(
     {
         var callback = paymentGateway.VerifyCallback(parameters);
         if (!callback.SignatureValid)
-            throw new BusinessException(ErrorCodes.Unauthenticated, "Chữ ký webhook không hợp lệ.");
+            return new GatewayCallbackResult(GatewayCallbackOutcome.InvalidSignature, callback.TxnRef, callback.Amount);
 
         var outcome = await ProcessCallbackAsync(callback, ct);
         return new GatewayCallbackResult(outcome, callback.TxnRef, callback.Amount);
@@ -107,7 +107,13 @@ public sealed class PaymentService(
             var payment = found.Payment;
 
             if (payment.Status == PaymentStatus.Paid)
+            {
+                if (callback.Amount is { } paidAmount)
+                {
+                    transaction.RecordCallback(paidAmount, callback.Success, DateTimeOffset.UtcNow);
+                }
                 return GatewayCallbackOutcome.AlreadyProcessed;
+            }
 
             if (callback.Amount is not { } confirmedAmount || confirmedAmount != payment.Amount)
                 return GatewayCallbackOutcome.AmountMismatch;

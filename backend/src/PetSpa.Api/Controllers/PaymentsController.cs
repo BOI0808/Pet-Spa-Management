@@ -65,14 +65,22 @@ public sealed class PaymentsController(PaymentService paymentService, ILogger<Pa
     [HttpGet("payments/ipn/vnpay")]
     [AllowAnonymous]
     [EndpointSummary("Webhook VNPAY (IPN) báo kết quả thanh toán trực tuyến")]
-    [EndpointDescription("Không dùng JWT; VNPAY gọi bằng query string kèm vnp_SecureHash. Chữ ký sai trả 401 UNAUTHENTICATED và không cập nhật gì. Chữ ký hợp lệ thì khóa khoản thanh toán, bỏ qua TxnRef đã xử lý, đối chiếu số tiền cổng xác nhận với số tiền phải trả (BR-17) rồi mới ghi nhận Paid (Method = Online). Phản hồi 200 theo đặc tả VNPAY { RspCode, Message }: 00 đã ghi nhận, 01 không thấy giao dịch, 02 đã xử lý trước đó, 04 sai số tiền.")]
+    [EndpointDescription("Không dùng JWT; VNPAY gọi bằng query string kèm vnp_SecureHash. Chữ ký sai trả RspCode 97 Invalid Checksum. Chữ ký hợp lệ thì khóa khoản thanh toán, bỏ qua TxnRef đã xử lý, đối chiếu số tiền cổng xác nhận với số tiền phải trả (BR-17) rồi mới ghi nhận Paid (Method = Online). Phản hồi 200 theo đặc tả VNPAY { RspCode, Message }: 00 đã ghi nhận, 01 không thấy giao dịch, 02 đã xử lý trước đó, 04 sai số tiền, 97 sai chữ ký, 99 lỗi không xác định.")]
     public async Task<IActionResult> VnpayIpn(CancellationToken ct)
     {
-        var parameters = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString());
+        try
+        {
+            var parameters = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString());
 
-        var result = await paymentService.HandleGatewayCallbackAsync(parameters, ct);
-        LogGatewayCallback(result);
-        return Ok(VnpayIpnResponse.From(result.Outcome));
+            var result = await paymentService.HandleGatewayCallbackAsync(parameters, ct);
+            LogGatewayCallback(result);
+            return Ok(VnpayIpnResponse.From(result.Outcome));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Webhook VNPAY: lỗi không xác định khi xử lý IPN");
+            return Ok(new VnpayIpnResponse("99", "Unknown error"));
+        }
     }
 
     private void LogGatewayCallback(GatewayCallbackResult result)
@@ -99,6 +107,9 @@ public sealed class PaymentsController(PaymentService paymentService, ILogger<Pa
                 break;
             case GatewayCallbackOutcome.AlreadyProcessed:
                 logger.LogInformation("Webhook VNPAY: giao dịch đã được xử lý trước đó, bỏ qua, TxnRef {TxnRef}", result.TxnRef);
+                break;
+            case GatewayCallbackOutcome.InvalidSignature:
+                logger.LogWarning("Webhook VNPAY: chữ ký không hợp lệ, IPN bị từ chối");
                 break;
         }
     }

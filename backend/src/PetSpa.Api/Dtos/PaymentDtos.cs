@@ -34,6 +34,8 @@ public sealed record VnpayIpnResponse(
             new VnpayIpnResponse("02", "Order already confirmed"),
         GatewayCallbackOutcome.AmountMismatch =>
             new VnpayIpnResponse("04", "Invalid amount"),
+        GatewayCallbackOutcome.InvalidSignature =>
+            new VnpayIpnResponse("97", "Invalid Checksum"),
         _ => new VnpayIpnResponse("99", "Unknown error"),
     };
 }

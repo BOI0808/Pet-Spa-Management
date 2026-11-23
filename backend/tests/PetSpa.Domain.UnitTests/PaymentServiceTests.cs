@@ -606,14 +606,14 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task HandleGatewayCallbackAsync_WhenSignatureInvalid_ThrowsUnauthenticatedAndChangesNothing()
+    public async Task HandleGatewayCallbackAsync_WhenSignatureInvalid_ReturnsInvalidSignatureAndChangesNothing()
     {
         var fixture = new Fixture();
         var transaction = SetUpGatewayCallback(fixture, Due, true, signatureValid: false);
 
-        await AssertErrorAsync(ErrorCodes.Unauthenticated,
-            () => fixture.Service.HandleGatewayCallbackAsync(NoParameters));
+        var result = await fixture.Service.HandleGatewayCallbackAsync(NoParameters);
 
+        Assert.Equal(GatewayCallbackOutcome.InvalidSignature, result.Outcome);
         Assert.Equal(PaymentStatus.Unpaid, fixture.Payments.Stored!.Status);
         Assert.Null(transaction.CallbackAt);
         Assert.Empty(fixture.Guard.LockedPaymentIds);
@@ -708,7 +708,7 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task HandleGatewayCallbackAsync_WhenPaymentAlreadyPaidAtCounter_ReturnsAlreadyProcessedAndLeavesTransaction()
+    public async Task HandleGatewayCallbackAsync_WhenPaymentAlreadyPaidAtCounter_ReturnsAlreadyProcessedAndRecordsTransaction()
     {
         var fixture = new Fixture();
         var transaction = SetUpGatewayCallback(fixture, Due, true);
@@ -718,7 +718,9 @@ public class PaymentServiceTests
 
         Assert.Equal(GatewayCallbackOutcome.AlreadyProcessed, result.Outcome);
         Assert.Equal(PaymentMethod.Cash, fixture.Payments.Stored.Method);
-        Assert.Null(transaction.CallbackAt);
+        Assert.NotNull(transaction.CallbackAt);
+        Assert.Equal(TransactionResult.Success, transaction.Result);
+        Assert.Equal(Due, transaction.ConfirmedAmount);
     }
 
     [Fact]
