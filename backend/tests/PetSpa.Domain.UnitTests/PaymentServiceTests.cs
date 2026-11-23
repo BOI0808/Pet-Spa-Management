@@ -126,12 +126,16 @@ public class PaymentServiceTests
     {
         public PaymentGateway Gateway => PaymentGateway.VNPAY;
         public PaymentGatewayRequest? LastRequest { get; private set; }
+        public PaymentGatewayCallback CallbackToReturn { get; set; } = new(true, string.Empty, null, false);
 
         public string CreatePaymentUrl(PaymentGatewayRequest request)
         {
             LastRequest = request;
             return $"https://pay.test/{request.TxnRef}";
         }
+
+        public PaymentGatewayCallback VerifyCallback(IReadOnlyDictionary<string, string> parameters) =>
+            CallbackToReturn;
     }
 
     private sealed class Fixture

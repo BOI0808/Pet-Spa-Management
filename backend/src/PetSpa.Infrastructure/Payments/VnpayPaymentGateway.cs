@@ -44,6 +44,38 @@ public sealed class VnpayPaymentGateway(VnpayOptions options) : IPaymentGateway
         return $"{options.PayUrl}?{query}&vnp_SecureHash={Sign(query)}";
     }
 
+    public PaymentGatewayCallback VerifyCallback(IReadOnlyDictionary<string, string> parameters)
+    {
+        EnsureConfigured();
+
+        var signedData = string.Join(
+            "&",
+            parameters
+                .Where(p => p.Key.StartsWith("vnp_", StringComparison.Ordinal)
+                    && p.Key is not ("vnp_SecureHash" or "vnp_SecureHashType")
+                    && !string.IsNullOrEmpty(p.Value))
+                .OrderBy(p => p.Key, StringComparer.Ordinal)
+                .Select(p => $"{WebUtility.UrlEncode(p.Key)}={WebUtility.UrlEncode(p.Value)}"));
+
+        parameters.TryGetValue("vnp_SecureHash", out var receivedHash);
+        var signatureValid = !string.IsNullOrEmpty(receivedHash)
+            && CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(Sign(signedData)),
+                Encoding.UTF8.GetBytes(receivedHash.ToLowerInvariant()));
+
+        if (!signatureValid)
+            return new PaymentGatewayCallback(false, string.Empty, null, false);
+
+        decimal? amount = long.TryParse(
+            parameters.GetValueOrDefault("vnp_Amount"), NumberStyles.None, CultureInfo.InvariantCulture, out var rawAmount)
+            ? rawAmount / 100m
+            : null;
+        var success = parameters.GetValueOrDefault("vnp_ResponseCode") == "00"
+            && parameters.GetValueOrDefault("vnp_TransactionStatus") == "00";
+
+        return new PaymentGatewayCallback(true, parameters.GetValueOrDefault("vnp_TxnRef") ?? string.Empty, amount, success);
+    }
+
     private string Sign(string data)
     {
         var hash = HMACSHA512.HashData(Encoding.UTF8.GetBytes(options.HashSecret), Encoding.UTF8.GetBytes(data));
