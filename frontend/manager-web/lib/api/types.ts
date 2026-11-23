@@ -289,6 +289,17 @@ export type AppointmentDetail = Appointment & {
   staffRequired?: number | null;
 };
 
+// ── Ảnh minh chứng (FR-EXE-09) ──
+export type PhotoKind = "Before" | "After";
+
+/** Một ảnh trong `GET /appointments/{id}/photos`; `url` là URL tạm thời (backend ký có hạn 1 giờ). */
+export type Photo = {
+  photoId: string;
+  kind: PhotoKind;
+  url: string;
+  uploadedAt: string;
+};
+
 /** Body của POST /appointments/{id}/cancel khi Quản lý gọi: bắt buộc có `reason` (schema CancelRequest). */
 export type CancelRequest = { reason: ManagerCancelReason };
 

@@ -8,6 +8,7 @@ import type {
   ConfirmHotelRequest,
   ConfirmSpaRequest,
   HotelSuggestions,
+  Photo,
   RejectResult,
   SpaSuggestions,
   StatusResult,
@@ -120,5 +121,14 @@ export async function cancelAppointment({ appointmentId, reason }: { appointment
  */
 export async function updateAppointment({ appointmentId, body }: { appointmentId: string; body: UpdateAppointmentRequest }) {
   const { data } = await apiClient.put<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}`, body);
+  return data;
+}
+
+/**
+ * GET /appointments/{id}/photos – FR-EXE-09. Quản lý xem ảnh của mọi lịch; backend trả URL tạm thời (hạn 1 giờ) cho từng ảnh.
+ * Lịch chưa có ảnh trả mảng rỗng.
+ */
+export async function listAppointmentPhotos(appointmentId: string) {
+  const { data } = await apiClient.get<Photo[]>(`/appointments/${encodeURIComponent(appointmentId)}/photos`);
   return data;
 }

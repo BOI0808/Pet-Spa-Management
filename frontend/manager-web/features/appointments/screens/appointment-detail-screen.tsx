@@ -12,14 +12,18 @@ import { formatAppointmentCode } from "@/lib/format";
 import { useAppointmentDetail } from "@/lib/queries/appointments";
 import { ROUTES } from "@/lib/routes";
 import { AppointmentHeaderCard } from "../components/appointment-header-card";
+import { AppointmentLifecycleCard } from "../components/appointment-lifecycle-card";
+import { AppointmentPhotosCard } from "../components/appointment-photos-card";
+import { AppointmentServicesCard } from "../components/appointment-services-card";
 
 /**
- * MW-05 Chi tiết lịch hẹn (quản lý) – `/lich-hen/[appointmentId]`. Hiện mới có vùng 1 (đầu trang + nút Hủy lịch, Đổi lịch) của thẻ 148;
- * thẻ 147 và 149 bổ sung các vùng còn lại. Chưa có MW-03 (thẻ 147) nên vào trang bằng đường dẫn có mã lịch.
+ * MW-05 Chi tiết lịch hẹn (quản lý) – `/lich-hen/[appointmentId]`. Thẻ 148 làm vùng 1 (đầu trang + nút Hủy lịch, Đổi lịch);
+ * thẻ 147 làm vùng 2 (vòng đời), 3 (dịch vụ và tiến độ, chỉ spa), 4 (ảnh minh chứng, chỉ spa); thẻ 149 bổ sung vùng 7 (cập nhật trạng thái).
+ * Chi tiết tải lại 30 giây/lần khi lịch đang Đã tiếp nhận hoặc Đang thực hiện để tiến độ và ảnh mới hiện ra.
  */
 export function AppointmentDetailScreen() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
-  const query = useAppointmentDetail(appointmentId);
+  const query = useAppointmentDetail(appointmentId, { live: true });
   const backLink = (
     <Link href={ROUTES.appointments} className="font-semibold text-lagoon-700 underline">
       Lịch hẹn
@@ -33,7 +37,16 @@ export function AppointmentDetailScreen() {
       </nav>
 
       {query.data ? (
-        <AppointmentHeaderCard appointment={query.data} />
+        <div className="flex flex-col gap-4">
+          <AppointmentHeaderCard appointment={query.data} />
+          <AppointmentLifecycleCard appointment={query.data} />
+          {query.data.type === "Spa" && (
+            <>
+              <AppointmentServicesCard appointment={query.data} />
+              <AppointmentPhotosCard appointment={query.data} />
+            </>
+          )}
+        </div>
       ) : query.isError ? (
         isForbiddenError(query.error) ? (
           <ForbiddenState />

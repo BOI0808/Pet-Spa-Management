@@ -109,3 +109,10 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - Không truyền `sort`: backend tự chọn thứ tự (có `date` hoặc trạng thái đang xử lý → giờ hẹn tăng dần; Hoàn tất/Đã hủy → giờ hẹn giảm dần; còn lại → mới tạo trước). `date` của lịch lưu trú khớp ngày nhận hoặc ngày trả.
 - `GET /appointments` chưa trả tên nhân viên (G-05) nên mỗi dòng lịch spa đã xác nhận trở đi gọi thêm `GET /appointments/{id}` (cùng khóa cache với trang chi tiết); lịch chờ xác nhận, đã hủy và lưu trú không gọi. Lịch lưu trú chỉ hiện "Đã gán chuồng"/"Chưa gán" cho đến khi thẻ 150 nối `GET /cages`.
 - Chưa làm: ô tìm theo mã, thú cưng, khách (API chưa có tham số tìm), khoảng ngày (API chỉ nhận một ngày), cột Thanh toán (không thuộc FR-EXE-08; MW-10 đã có ở thẻ 152). Nút "Xử lý" của lịch chờ xác nhận mở MW-04 kèm `?appointmentId=`.
+
+## Giám sát và ảnh minh chứng (MW-05 vùng 2, 3, 4, thẻ 147)
+
+- `/lich-hen/[appointmentId]` thêm ba vùng dưới đầu trang: vòng đời (`AppointmentLifecycleCard`, mọi lịch), dịch vụ và tiến độ "a / b xong" (`AppointmentServicesCard`, chỉ lịch spa), ảnh minh chứng (`AppointmentPhotosCard`, chỉ lịch spa, chỉ xem, bấm ảnh để xem lớn).
+- Chi tiết lịch tải lại 30 giây/lần khi lịch đang Đã tiếp nhận hoặc Đang thực hiện (`useAppointmentDetail(id, { live: true })`); ảnh tải lại cùng chu kỳ và tải lại ngay khi trạng thái đổi. URL ảnh do backend ký có hạn 1 giờ nên `useAppointmentPhotos` nhớ URL tối đa 40 phút và gọi `refreshUrls` khi ảnh không tải được (cùng cách làm với customer-web).
+- Vòng đời không có giờ từng bước ngoài "Chờ xác nhận" (`createdAt`) và "Đã hủy" (`cancelledAt`) vì backend không lưu lịch sử trạng thái (G-02); bước đã đạt trước khi hủy suy ra từ lý do hủy.
+- Chưa làm (không thuộc FR-EXE-08, FR-EXE-09): giá từng dịch vụ, cân nặng và chi phí (vùng 5), lịch sử thao tác (vùng 6), thanh toán (vùng 8), khách hàng (vùng 9), chi tiết lịch lưu trú (vùng 10). Vùng 7 (cập nhật trạng thái) là thẻ 149.
