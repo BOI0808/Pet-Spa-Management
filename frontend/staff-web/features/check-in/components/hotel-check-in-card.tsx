@@ -1,7 +1,7 @@
 "use client";
 
 // SW-07 vùng 8 → 11 – thẻ tiếp nhận lịch lưu trú (UI-Screens.md, FR-EXE-10, FR-EXE-11, UF-03, UF-10).
-// Thẻ 126 làm bước 1 “Đối chiếu cân nặng”; bước 2 “Thu tiền lưu trú” (SW-09, thẻ 128) và bước 3 “Đưa bé vào chuồng”
+// Thẻ 126 làm bước 1 “Đối chiếu cân nặng”; thẻ 128 thêm nút “Thu tiền” ở bước 2 (→ SW-09). Bước 3 “Đưa bé vào chuồng”
 // (`POST /appointments/{id}/check-in` không body, thẻ 127) mới hiện trạng thái, chưa có thao tác.
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -17,12 +17,12 @@ import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag } from "@/components/ui/tag";
-import type { AppointmentDetail, Pet, WeightCheck } from "@/lib/api/types";
+import type { AppointmentDetail, Payment, Pet, WeightCheck } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth, formatMoney, formatWeight } from "@/lib/format";
-import { APPOINTMENT_STATUS_LABELS, CANCEL_REASON_LABELS, SIZE_GROUP_LABELS } from "@/lib/labels";
+import { APPOINTMENT_STATUS_LABELS, CANCEL_REASON_LABELS, PAYMENT_METHOD_LABELS, SIZE_GROUP_LABELS } from "@/lib/labels";
 import { useAppointmentPayments, useWeightCheckHotel } from "@/lib/queries/appointments";
 import { useCages } from "@/lib/queries/cages";
-import { ROUTES } from "@/lib/routes";
+import { paymentsRoute, ROUTES } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 import { parseDecimal, validateActualWeightKg } from "@/lib/validation";
 import { findPayment, speciesAndBreed } from "@/features/appointments/appointments";
@@ -75,6 +75,13 @@ function weighedDetail(appointment: AppointmentDetail, outcome: WeighOutcome | n
     return `${declared}${difference}cân nặng giảm, xuống nhóm ${newGroup}.${money}${cage}`;
   }
   return `${declared}${difference}vẫn thuộc nhóm ${group}. Chi phí không đổi.`;
+}
+
+/** “Tiền mặt, 09:52.” dưới dòng “Đã thu tiền lưu trú” (ui-demo SW-07); chưa thu thì không có. */
+function paidDetail(payment: Payment | undefined) {
+  if (payment?.status !== "Paid") return null;
+  const parts = [payment.method && PAYMENT_METHOD_LABELS[payment.method], payment.paidAt && toStoreTime(payment.paidAt)];
+  return `${parts.filter(Boolean).join(", ")}.`;
 }
 
 /**
@@ -245,7 +252,8 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
                 </li>
               )}
 
-              {/* Vùng 10 – bước 2: thu tiền lưu trú. Nút “Thu tiền” → SW-09 thêm ở thẻ 128. */}
+              {/* Vùng 10 – bước 2: thu tiền lưu trú. Nút “Thu tiền” → SW-09 chỉ hiện sau khi đối chiếu cân nặng xong
+                  và không chờ khách xác nhận chi phí, vì backend từ chối thu lúc đó (409 COST_CONFIRMATION_PENDING). */}
               <ServiceTask
                 done={stayPayment?.status === "Paid"}
                 name={
@@ -253,8 +261,16 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
                     ? `${stayPayment.status === "Paid" ? "Đã thu" : "Thu"} tiền lưu trú: ${formatMoney(stayPayment.amount)}`
                     : "Thu tiền lưu trú"
                 }
-                detail="Thu tại quầy sau khi đối chiếu cân nặng, trước khi bé vào chuồng."
-                aside={stayPayment && <PaymentBadge status={stayPayment.status} />}
+                detail={paidDetail(stayPayment) ?? "Thu tại quầy sau khi đối chiếu cân nặng, trước khi bé vào chuồng."}
+                aside={
+                  stayPayment?.status === "Unpaid" && weighed ? (
+                    <ButtonLink href={paymentsRoute(appointment.appointmentId)} size="sm">
+                      Thu tiền
+                    </ButtonLink>
+                  ) : (
+                    stayPayment && <PaymentBadge status={stayPayment.status} />
+                  )
+                }
               />
 
               {/* Vùng 11 – bước 3: đưa bé vào chuồng (thẻ 127). */}

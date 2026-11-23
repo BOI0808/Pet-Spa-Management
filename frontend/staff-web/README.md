@@ -28,6 +28,7 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `features/services` | SW-14 Danh mục dịch vụ (chỉ xem) |
 | `features/appointments` | SW-02 Lịch hẹn (nhân viên spa: lịch được phân công; lễ tân: lịch toàn cửa hàng theo ngày), SW-03 Chi tiết lịch hẹn – thẻ lịch hẹn chép từ customer-web |
 | `features/check-in` | SW-07 Tiếp nhận: lịch hôm nay, tiếp nhận lịch spa kèm cân nặng thực tế, đối chiếu cân nặng lịch lưu trú, đếm ngược và ghi nhận phản hồi chi phí mới của khách (SW-07·D1) |
+| `features/payments` | SW-09 Thanh toán tại quầy: khoản cần thu hôm nay (dựng từ lịch trong ngày, G-07), tiền mặt và chuyển khoản QR – hàm kiểm tra số tiền chép từ manager-web |
 | `features/service-execution` | SW-11 Thực hiện dịch vụ (nhân viên spa): tải ảnh trước/sau, bắt đầu, đánh dấu từng dịch vụ, hoàn tất lịch spa |
 | `lib/auth` | Phiên đăng nhập: token trong bộ nhớ, làm mới token, `SessionGate`, `useSession` |
 | `next.config.ts` | Chuyển `/` về SW-02 Lịch hẹn (`redirects`) |
@@ -40,6 +41,8 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `lib/format.ts`, `lib/labels.ts`, `lib/validation.ts` | Định dạng hiển thị, nhãn enum, luật kiểm tra form (giống customer-web) |
 | `lib/time.ts` | Ngày giờ theo múi giờ cửa hàng `Asia/Ho_Chi_Minh` (giống customer-web) |
 | `lib/image-resize.ts` | Thu nhỏ ảnh trước khi tải lên (cạnh dài 1600px, JPEG 0,8) |
+| `lib/number-input.ts` | Đọc số tiền người dùng nhập (“250.000”) – chép từ manager-web |
+| `lib/store-info.ts` | Tài khoản ngân hàng cửa hàng và ảnh mã VietQR cho SW-09 (G-16; giá trị minh họa, nhóm cần chốt) |
 | `lib/serving-customer.ts` | Khách đang phục vụ (SW-04 → SW-05, SW-06) |
 | `lib/routes.ts` | Đường dẫn các màn hình SW-01 → SW-15 |
 | `lib/staff-role.ts` | Vai trò nhân viên: lễ tân, nhân viên spa |
