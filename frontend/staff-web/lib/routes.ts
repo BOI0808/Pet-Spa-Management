@@ -51,6 +51,10 @@ export const serviceExecutionRoute = (appointmentId: string) => `${appointmentDe
 export const appointmentsOnDateRoute = (date: string) =>
   date ? `${ROUTES.appointments}?date=${encodeURIComponent(date)}` : ROUTES.appointments;
 
+/** SW-09 Thanh toán tại quầy (`?appointmentId=` chọn sẵn khoản đến hạn của lịch, User-Flows 2.2). */
+export const paymentsRoute = (appointmentId?: string | null) =>
+  appointmentId ? `${ROUTES.payments}?appointmentId=${encodeURIComponent(appointmentId)}` : ROUTES.payments;
+
 /** SW-07 Tiếp nhận (`?appointmentId=` chọn sẵn lịch, User-Flows 2.2). */
 export const checkInRoute = (appointmentId?: string | null) =>
   appointmentId ? `${ROUTES.checkIn}?appointmentId=${encodeURIComponent(appointmentId)}` : ROUTES.checkIn;
