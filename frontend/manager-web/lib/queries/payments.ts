@@ -55,6 +55,15 @@ export function useUnpaidSummary() {
   });
 }
 
+/** Các khoản chưa thanh toán trong trang 100 khoản đầu, dùng chung dữ liệu với `useUnpaidSummary` (MW-02 “Cần chú ý”). */
+export function useUnpaidPayments() {
+  return useQuery({
+    queryKey: paymentKeys.unpaidSummary(),
+    queryFn: () => listPayments({ status: "Unpaid", page: 1, pageSize: UNPAID_SUMMARY_PAGE_SIZE }),
+    select: (page) => page.items,
+  });
+}
+
 // Sau khi ghi nhận tải lại bảng, thẻ số liệu và dữ liệu lịch hẹn (Frontend-Architecture 5.1); lỗi 409 (sai thời điểm,
 // khoản đã được thu ở nơi khác…) cũng tải lại để thấy dữ liệu mới nhất.
 export function useRecordCounterPayment() {

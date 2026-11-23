@@ -129,6 +129,17 @@ export type StaffPage = {
   items: StaffMember[];
 };
 
+/** Một ca làm của nhân viên spa trong `items` của GET /work-shifts (schema WorkShift). */
+export type WorkShift = {
+  shiftId: string;
+  staffId: string;
+  shiftStart: string;
+  shiftEnd: string;
+};
+
+/** Phản hồi của GET /work-shifts. */
+export type WorkShiftPage = Page<WorkShift>;
+
 /** Body của POST /staff. Không có `role`: backend luôn đặt Role = Staff (API-Notes 3). */
 export type StaffCreateRequest = {
   userName: string;

@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   cancelAppointment,
   confirmHotelAppointment,
@@ -13,7 +13,7 @@ import {
   type AppointmentListParams,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
-import type { Appointment, AppointmentDetail, AppointmentStatus, Photo } from "@/lib/api/types";
+import type { Appointment, AppointmentDetail, AppointmentStatus, AppointmentType, Photo } from "@/lib/api/types";
 
 // Backend giới hạn `pageSize` tối đa 100 và luôn sắp theo `CreatedAt` tăng dần;
 // tạm tải hết các trang `Pending` (tối đa 1.000 lịch) để web sắp theo giờ hẹn gần nhất, đếm đúng và tìm đủ `?appointmentId=`.
@@ -39,10 +39,19 @@ export const appointmentKeys = {
   detail: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId] as const,
   list: (params: AppointmentListParams) => [...appointmentKeys.all, "list", params] as const,
   photos: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId, "photos"] as const,
+  count: (params: AppointmentCountParams) => [...appointmentKeys.all, "count", params] as const,
+  today: (type: AppointmentType, date: string) => [...appointmentKeys.all, "today", type, date] as const,
 };
 
 /** Số dòng mỗi trang của bảng MW-03 (UI-Screens MW-03 vùng 2). */
 export const APPOINTMENT_LIST_PAGE_SIZE = 20;
+
+// MW-02 làm mới 60 giây/lần khi tab đang hiển thị (Frontend-Architecture 5.1). Backend giới hạn `pageSize` tối đa 100;
+// một ngày của cửa hàng không có nhiều hơn 100 lịch mỗi loại.
+const DASHBOARD_REFRESH_MS = 60_000;
+const TODAY_PAGE_SIZE = 100;
+
+type AppointmentCountParams = { type?: AppointmentType; status?: AppointmentStatus };
 
 async function fetchAllPendingAppointments(): Promise<PendingAppointmentsResult> {
   const firstPage = await listAppointments({
@@ -368,4 +377,42 @@ export function useAppointmentPhotos(appointmentId: string, { enabled = true, li
   }
 
   return { ...query, refreshUrls };
+}
+
+/** Số lịch theo loại và trạng thái (chỉ cần `total` nên xin 1 dòng) cho thẻ số liệu MW-02. */
+export function useAppointmentCount(params: AppointmentCountParams) {
+  return useQuery({
+    queryKey: appointmentKeys.count(params),
+    queryFn: async () => (await listAppointments({ ...params, page: 1, pageSize: 1 })).total,
+    refetchInterval: DASHBOARD_REFRESH_MS,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * Lịch của một loại trong ngày `date` (“YYYY-MM-DD”, múi giờ cửa hàng) cho MW-02, giờ hẹn tăng dần.
+ * Lịch lưu trú gồm cả lịch có ngày nhận hoặc ngày trả trong ngày đó.
+ */
+export function useTodayAppointments(type: AppointmentType, date: string) {
+  return useQuery({
+    queryKey: appointmentKeys.today(type, date),
+    queryFn: () => listAppointments({ type, date, page: 1, pageSize: TODAY_PAGE_SIZE }),
+    refetchInterval: DASHBOARD_REFRESH_MS,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * Chi tiết nhiều lịch cùng lúc để biết nhân viên phụ trách (UI-Screens G-05: danh sách chưa trả tên nhân viên; chỉ gọi cho lịch trong ngày).
+ * Dùng chung khóa cache với `useAppointmentDetail`.
+ */
+export function useAppointmentDetails(appointmentIds: readonly string[]) {
+  return useQueries({
+    queries: appointmentIds.map((appointmentId) => ({
+      queryKey: appointmentKeys.detail(appointmentId),
+      queryFn: () => getAppointment(appointmentId),
+      refetchInterval: DASHBOARD_REFRESH_MS,
+      refetchIntervalInBackground: false,
+    })),
+  });
 }

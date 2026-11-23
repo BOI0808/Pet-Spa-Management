@@ -116,3 +116,11 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - Chi tiết lịch tải lại 30 giây/lần khi lịch đang Đã tiếp nhận hoặc Đang thực hiện (`useAppointmentDetail(id, { live: true })`); ảnh tải lại cùng chu kỳ và tải lại ngay khi trạng thái đổi. URL ảnh do backend ký có hạn 1 giờ nên `useAppointmentPhotos` nhớ URL tối đa 40 phút và gọi `refreshUrls` khi ảnh không tải được (cùng cách làm với customer-web).
 - Vòng đời không có giờ từng bước ngoài "Chờ xác nhận" (`createdAt`) và "Đã hủy" (`cancelledAt`) vì backend không lưu lịch sử trạng thái (G-02); bước đã đạt trước khi hủy suy ra từ lý do hủy.
 - Chưa làm (không thuộc FR-EXE-08, FR-EXE-09): giá từng dịch vụ, cân nặng và chi phí (vùng 5), lịch sử thao tác (vùng 6), thanh toán (vùng 8), khách hàng (vùng 9), chi tiết lịch lưu trú (vùng 10). Vùng 7 (cập nhật trạng thái) là thẻ 149.
+
+## Tổng quan và giám sát tiến độ (MW-02, thẻ 147)
+
+- Trang `/` (`DashboardScreen`) gồm: ba thẻ số liệu (Chờ xác nhận chia spa/lưu trú; lịch spa hôm nay chia theo trạng thái; khoản chưa thanh toán dùng lại `useUnpaidSummary`), biểu đồ "Tiến độ spa theo nhân viên" và thẻ "Cần chú ý". Dữ liệu làm mới 60 giây/lần khi tab đang hiển thị; đường "Hiện tại" và ngày đổi theo `useMinuteClock` (chạy theo giờ trình duyệt, quy đổi sang múi giờ cửa hàng).
+- Lịch trong ngày lấy bằng `GET /appointments?type=&date=&pageSize=100` (`useTodayAppointments`). Danh sách chưa trả tên nhân viên (G-05) nên `useAppointmentDetails` gọi `GET /appointments/{id}` cho lịch spa đã xác nhận trở đi (cùng khóa cache với trang chi tiết). Ca làm lấy bằng `GET /work-shifts` (`useWorkShiftsOfDay`).
+- Logic thuần nằm ở `features/dashboard/dashboard.ts`: lịch chờ xác nhận vào hàng "Chưa phân công", lịch đã hủy không vẽ, lịch Hoàn tất hiện theo người đã làm. Thời gian dọn dẹp tạm là hằng số `CLEANING_BUFFER_MINUTES = 15` vì backend chưa có `GET /config`.
+- "Cần chú ý" gồm lịch spa chờ khách xác nhận chi phí, lịch lưu trú nhận hoặc trả trong ngày (kèm "Chưa thu tiền lưu trú" khi khoản nằm trong 100 khoản chưa thanh toán đầu). Chưa có mục "lịch cần phân công lại" vì backend chưa cho biết lý do (G-08).
+- Chưa làm: thẻ "Chuồng đang chứa" và vùng 5 "Chuồng đang chứa" (cần `GET /cages`, thẻ 150 làm và thêm vào lưới số liệu thành 4 cột).
