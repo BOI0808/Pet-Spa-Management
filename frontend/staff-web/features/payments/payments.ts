@@ -1,5 +1,5 @@
 // SW-09 Thanh toán tại quầy – các hàm thuần: khoản nào đến hạn, mô tả phiếu, nơi quay về sau khi thu (UI-Screens.md).
-import type { Appointment, Payment, PaymentKind } from "@/lib/api/types";
+import type { Appointment, AppointmentDetail, Payment, PaymentKind } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth } from "@/lib/format";
 import { PAYMENT_KIND_LABELS } from "@/lib/labels";
 import { checkInRoute, ROUTES } from "@/lib/routes";
@@ -24,9 +24,21 @@ export function findDuePayment(appointment: Appointment, payments: Payment[] | u
 }
 
 /**
- * Câu báo khi lịch mở bằng `?appointmentId=` không có khoản để thu. Lịch ở trạng thái có khoản đến hạn mà backend chưa
- * tạo khoản đó: tiền lưu trú thì báo rõ (trên develop 23/11 backend chưa tạo khoản Stay); phí trả muộn thì là bình
- * thường – trả đúng giờ thì không phát sinh.
+ * Lý do chưa được thu tiền lưu trú dù khoản đã đến hạn (review PR #82). Backend tạo khoản Stay khi quản lý xác nhận lịch
+ * và không tính lại số tiền sau khi cân, nên phải đối chiếu cân nặng ở SW-07 trước (UF-03: cân → thu tiền → vào chuồng):
+ * thu trước khi cân thì bé đổi nhóm kích cỡ sẽ làm khoản đã thu sai. Đang chờ khách xác nhận chi phí mới thì backend
+ * từ chối thu (409 COST_CONFIRMATION_PENDING). Cùng điều kiện với nút “Thu tiền” ở SW-07 bước 2. Được thu → `null`.
+ */
+export function stayBlockReason(appointment: AppointmentDetail) {
+  if (appointment.pendingCostConfirmation) return "Đang chờ khách xác nhận chi phí mới, chưa thu tiền lưu trú.";
+  if (appointment.actualWeightKg == null) return "Cần đối chiếu cân nặng ở màn Tiếp nhận trước khi thu tiền lưu trú.";
+  return null;
+}
+
+/**
+ * Câu báo khi lịch mở bằng `?appointmentId=` không có khoản để thu. Lịch ở trạng thái có khoản đến hạn mà chưa có khoản
+ * đó: tiền lưu trú thì báo quản lý kiểm tra (backend tạo khoản khi xác nhận lịch, lịch xác nhận trước khi có chức năng
+ * này thì không có); phí trả muộn thì là bình thường – trả đúng giờ thì không phát sinh.
  */
 export function noDueMessage(appointment: Appointment, payments: Payment[] | undefined) {
   const kind = dueKindOf(appointment);
@@ -55,7 +67,10 @@ export const DUE_TITLE_LABELS: Record<PaymentKind, string> = {
   LateFee: "phí trả muộn",
 };
 
-/** Dòng mô tả của phiếu: “Lịch spa đã hoàn tất, LH-…”, “Tiền lưu trú, nhận 10:00 hôm nay”, “Phí trả muộn, LH-…”. */
+/**
+ * Dòng mô tả của phiếu: “Lịch spa đã hoàn tất, LH-…”, “Tiền lưu trú, nhận 10:00 hôm nay”, “Phí trả muộn, LH-…”. Tiền lưu
+ * trú chưa cân thì thêm “, chưa cân” để lễ tân biết phải sang SW-07 trước (`stayBlockReason`).
+ */
 export function describeDue(appointment: Appointment, kind: PaymentKind, today: string) {
   const code = formatAppointmentCode(appointment.appointmentId);
   if (kind === "Spa") return `Lịch spa đã hoàn tất, ${code}`;
@@ -63,7 +78,8 @@ export function describeDue(appointment: Appointment, kind: PaymentKind, today: 
   const checkIn = appointment.plannedCheckIn;
   if (!checkIn) return `Tiền lưu trú, ${code}`;
   const day = toStoreDate(checkIn) === today ? "hôm nay" : `ngày ${formatDayMonth(toStoreDate(checkIn))}`;
-  return `Tiền lưu trú, nhận ${toStoreTime(checkIn)} ${day}`;
+  const weighNote = appointment.actualWeightKg == null ? ", chưa cân" : "";
+  return `Tiền lưu trú, nhận ${toStoreTime(checkIn)} ${day}${weighNote}`;
 }
 
 /** Nội dung chuyển khoản “LH<mã>” (UI-Screens SW-09 vùng 8): mã lịch bỏ dấu gạch để app ngân hàng không cắt. */

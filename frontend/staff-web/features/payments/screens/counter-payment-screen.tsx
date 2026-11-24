@@ -15,11 +15,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
 import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { appointmentDetailRoute } from "@/lib/routes";
+import { formatMoney } from "@/lib/format";
+import { appointmentDetailRoute, checkInRoute } from "@/lib/routes";
 import { getStoreToday } from "@/lib/time";
 import { CounterPaymentCard } from "../components/counter-payment-card";
 import { DuePaymentList } from "../components/due-payment-list";
-import { findDuePayment, noDueMessage } from "../payments";
+import { findDuePayment, noDueMessage, stayBlockReason } from "../payments";
 import { useDuePayments } from "../use-due-payments";
 
 function SelectedPanel({ appointmentId }: { appointmentId: string }) {
@@ -57,6 +58,23 @@ function SelectedPanel({ appointmentId }: { appointmentId: string }) {
           <Alert tone="neutral">{noDueMessage(appointment.data, payments.data)}</Alert>
           <ButtonLink href={appointmentDetailRoute(appointmentId)} variant="ghost" size="sm">
             Xem lịch hẹn
+          </ButtonLink>
+        </div>
+      </Card>
+    );
+  }
+
+  // Tiền lưu trú chỉ thu sau khi đã đối chiếu cân nặng và không chờ khách xác nhận chi phí (giống SW-07 bước 2).
+  const blockReason = payment.kind === "Stay" ? stayBlockReason(appointment.data) : null;
+  if (blockReason) {
+    const petName = appointment.data.petName ?? pet.data?.name ?? "Thú cưng";
+    return (
+      <Card>
+        <div className="flex flex-col items-start gap-3 p-5">
+          <h2 className="break-words">{petName}: tiền lưu trú {formatMoney(payment.amount)}</h2>
+          <Alert tone="warn">{blockReason}</Alert>
+          <ButtonLink href={checkInRoute(appointmentId)} size="sm">
+            Sang màn Tiếp nhận
           </ButtonLink>
         </div>
       </Card>

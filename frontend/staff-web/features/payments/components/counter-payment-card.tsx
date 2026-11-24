@@ -25,7 +25,7 @@ import { useHotelPricing } from "@/lib/queries/hotel";
 import { useRecordCounterPayment } from "@/lib/queries/payments";
 import { useServices } from "@/lib/queries/services";
 import { formatAccountNumber, STORE_BANK, vietQrImageUrl } from "@/lib/store-info";
-import { toStoreDate, toStoreTime } from "@/lib/time";
+import { getStoreToday, toStoreDate, toStoreTime } from "@/lib/time";
 import { findPricing, nightsOf } from "@/features/appointments/appointments";
 import {
   AMOUNT_MISMATCH_CODE,
@@ -47,6 +47,11 @@ const METHOD_OPTIONS: readonly SegmentedOption<CounterMethod>[] = [
 /** “18:00, 06/10” – giờ trả ở phần cách tính phí trễ (ui-demo SW-09). */
 function formatTimeDay(isoDateTime: string) {
   return `${toStoreTime(isoDateTime)}, ${formatDayMonth(toStoreDate(isoDateTime))}`;
+}
+
+/** “11:01” nếu hoàn tất hôm nay, “11:01, 22/11” nếu ngày khác (ui-demo SW-09: “Hoàn tất lúc 11:01”). */
+function formatCompletedAt(isoDateTime: string) {
+  return toStoreDate(isoDateTime) === getStoreToday() ? toStoreTime(isoDateTime) : formatTimeDay(isoDateTime);
 }
 
 type CalculationProps = { appointment: AppointmentDetail; pet: Pet | null; payment: Payment };
@@ -89,7 +94,9 @@ function Calculation({ appointment, pet, payment }: CalculationProps) {
   } else if (isSpa) {
     rows = (
       <>
-        <KeyValue label="Lịch hẹn">Hoàn tất</KeyValue>
+        {/* Thời điểm hoàn tất (UI-Screens SW-09 vùng 3). Lịch chưa có trường riêng: `updatedAt` đổi ở mỗi lần chuyển trạng
+            thái và lịch spa không đổi gì sau khi hoàn tất, nên với lịch Hoàn tất đó là lúc hoàn tất. */}
+        <KeyValue label="Lịch hẹn">Hoàn tất lúc {formatCompletedAt(appointment.updatedAt)}</KeyValue>
         <KeyValue label="Nhóm áp dụng">{group}</KeyValue>
         {(appointment.services ?? []).map((service) => {
           const pricing = pet ? findPricing(services.data, service.serviceId, pet.species, appointment.sizeGroup) : undefined;
