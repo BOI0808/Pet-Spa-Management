@@ -50,10 +50,26 @@ public sealed class AccountService(IAccountRepository accounts)
         accounts.CreateWalkInAsync(fullName.Trim(), PhoneNumber.Normalize(phone), ct);
 
     public Task<PagedResult<CustomerSummary>> SearchCustomersAsync(
-        string? search, int page, int pageSize, CancellationToken ct = default)
+        CurrentUser user, string? search, int page, int pageSize, CancellationToken ct = default)
     {
         var term = PhoneNumber.Normalize(search);
-        return accounts.SearchCustomersAsync(term.Length == 0 ? null : term, page, pageSize, ct);
+
+        // Lễ tân tìm trong mọi khách hàng (FR-ACC-04); quản lý chỉ xem khách đang bị khóa để gỡ khóa (FR-BOOK-07).
+        var lockedOnly = user.Role == UserRole.Manager;
+
+        return accounts.SearchCustomersAsync(term.Length == 0 ? null : term, lockedOnly, page, pageSize, ct);
+    }
+
+    // FR-BOOK-07 (BR-15): quản lý gỡ khóa quyền tự đặt lịch trực tuyến cho khách đang bị khóa.
+    public async Task UnlockBookingAsync(Guid customerId, CancellationToken ct = default)
+    {
+        var isLocked = await accounts.GetBookingLockStateAsync(customerId, ct)
+            ?? throw new BusinessException(ErrorCodes.NotFound);
+
+        if (!isLocked)
+            throw new BusinessException(ErrorCodes.CustomerNotLocked);
+
+        await accounts.UnlockBookingAsync(customerId, ct);
     }
     
     private static string? NormalizeEmail(string? email) =>

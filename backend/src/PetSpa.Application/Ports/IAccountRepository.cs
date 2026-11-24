@@ -27,6 +27,13 @@ public interface IAccountRepository
     Task<Guid> CreateWalkInAsync(string fullName, string phone, CancellationToken ct = default);
 
     // phone = null: lấy tất cả. Tìm theo số điện thoại chứa chuỗi tìm.
+    // lockedOnly = true: chỉ khách đang bị khóa quyền tự đặt lịch (quản lý xem để gỡ khóa, FR-BOOK-07).
     Task<PagedResult<CustomerSummary>> SearchCustomersAsync(
-        string? phone, int page, int pageSize, CancellationToken ct = default);
+        string? phone, bool lockedOnly, int page, int pageSize, CancellationToken ct = default);
+
+    // Trạng thái khóa tự đặt lịch của khách (Customer.IsBookingLocked); null nếu không có khách hàng.
+    Task<bool?> GetBookingLockStateAsync(Guid customerId, CancellationToken ct = default);
+
+    // Đặt Customer.IsBookingLocked = false (FR-BOOK-07).
+    Task UnlockBookingAsync(Guid customerId, CancellationToken ct = default);
 }
