@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
+import { PaymentReturnRedirect } from "@/features/appointments/components/payment-return-redirect";
 import { SessionGate } from "@/lib/auth/session-gate";
 
 // Khung các màn hình sau đăng nhập: thanh trên + vùng nội dung rộng tối đa 1200px (`.web-body` trong ui-demo).
@@ -13,7 +14,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-[1200px] px-8 pb-[72px] pt-7 max-[980px]:px-4 max-[980px]:pb-14 max-[980px]:pt-5">
-        <SessionGate>{children}</SessionGate>
+        <SessionGate>
+          {/* Quay về từ cổng thanh toán (UF-11) → CW-09 của lịch vừa thanh toán. */}
+          <PaymentReturnRedirect />
+          {children}
+        </SessionGate>
       </main>
     </>
   );

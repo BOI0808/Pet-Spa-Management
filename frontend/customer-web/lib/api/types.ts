@@ -310,6 +310,18 @@ export type Payment = {
   paidAt?: string | null;
 };
 
+/** Cổng thanh toán trực tuyến (sandbox) – UI-Screens mục 3, giá trị `Gateway`. */
+export type PaymentGateway = "VNPAY" | "MoMo";
+
+/** POST /payments/{id}/online – chỉ gửi cổng; số tiền do backend xác định (FR-PAY-01, BR-17). */
+export type OnlinePaymentRequest = { gateway: PaymentGateway };
+
+export type OnlinePaymentCreated = {
+  /** Trang thanh toán của cổng; web chuyển khách sang bằng `window.location.assign`. */
+  paymentUrl: string;
+  txnRef: string;
+};
+
 // ── Thông báo ──
 export type NotificationType =
   | "BookingReceived"
