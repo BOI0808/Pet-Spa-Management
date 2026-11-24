@@ -19,7 +19,20 @@ internal sealed class FakeStayPaymentRepository : IPaymentRepository
     public Task<IReadOnlyList<Payment>> ListByAppointmentAsync(Guid appointmentId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Payment>>(Payments.Where(p => p.AppointmentId == appointmentId).ToList());
 
+    public void Add(Payment payment) => Payments.Add(payment);
+
+    public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
+
     public Task<PagedResult<Payment>> ListAsync(
         PaymentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
+        throw new NotImplementedException();
+
+    public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default) =>
+        throw new NotImplementedException();
+
+    public Task<Guid?> FindPaymentIdByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
+        throw new NotImplementedException();
+
+    public Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
         throw new NotImplementedException();
 }

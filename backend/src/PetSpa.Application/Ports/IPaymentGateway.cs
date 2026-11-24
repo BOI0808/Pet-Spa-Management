@@ -9,9 +9,17 @@ public sealed record PaymentGatewayRequest(
     string ClientIp,
     DateTimeOffset CreatedAt);
 
+public sealed record PaymentGatewayCallback(
+    bool SignatureValid,
+    string TxnRef,
+    decimal? Amount,
+    bool Success);
+
 public interface IPaymentGateway
 {
     PaymentGateway Gateway { get; }
 
     string CreatePaymentUrl(PaymentGatewayRequest request);
+
+    PaymentGatewayCallback VerifyCallback(IReadOnlyDictionary<string, string> parameters);
 }

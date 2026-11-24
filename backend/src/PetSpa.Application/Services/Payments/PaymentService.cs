@@ -74,6 +74,68 @@ public sealed class PaymentService(
         return new OnlinePaymentResult(paymentUrl, txnRef);
     }
 
+    public async Task<GatewayCallbackResult> HandleGatewayCallbackAsync(
+        IReadOnlyDictionary<string, string> parameters, CancellationToken ct = default)
+    {
+        var callback = paymentGateway.VerifyCallback(parameters);
+        if (!callback.SignatureValid)
+            return new GatewayCallbackResult(GatewayCallbackOutcome.InvalidSignature, callback.TxnRef, callback.Amount);
+
+        var outcome = await ProcessCallbackAsync(callback, ct);
+        return new GatewayCallbackResult(outcome, callback.TxnRef, callback.Amount);
+    }
+
+    private async Task<GatewayCallbackOutcome> ProcessCallbackAsync(PaymentGatewayCallback callback, CancellationToken ct)
+    {
+        var paymentId = await payments.FindPaymentIdByTxnRefAsync(callback.TxnRef, ct);
+        if (paymentId is null)
+            return GatewayCallbackOutcome.TransactionNotFound;
+
+        return await concurrencyGuard.RunAsync(async () =>
+        {
+            await concurrencyGuard.LockPaymentAsync(paymentId.Value, ct);
+
+            var transaction = await payments.FindTransactionByTxnRefAsync(callback.TxnRef, ct);
+            if (transaction is null)
+                return GatewayCallbackOutcome.TransactionNotFound;
+
+            if (transaction.CallbackAt is not null)
+                return GatewayCallbackOutcome.AlreadyProcessed;
+
+            var found = await payments.FindWithAppointmentStatusAsync(paymentId.Value, ct)
+                ?? throw new BusinessException(ErrorCodes.NotFound);
+            var payment = found.Payment;
+
+            if (payment.Status == PaymentStatus.Paid)
+            {
+                if (callback.Amount is { } paidAmount)
+                {
+                    transaction.RecordCallback(paidAmount, callback.Success, DateTimeOffset.UtcNow);
+                }
+                return GatewayCallbackOutcome.AlreadyProcessed;
+            }
+
+            if (callback.Amount is not { } confirmedAmount || confirmedAmount != payment.Amount)
+                return GatewayCallbackOutcome.AmountMismatch;
+
+            if (!callback.Success)
+            {
+                transaction.RecordCallback(confirmedAmount, false, DateTimeOffset.UtcNow);
+                return GatewayCallbackOutcome.Failed;
+            }
+
+            await concurrencyGuard.LockAppointmentAsync(payment.AppointmentId, ct);
+
+            var appointmentStatus = await payments.GetAppointmentStatusAsync(payment.AppointmentId, ct)
+                ?? found.AppointmentStatus;
+
+            payment.MarkPaid(appointmentStatus, PaymentMethod.Online, confirmedAmount, null);
+            transaction.RecordCallback(confirmedAmount, true, DateTimeOffset.UtcNow);
+
+            return GatewayCallbackOutcome.Paid;
+        }, ct);
+    }
+
     public async Task<IReadOnlyList<Payment>> ListByAppointmentAsync(
         CurrentUser user, Guid appointmentId, CancellationToken ct = default)
     {

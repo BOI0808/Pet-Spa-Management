@@ -46,12 +46,30 @@ function summarizeUnpaid(page: PaymentPage): UnpaidSummary {
   };
 }
 
+export type PollingQueryOptions = {
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+};
+
 /** Số liệu cho thẻ “Chưa thanh toán” và số đếm trên chip lọc (UI-Screens MW-10 vùng 1, 2). */
-export function useUnpaidSummary() {
+export function useUnpaidSummary(options?: PollingQueryOptions) {
   return useQuery({
     queryKey: paymentKeys.unpaidSummary(),
     queryFn: () => listPayments({ status: "Unpaid", page: 1, pageSize: UNPAID_SUMMARY_PAGE_SIZE }),
     select: summarizeUnpaid,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
+  });
+}
+
+/** Các khoản chưa thanh toán trong trang 100 khoản đầu, dùng chung dữ liệu với `useUnpaidSummary` (MW-02 “Cần chú ý”). */
+export function useUnpaidPayments(options?: PollingQueryOptions) {
+  return useQuery({
+    queryKey: paymentKeys.unpaidSummary(),
+    queryFn: () => listPayments({ status: "Unpaid", page: 1, pageSize: UNPAID_SUMMARY_PAGE_SIZE }),
+    select: (page) => page.items,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
   });
 }
 

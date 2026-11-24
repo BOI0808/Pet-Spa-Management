@@ -21,6 +21,7 @@ public sealed class AppointmentsController(
     AppointmentQueryService appointmentQueryService,
     AppointmentChangeService appointmentChangeService,
     CheckInService checkInService,
+    CheckOutService checkOutService,
     WeightCheckService weightCheckService,
     CostConfirmationService costConfirmationService,
     SpaProgressService spaProgressService) : ControllerBase
@@ -190,6 +191,16 @@ public sealed class AppointmentsController(
     {
         var status = await spaProgressService.CompleteAsync(User.ToCurrentUser(), id, ct);
         return Ok(new AppointmentStatusResponse(status));
+    }
+
+    [HttpPost("{id}/check-out")]
+    [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
+    [EndpointSummary("Lễ tân hoặc quản lý trả thú cưng lịch lưu trú")]
+    [EndpointDescription("Chỉ lễ tân và quản lý, không có body (BR-05). Lịch lưu trú Đang lưu trú chuyển sang Hoàn tất, ghi nhận thời điểm trả thực tế (ActualCheckOut) và giải phóng chuồng. Trễ không quá Hotel.LateGraceMinutes phút không tính phí; sau đó mỗi Hotel.LateBlockMinutes phút tính một lần Hotel.LateFeePerBlock; trả sớm không đổi chi phí (BR-22). Có phí phạt: lần gọi đầu hình thành khoản thanh toán LateFee chưa thanh toán và trả 409 PAYMENT_NOT_DUE; sau khi ghi nhận khoản LateFee tại quầy (POST /payments/{id}/counter), gọi lại để Hoàn tất (BR-07). Trả { status, lateFee? } với lateFee là số tiền phí phạt (VND) nếu có. Lịch không phải lịch lưu trú hoặc không ở Đang lưu trú trả 409 INVALID_TRANSITION; không tìm thấy lịch trả 404 NOT_FOUND.")]
+    public async Task<IActionResult> CheckOut(Guid id, CancellationToken ct)
+    {
+        var result = await checkOutService.CheckOutHotelAsync(id, ct);
+        return Ok(CheckOutResponse.From(result));
     }
 
     [HttpPost("{id}/cancel")]

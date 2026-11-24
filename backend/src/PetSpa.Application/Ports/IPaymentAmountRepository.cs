@@ -24,6 +24,8 @@ public interface IPaymentAmountRepository
 {
     Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default);
 
+    Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default);
+
     Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default);
 
     Task<LateFeeConfig> GetLateFeeConfigAsync(CancellationToken ct = default);

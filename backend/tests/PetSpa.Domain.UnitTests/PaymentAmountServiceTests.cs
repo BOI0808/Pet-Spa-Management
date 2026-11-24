@@ -39,6 +39,9 @@ public class PaymentAmountServiceTests
         public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult(SpaSnapshot);
 
+        public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default) =>
+            Task.FromResult(SpaSnapshot);
+
         public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult(StaySnapshot);
 

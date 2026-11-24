@@ -18,6 +18,7 @@ public sealed class SpaProgressService(
     ISpaProgressRepository progress,
     IAppointmentChangeRepository changes,
     IPaymentAmountRepository paymentAmounts,
+    IPaymentRepository payments,
     IConcurrencyGuard concurrencyGuard)
 {
     public async Task<AppointmentStatus> StartAsync(
@@ -84,7 +85,8 @@ public sealed class SpaProgressService(
             if (appointment.Status != AppointmentStatus.InProgress)
                 throw new BusinessException(ErrorCodes.InvalidTransition);
 
-            if (!await progress.AreAllServicesDoneAsync(appointmentId, ct))
+            var serviceLines = await progress.ListServiceLinesAsync(appointmentId, ct);
+            if (serviceLines.Count == 0 || !serviceLines.All(s => s.IsDone))
                 throw new BusinessException(ErrorCodes.ServicesIncomplete);
 
             var appointmentPhotos = await photos.ListByAppointmentAsync(appointmentId, ct);
@@ -96,18 +98,20 @@ public sealed class SpaProgressService(
             await changes.ReleaseStaffHoldsAsync(appointmentId, ct);
 
             // Hình thành khoản thanh toán spa (FR-PAY-01): tính tiền theo dịch vụ, nhóm kích cỡ, đơn giá hiện tại.
-            var snapshot = await paymentAmounts.GetSpaAsync(appointmentId, ct)
+            var serviceIds = serviceLines.Select(s => s.ServiceId).ToList();
+            var snapshot = await paymentAmounts.GetSpaAsync(appointmentId, serviceIds, ct)
                 ?? throw new BusinessException(ErrorCodes.NotFound);
             var amount = PricingService.CalculateSpaAmount(
                 snapshot.Species, snapshot.SizeGroup, snapshot.ServiceIds, snapshot.Pricing);
 
-            progress.AddPayment(new Payment
+            payments.Add(new Payment
             {
                 PaymentId = Guid.NewGuid(),
                 AppointmentId = appointmentId,
                 Kind = PaymentKind.Spa,
                 Amount = amount,
             });
+            await payments.SaveChangesAsync(ct);
 
             return appointment.Status;
         }, ct);

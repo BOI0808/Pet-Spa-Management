@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Infrastructure.BackgroundJobs;
 using PetSpa.Infrastructure.Identity;
 using PetSpa.Infrastructure.Payments;
 using PetSpa.Infrastructure.Persistence;
@@ -98,6 +99,7 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentQueryRepository, AppointmentQueryRepository>();
         services.AddScoped<IAppointmentChangeRepository, AppointmentChangeRepository>();
         services.AddScoped<ICostConfirmationRepository, CostConfirmationRepository>();
+        services.AddScoped<IAutoCancelRepository, AutoCancelRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
         services.AddScoped<ISpaProgressRepository, SpaProgressRepository>();
 
@@ -117,6 +119,7 @@ public static class DependencyInjection
         services.AddSingleton<IPaymentGateway, VnpayPaymentGateway>();
         services.AddSingleton<IStoreTimeZoneProvider, StoreTimeZoneProvider>();
         services.AddScoped<IConcurrencyGuard, PostgresConcurrencyGuard>();
+        services.AddHostedService<AutoCancelBackgroundService>();
         return services;
     }
 }

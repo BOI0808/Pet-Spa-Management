@@ -14,4 +14,12 @@ public class PaymentTransaction
     public bool? SignatureValid { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CallbackAt { get; set; }
+
+    public void RecordCallback(decimal confirmedAmount, bool success, DateTimeOffset callbackAt)
+    {
+        ConfirmedAmount = confirmedAmount;
+        Result = success ? TransactionResult.Success : TransactionResult.Failed;
+        SignatureValid = true;
+        CallbackAt = callbackAt;
+    }
 }

@@ -3,6 +3,7 @@ import type {
   AppointmentType,
   CancelReason,
   NotificationType,
+  PaymentGateway,
   PaymentKind,
   PaymentMethod,
   PaymentStatus,
@@ -86,6 +87,12 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   Cash: "Tiền mặt",
   BankQR: "Chuyển khoản QR",
   Online: "Trực tuyến",
+};
+
+/** Tên cổng trong câu “… qua VNPAY lúc …” (CW-09 vùng 9) – UI-Screens mục 3, `Gateway`. */
+export const PAYMENT_GATEWAY_LABELS: Record<PaymentGateway, string> = {
+  VNPAY: "VNPAY",
+  MoMo: "Ví MoMo",
 };
 
 /**

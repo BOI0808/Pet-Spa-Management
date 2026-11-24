@@ -58,6 +58,13 @@ export function formatWeekdayShort(date: string) {
   return WEEKDAYS_SHORT[weekdayIndex(date)];
 }
 
+const WEEKDAYS_LONG = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+
+/** “2026-10-06” → “Thứ ba” (tiêu đề MW-02). */
+export function formatWeekdayLong(date: string) {
+  return WEEKDAYS_LONG[weekdayIndex(date)];
+}
+
 /** “2026-10-06” → “06/10”. */
 export function formatDayMonth(date: string) {
   const [, month, day] = date.split("-");

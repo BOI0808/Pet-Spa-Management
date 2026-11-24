@@ -21,7 +21,7 @@ type AppointmentHeaderCardProps = { appointment: AppointmentDetail };
 
 /**
  * MW-05 vùng 1 (đầu trang + thao tác) – UI-Screens.md. Thẻ 148 làm nút “Hủy lịch” và “Đổi lịch” (FR-CHG-03);
- * các vùng còn lại của MW-05 do thẻ 147 (giám sát, ảnh minh chứng) và 149 (cập nhật trạng thái) làm.
+ * vùng 2, 3, 4 do thẻ 147 (giám sát, ảnh minh chứng) làm ở các component cùng thư mục; thẻ 149 làm vùng 7 (cập nhật trạng thái).
  */
 export function AppointmentHeaderCard({ appointment }: AppointmentHeaderCardProps) {
   const [dialog, setDialog] = useState<"cancel" | "change" | null>(null);

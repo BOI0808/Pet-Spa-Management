@@ -8,6 +8,7 @@ import type {
   ConfirmHotelRequest,
   ConfirmSpaRequest,
   HotelSuggestions,
+  Photo,
   RejectResult,
   SpaSuggestions,
   StatusResult,
@@ -17,11 +18,20 @@ import type {
 export type AppointmentListParams = {
   type?: AppointmentType;
   status?: AppointmentStatus;
+  /**
+   * Ngày hẹn dạng `YYYY-MM-DD` theo múi giờ cửa hàng. Lịch spa: theo giờ bắt đầu; lịch lưu trú: có ngày nhận hoặc ngày trả
+   * (dự kiến hoặc thực tế) trong ngày đó.
+   */
+  date?: string;
   page?: number;
   pageSize?: number;
 };
 
-/** GET /appointments – Quản lý thấy lịch của mọi khách; sắp theo thời điểm tạo, cũ trước (FR-ASG-01). */
+/**
+ * GET /appointments – Quản lý thấy lịch của mọi khách (FR-ASG-01, FR-EXE-08). Không truyền `sort` thì backend tự chọn:
+ * có `date` hoặc `status` Đã xác nhận/Đã tiếp nhận/Đang thực hiện/Đang lưu trú → giờ hẹn tăng dần; Hoàn tất/Đã hủy → giờ hẹn giảm dần;
+ * còn lại → mới tạo trước.
+ */
 export async function listAppointments(params: AppointmentListParams = {}) {
   const { data } = await apiClient.get<AppointmentPage>("/appointments", { params });
   return data;
@@ -111,5 +121,14 @@ export async function cancelAppointment({ appointmentId, reason }: { appointment
  */
 export async function updateAppointment({ appointmentId, body }: { appointmentId: string; body: UpdateAppointmentRequest }) {
   const { data } = await apiClient.put<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}`, body);
+  return data;
+}
+
+/**
+ * GET /appointments/{id}/photos – FR-EXE-09. Quản lý xem ảnh của mọi lịch; backend trả URL tạm thời (hạn 1 giờ) cho từng ảnh.
+ * Lịch chưa có ảnh trả mảng rỗng.
+ */
+export async function listAppointmentPhotos(appointmentId: string) {
+  const { data } = await apiClient.get<Photo[]>(`/appointments/${encodeURIComponent(appointmentId)}/photos`);
   return data;
 }
