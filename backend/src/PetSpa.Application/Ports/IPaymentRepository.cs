@@ -23,4 +23,6 @@ public interface IPaymentRepository
     Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default);
 
     void Add(Payment payment);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

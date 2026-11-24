@@ -62,6 +62,8 @@ public class PaymentServiceTests
 
         public void Add(Payment payment) => throw new NotImplementedException();
 
+        public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
+
         public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default)
         {
             Transactions.Add(transaction);

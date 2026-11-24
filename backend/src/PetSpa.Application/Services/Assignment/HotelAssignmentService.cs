@@ -9,7 +9,9 @@ namespace PetSpa.Application.Services.Assignment;
 public sealed class HotelAssignmentService(
     IHotelAssignmentRepository assignments,
     IStoreTimeZoneProvider timeZoneProvider,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    IHotelCatalogRepository hotelCatalog,
+    IPaymentRepository payments)
 {
     public async Task<Cage?> SuggestCageAsync(Guid appointmentId, CancellationToken ct = default)
     {
@@ -63,6 +65,22 @@ public sealed class HotelAssignmentService(
             }
 
             found.Appointment.AssignCage(cage, found.Species);
+
+            // Hình thành khoản thanh toán Stay (FR-PAY-01, BR-07): tính tiền theo số đêm, loài, nhóm kích cỡ.
+            var nights = PricingService.CountNights(
+                found.Appointment.PlannedCheckIn, found.Appointment.PlannedCheckOut, timeZoneProvider.GetStoreTimeZone());
+            var hotelPricing = await hotelCatalog.GetPricingAsync(ct);
+            var amount = PricingService.CalculateStayAmount(
+                nights, found.Species, found.Appointment.SizeGroup, hotelPricing.Pricing);
+
+            payments.Add(new Payment
+            {
+                PaymentId = Guid.NewGuid(),
+                AppointmentId = appointmentId,
+                Kind = PaymentKind.Stay,
+                Amount = amount,
+            });
+            await payments.SaveChangesAsync(ct);
 
             return found.Appointment.Status;
         }, ct);

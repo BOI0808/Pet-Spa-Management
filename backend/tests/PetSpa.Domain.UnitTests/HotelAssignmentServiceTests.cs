@@ -1,3 +1,4 @@
+using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Services.Assignment;
 using PetSpa.Domain.Entities;
@@ -95,7 +96,32 @@ public class HotelAssignmentServiceTests
         public Task LockPaymentAsync(Guid paymentId, CancellationToken ct = default) => Task.CompletedTask;
     }
 
+    private sealed class FakeHotelCatalogRepository : IHotelCatalogRepository
+    {
+        public HotelPricingSnapshot Pricing { get; set; } = new(
+            [
+                new HotelPricing { Species = Species.Dog, SizeGroup = SizeGroup.Small, PricePerNight = 100_000m, FoodPerNight = 30_000m },
+                new HotelPricing { Species = Species.Cat, SizeGroup = SizeGroup.Small, PricePerNight = 80_000m, FoodPerNight = 20_000m }
+            ],
+            50_000m);
+
+        public Task AddCageAsync(Cage cage, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> UpdateCageAsync(Guid cageId, string? code, Species? species, SizeGroup? sizeGroup, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> SetCageActiveAsync(Guid cageId, bool isActive, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<PagedResult<CageStatus>> ListCagesAsync(int page, int pageSize, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<HotelPricingSnapshot> GetPricingAsync(CancellationToken ct = default) => Task.FromResult(Pricing);
+        public Task<IReadOnlyList<SizeRule>> GetSizeRulesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public Task SavePricingAsync(IReadOnlyList<HotelPricing> pricing, decimal lateFeePerBlock, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
     private static (HotelAssignmentService service, FakeHotelAssignmentRepository repository, FakeConcurrencyGuard guard) CreateService(
+        HotelAppointment? stay = null)
+    {
+        var (s, r, g, _) = CreateServiceWithPayments(stay);
+        return (s, r, g);
+    }
+
+    private static (HotelAssignmentService service, FakeHotelAssignmentRepository repository, FakeConcurrencyGuard guard, FakeStayPaymentRepository payments) CreateServiceWithPayments(
         HotelAppointment? stay = null)
     {
         var repository = new FakeHotelAssignmentRepository
@@ -103,8 +129,11 @@ public class HotelAssignmentServiceTests
             Found = new HotelAppointmentWithSpecies(stay ?? Stay(), Species.Dog),
         };
         var guard = new FakeConcurrencyGuard();
-        var service = new HotelAssignmentService(repository, new FakeTimeZoneProvider(StoreTimeZone), guard);
-        return (service, repository, guard);
+        var catalog = new FakeHotelCatalogRepository();
+        var payments = new FakeStayPaymentRepository();
+        var service = new HotelAssignmentService(
+            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, catalog, payments);
+        return (service, repository, guard, payments);
     }
 
     private static async Task AssertCodeAsync(string expected, Func<Task> action)
@@ -273,7 +302,8 @@ public class HotelAssignmentServiceTests
             AppointmentResult = spaAppointment
         };
         var guard = new FakeConcurrencyGuard();
-        var service = new HotelAssignmentService(repository, new FakeTimeZoneProvider(StoreTimeZone), guard);
+        var service = new HotelAssignmentService(
+            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, new FakeHotelCatalogRepository(), new FakeStayPaymentRepository());
 
         var result = await service.RejectAsync(spaAppointment.AppointmentId);
 
@@ -281,6 +311,26 @@ public class HotelAssignmentServiceTests
         Assert.Equal(CancelReason.StoreUnable, result.Reason);
         Assert.Equal(AppointmentStatus.Cancelled, spaAppointment.Status);
         Assert.Equal(spaAppointment.AppointmentId, guard.LockedAppointmentId);
+    }
+
+    [Fact]
+    public async Task Confirm_WhenValid_CreatesStayPaymentWithUnpaidStatus()
+    {
+        var (service, repository, _, payments) = CreateServiceWithPayments();
+        var cage = CageOf("A1");
+        repository.CageResult = cage;
+
+        var status = await service.ConfirmAsync(AppointmentId, cage.CageId);
+
+        Assert.Equal(AppointmentStatus.Confirmed, status);
+        var payment = Assert.Single(payments.Payments);
+        Assert.Equal(AppointmentId, payment.AppointmentId);
+        Assert.Equal(PaymentKind.Stay, payment.Kind);
+        Assert.Equal(PaymentStatus.Unpaid, payment.Status);
+        // PlannedCheckIn is Nov 10, PlannedCheckOut is Nov 12 -> 2 nights.
+        // Dog Small: PricePerNight 100_000 + FoodPerNight 30_000 = 130_000 per night.
+        // Total: 2 * 130_000 = 260_000.
+        Assert.Equal(260_000m, payment.Amount);
     }
 
     [Fact]

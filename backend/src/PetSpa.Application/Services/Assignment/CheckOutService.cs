@@ -51,6 +51,7 @@ public sealed class CheckOutService(
                         Amount = amount,
                     };
                     payments.Add(lateFee);
+                    await payments.SaveChangesAsync(ct);
                 }
             }
 

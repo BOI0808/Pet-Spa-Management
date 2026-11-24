@@ -8,7 +8,14 @@ namespace PetSpa.Infrastructure.Persistence.Repositories;
 
 public sealed class PaymentAmountRepository(AppDbContext db) : IPaymentAmountRepository
 {
-    public async Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default)
+    public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
+        GetSpaInternalAsync(appointmentId, null, ct);
+
+    public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default) =>
+        GetSpaInternalAsync(appointmentId, serviceIds, ct);
+
+    private async Task<SpaAmountSnapshot?> GetSpaInternalAsync(
+        Guid appointmentId, IReadOnlyList<Guid>? serviceIds, CancellationToken ct)
     {
         var appointment = await db.Set<SpaAppointment>().AsNoTracking()
             .Where(a => a.AppointmentId == appointmentId)
@@ -18,18 +25,18 @@ public sealed class PaymentAmountRepository(AppDbContext db) : IPaymentAmountRep
 
         var species = await GetSpeciesAsync(appointment.PetId, ct);
 
-        var serviceIds = await db.Set<AppointmentService>().AsNoTracking()
+        var actualServiceIds = serviceIds ?? await db.Set<AppointmentService>().AsNoTracking()
             .Where(s => s.AppointmentId == appointmentId)
             .Select(s => s.ServiceId)
             .ToListAsync(ct);
 
         var pricing = await db.Set<ServicePricing>().AsNoTracking()
-            .Where(p => serviceIds.Contains(p.ServiceId)
+            .Where(p => actualServiceIds.Contains(p.ServiceId)
                 && p.Species == species
                 && p.SizeGroup == appointment.SizeGroup)
             .ToListAsync(ct);
 
-        return new SpaAmountSnapshot(species, appointment.SizeGroup, appointment.Status, serviceIds, pricing);
+        return new SpaAmountSnapshot(species, appointment.SizeGroup, appointment.Status, actualServiceIds, pricing);
     }
 
     public async Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default)

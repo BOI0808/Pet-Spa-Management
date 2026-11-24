@@ -59,6 +59,9 @@ public sealed class PaymentRepository(AppDbContext db) : IPaymentRepository
     public void Add(Payment payment) =>
         db.Set<Payment>().Add(payment);
 
+    public Task SaveChangesAsync(CancellationToken ct = default) =>
+        db.SaveChangesAsync(ct);
+
     public async Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default)
     {
         db.Set<PaymentTransaction>().Add(transaction);
