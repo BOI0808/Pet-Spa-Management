@@ -125,6 +125,10 @@ public class SpaProgressServiceTests
         public Task<AppointmentService?> FindServiceAsync(Guid appointmentId, Guid serviceId, CancellationToken ct = default) =>
             Task.FromResult(Lines.FirstOrDefault(l => l.AppointmentId == appointmentId && l.ServiceId == serviceId));
 
+        public Task<IReadOnlyList<SpaServiceProgressLine>> ListServiceLinesAsync(Guid appointmentId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SpaServiceProgressLine>>(
+                Lines.Where(l => l.AppointmentId == appointmentId).Select(l => new SpaServiceProgressLine(l.ServiceId, l.IsDone)).ToList());
+
         public Task<bool> AreAllServicesDoneAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult(Lines.Count > 0 && Lines.All(l => l.IsDone));
 
@@ -165,6 +169,9 @@ public class SpaProgressServiceTests
         public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
             Task.FromResult(Snapshot);
 
+        public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default) =>
+            Task.FromResult(Snapshot);
+
         public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
             throw new NotImplementedException();
 
@@ -198,6 +205,7 @@ public class SpaProgressServiceTests
         public FakeProgressRepository Progress { get; } = new();
         public FakeChangeRepository Changes { get; } = new();
         public FakePaymentAmountRepository Amounts { get; } = new();
+        public FakeStayPaymentRepository Payments { get; } = new();
         public FakeConcurrencyGuard Guard { get; } = new();
         public SpaProgressService Sut { get; }
 
@@ -226,7 +234,7 @@ public class SpaProgressServiceTests
 
             var photoService = new AppointmentPhotoService(Query, Photos, new FakePhotoStorage(), Roles, Guard);
             Sut = new SpaProgressService(
-                Assignments, Query, Roles, photoService, Photos, Progress, Changes, Amounts, Guard);
+                Assignments, Query, Roles, photoService, Photos, Progress, Changes, Amounts, Payments, Guard);
         }
     }
 
@@ -409,7 +417,7 @@ public class SpaProgressServiceTests
         Assert.Equal(AppointmentStatus.Completed, f.Assignments.Appointment!.Status);
         Assert.Equal(AppointmentId, Assert.Single(f.Changes.ReleasedFor));
 
-        var payment = Assert.Single(f.Progress.Payments);
+        var payment = Assert.Single(f.Payments.Payments);
         Assert.Equal(AppointmentId, payment.AppointmentId);
         Assert.Equal(PaymentKind.Spa, payment.Kind);
         Assert.Equal(PaymentStatus.Unpaid, payment.Status);
@@ -425,7 +433,7 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));
         Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
-        Assert.Empty(f.Progress.Payments);
+        Assert.Empty(f.Payments.Payments);
     }
 
     [Fact]
@@ -437,7 +445,7 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));
         Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
-        Assert.Empty(f.Progress.Payments);
+        Assert.Empty(f.Payments.Payments);
     }
 
     [Fact]
@@ -449,7 +457,7 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.PhotoRequired, () => f.Sut.CompleteAsync(SpaStaffUser, AppointmentId));
         Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
-        Assert.Empty(f.Progress.Payments);
+        Assert.Empty(f.Payments.Payments);
     }
 
     [Theory]
@@ -490,7 +498,7 @@ public class SpaProgressServiceTests
         var status = await f.Sut.CompleteAsync(ManagerUser, AppointmentId);
 
         Assert.Equal(AppointmentStatus.Completed, status);
-        var payment = Assert.Single(f.Progress.Payments);
+        var payment = Assert.Single(f.Payments.Payments);
         Assert.Equal(PaymentKind.Spa, payment.Kind);
     }
 
@@ -517,7 +525,7 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.ServicesIncomplete, () => f.Sut.CompleteAsync(ManagerUser, AppointmentId));
         Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
-        Assert.Empty(f.Progress.Payments);
+        Assert.Empty(f.Payments.Payments);
     }
 
     [Fact]
@@ -531,7 +539,7 @@ public class SpaProgressServiceTests
 
         await AssertCodeAsync(ErrorCodes.PhotoRequired, () => f.Sut.CompleteAsync(ManagerUser, AppointmentId));
         Assert.Equal(AppointmentStatus.InProgress, f.Assignments.Appointment!.Status);
-        Assert.Empty(f.Progress.Payments);
+        Assert.Empty(f.Payments.Payments);
     }
 
     [Fact]

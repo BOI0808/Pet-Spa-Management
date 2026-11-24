@@ -21,6 +21,8 @@ internal sealed class FakeStayPaymentRepository : IPaymentRepository
 
     public void Add(Payment payment) => Payments.Add(payment);
 
+    public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
+
     public Task<PagedResult<Payment>> ListAsync(
         PaymentStatus? status, int page, int pageSize, CancellationToken ct = default) =>
         throw new NotImplementedException();

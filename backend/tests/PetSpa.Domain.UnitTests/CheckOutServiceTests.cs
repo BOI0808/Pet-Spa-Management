@@ -42,6 +42,9 @@ public class CheckOutServiceTests
         public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, CancellationToken ct = default) =>
             throw new NotImplementedException();
 
+        public Task<SpaAmountSnapshot?> GetSpaAsync(Guid appointmentId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
         public Task<StayAmountSnapshot?> GetStayAsync(Guid appointmentId, CancellationToken ct = default) =>
             throw new NotImplementedException();
 
