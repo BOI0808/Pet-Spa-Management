@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   cancelAppointment,
   confirmHotelAppointment,
@@ -6,12 +6,14 @@ import {
   getAppointment,
   getHotelSuggestions,
   getSpaSuggestions,
+  listAppointmentPhotos,
   listAppointments,
   rejectAppointment,
   updateAppointment,
+  type AppointmentListParams,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
-import type { Appointment } from "@/lib/api/types";
+import type { Appointment, AppointmentDetail, AppointmentStatus, AppointmentType, Photo } from "@/lib/api/types";
 
 // Backend giới hạn `pageSize` tối đa 100 và luôn sắp theo `CreatedAt` tăng dần;
 // tạm tải hết các trang `Pending` (tối đa 1.000 lịch) để web sắp theo giờ hẹn gần nhất, đếm đúng và tìm đủ `?appointmentId=`.
@@ -35,7 +37,21 @@ export const appointmentKeys = {
   pendingCount: () => [...appointmentKeys.all, "pending-count"] as const,
   suggestions: (appointmentId: string) => [...appointmentKeys.all, "suggestions", appointmentId] as const,
   detail: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId] as const,
+  list: (params: AppointmentListParams) => [...appointmentKeys.all, "list", params] as const,
+  photos: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId, "photos"] as const,
+  count: (params: AppointmentCountParams) => [...appointmentKeys.all, "count", params] as const,
+  today: (type: AppointmentType, date: string) => [...appointmentKeys.all, "today", type, date] as const,
 };
+
+/** Số dòng mỗi trang của bảng MW-03 (UI-Screens MW-03 vùng 2). */
+export const APPOINTMENT_LIST_PAGE_SIZE = 20;
+
+// MW-02 làm mới 60 giây/lần khi tab đang hiển thị (Frontend-Architecture 5.1). Backend giới hạn `pageSize` tối đa 100;
+// một ngày của cửa hàng không có nhiều hơn 100 lịch mỗi loại.
+const DASHBOARD_REFRESH_MS = 60_000;
+const TODAY_PAGE_SIZE = 100;
+
+type AppointmentCountParams = { type?: AppointmentType; status?: AppointmentStatus };
 
 async function fetchAllPendingAppointments(): Promise<PendingAppointmentsResult> {
   const firstPage = await listAppointments({
@@ -142,11 +158,44 @@ export function useSpaSuggestions(appointmentId: string) {
   });
 }
 
-/** Chi tiết lịch hẹn (MW-04 dùng `services` của lịch spa để nêu tên dịch vụ và tính tạm tính). */
-export function useAppointmentDetail(appointmentId: string) {
+// Lịch đang ở cửa hàng hoặc sắp đến thay đổi theo tiến độ chăm sóc: chi tiết tải lại 30 giây/lần (Frontend-Architecture 5.1).
+const LIVE_DETAIL_REFETCH_MS = 30_000;
+const LIVE_STATUSES: readonly AppointmentStatus[] = ["Confirmed", "Received", "InProgress"];
+
+type AppointmentDetailOptions = {
+  /** `false` cho dòng MW-03 chưa cần nhân viên phụ trách (lịch chờ xác nhận, đã hủy, lưu trú). */
+  enabled?: boolean;
+  /** Tải lại định kỳ khi lịch đang ở cửa hàng; chỉ bật ở MW-05, danh sách không cần. */
+  live?: boolean;
+};
+
+/** Chi tiết lịch hẹn (MW-04 dùng `services` của lịch spa để nêu tên dịch vụ và tính tạm tính; MW-05 theo dõi tiến độ). */
+export function useAppointmentDetail(appointmentId: string, { enabled = true, live = false }: AppointmentDetailOptions = {}) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: appointmentKeys.detail(appointmentId),
-    queryFn: () => getAppointment(appointmentId),
+    queryFn: async () => {
+      const previous = queryClient.getQueryData<AppointmentDetail>(appointmentKeys.detail(appointmentId));
+      const next = await getAppointment(appointmentId);
+      // Đổi trạng thái (vd. vừa tiếp nhận) thì ảnh minh chứng có thể vừa phát sinh: tải lại.
+      if (previous && previous.status !== next.status) {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.photos(appointmentId), exact: true });
+      }
+      return next;
+    },
+    enabled,
+    refetchInterval: (query) =>
+      live && query.state.data && LIVE_STATUSES.includes(query.state.data.status) ? LIVE_DETAIL_REFETCH_MS : false,
+  });
+}
+
+/** Một trang lịch hẹn toàn cửa hàng cho MW-03; giữ trang cũ trên màn hình trong lúc tải trang mới. */
+export function useAppointmentList(params: Omit<AppointmentListParams, "pageSize">) {
+  const listParams = { ...params, pageSize: APPOINTMENT_LIST_PAGE_SIZE };
+  return useQuery({
+    queryKey: appointmentKeys.list(listParams),
+    queryFn: () => listAppointments(listParams),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -251,5 +300,119 @@ export function useUpdateAppointment() {
     onError: (error) => {
       if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
     },
+  });
+}
+
+// URL ảnh do backend ký có hạn 1 giờ. Tải lại danh sách ảnh sẽ ra URL mới làm trình duyệt tải lại ảnh, nên nhớ URL cũ
+// và dùng lại tối đa 40 phút; ảnh không hiển thị được (URL hết hạn) thì gọi `refreshUrls` để lấy URL mới.
+const PHOTO_URL_REUSE_MS = 40 * 60_000;
+const photoUrlCache = new Map<string, { url: string; fetchedAt: number }>();
+
+/** Bỏ các URL đã quá thời gian dùng lại để bộ nhớ không lớn dần khi Quản lý xem nhiều lịch. */
+function pruneExpiredPhotoUrls(now: number) {
+  for (const [photoId, entry] of photoUrlCache) {
+    if (now - entry.fetchedAt >= PHOTO_URL_REUSE_MS) photoUrlCache.delete(photoId);
+  }
+}
+
+/**
+ * Thời gian dữ liệu còn mới tính theo URL cũ nhất trong danh sách, không theo lúc tải lại, vì lần tải lại có thể giữ
+ * URL ký từ trước: URL ký phút 0, tải lại phút 35 thì dữ liệu chỉ còn mới tới phút 40, không phải phút 75.
+ */
+function photoStaleTime(photos: Photo[] | undefined, dataUpdatedAt: number) {
+  if (!photos || photos.length === 0) return PHOTO_URL_REUSE_MS;
+  const oldest = Math.min(...photos.map((photo) => photoUrlCache.get(photo.photoId)?.fetchedAt ?? dataUpdatedAt));
+  return Math.max(0, oldest + PHOTO_URL_REUSE_MS - dataUpdatedAt);
+}
+
+const PHOTO_KIND_ORDER = { Before: 0, After: 1 } as const;
+
+function sortPhotos(photos: Photo[]) {
+  return [...photos].sort(
+    (a, b) => PHOTO_KIND_ORDER[a.kind] - PHOTO_KIND_ORDER[b.kind] || Date.parse(a.uploadedAt) - Date.parse(b.uploadedAt),
+  );
+}
+
+type AppointmentPhotosOptions = {
+  enabled?: boolean;
+  /** Trạng thái lịch hiện tại: lịch đang ở cửa hàng thì tải lại định kỳ để ảnh mới hiện ra (FR-EXE-08, FR-EXE-09). */
+  liveStatus?: AppointmentStatus;
+};
+
+/** GET /appointments/{id}/photos – FR-EXE-09. Ảnh xếp Trước rồi Sau, cùng loại theo thời gian tải lên. */
+export function useAppointmentPhotos(appointmentId: string, { enabled = true, liveStatus }: AppointmentPhotosOptions = {}) {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: appointmentKeys.photos(appointmentId),
+    queryFn: async () => {
+      // Lấy mốc trước khi gọi: URL được ký sau mốc này nên tính hạn sớm hơn một chút, không bao giờ muộn hơn.
+      const now = Date.now();
+      pruneExpiredPhotoUrls(now);
+      const photos = await listAppointmentPhotos(appointmentId);
+      return sortPhotos(
+        photos.map((photo): Photo => {
+          const cached = photoUrlCache.get(photo.photoId);
+          if (cached && now - cached.fetchedAt < PHOTO_URL_REUSE_MS) return { ...photo, url: cached.url };
+          photoUrlCache.set(photo.photoId, { url: photo.url, fetchedAt: now });
+          return photo;
+        }),
+      );
+    },
+    enabled,
+    // URL cũ nhất quá 40 phút thì coi là cũ để lần mở lại màn lấy URL mới trước khi URL hết hạn.
+    staleTime: (current) => photoStaleTime(current.state.data, current.state.dataUpdatedAt),
+    refetchInterval: liveStatus && LIVE_STATUSES.includes(liveStatus) ? LIVE_DETAIL_REFETCH_MS : false,
+  });
+
+  /**
+   * Bỏ URL đã nhớ của lịch này rồi tải lại. Nhiều ảnh cùng hết hạn sẽ gọi hàm này gần như cùng lúc:
+   * `cancelRefetch: false` để các lần sau dùng chung lần tải đang chạy thay vì hủy và gửi lại request.
+   */
+  function refreshUrls() {
+    query.data?.forEach((photo) => photoUrlCache.delete(photo.photoId));
+    void queryClient.invalidateQueries(
+      { queryKey: appointmentKeys.photos(appointmentId), exact: true },
+      { cancelRefetch: false },
+    );
+  }
+
+  return { ...query, refreshUrls };
+}
+
+/** Số lịch theo loại và trạng thái (chỉ cần `total` nên xin 1 dòng) cho thẻ số liệu MW-02. */
+export function useAppointmentCount(params: AppointmentCountParams) {
+  return useQuery({
+    queryKey: appointmentKeys.count(params),
+    queryFn: async () => (await listAppointments({ ...params, page: 1, pageSize: 1 })).total,
+    refetchInterval: DASHBOARD_REFRESH_MS,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * Lịch của một loại trong ngày `date` (“YYYY-MM-DD”, múi giờ cửa hàng) cho MW-02, giờ hẹn tăng dần.
+ * Lịch lưu trú gồm cả lịch có ngày nhận hoặc ngày trả trong ngày đó.
+ */
+export function useTodayAppointments(type: AppointmentType, date: string) {
+  return useQuery({
+    queryKey: appointmentKeys.today(type, date),
+    queryFn: () => listAppointments({ type, date, page: 1, pageSize: TODAY_PAGE_SIZE }),
+    refetchInterval: DASHBOARD_REFRESH_MS,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * Chi tiết nhiều lịch cùng lúc để biết nhân viên phụ trách (UI-Screens G-05: danh sách chưa trả tên nhân viên; chỉ gọi cho lịch trong ngày).
+ * Dùng chung khóa cache với `useAppointmentDetail`.
+ */
+export function useAppointmentDetails(appointmentIds: readonly string[]) {
+  return useQueries({
+    queries: appointmentIds.map((appointmentId) => ({
+      queryKey: appointmentKeys.detail(appointmentId),
+      queryFn: () => getAppointment(appointmentId),
+      refetchInterval: DASHBOARD_REFRESH_MS,
+      refetchIntervalInBackground: false,
+    })),
   });
 }

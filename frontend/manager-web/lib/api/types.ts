@@ -129,6 +129,17 @@ export type StaffPage = {
   items: StaffMember[];
 };
 
+/** Một ca làm của nhân viên spa trong `items` của GET /work-shifts (schema WorkShift). */
+export type WorkShift = {
+  shiftId: string;
+  staffId: string;
+  shiftStart: string;
+  shiftEnd: string;
+};
+
+/** Phản hồi của GET /work-shifts. */
+export type WorkShiftPage = Page<WorkShift>;
+
 /** Body của POST /staff. Không có `role`: backend luôn đặt Role = Staff (API-Notes 3). */
 export type StaffCreateRequest = {
   userName: string;
@@ -165,7 +176,7 @@ export type PageInfo = { page: number; pageSize: number; total: number };
 export type Page<T> = PageInfo & { items: T[] };
 
 /**
- * Một dòng của GET /appointments (schema Appointment). Chỉ khai báo các trường MW-04 dùng;
+ * Một dòng của GET /appointments (schema Appointment). Chỉ khai báo các trường MW-03, MW-04 dùng;
  * thêm trường khi màn khác cần. `customerName`, `petName` là trường đề xuất của openapi nhưng backend đã trả.
  * Lịch Spa có `slotStart`/`slotEnd`; lịch Hotel có `plannedCheckIn`/`plannedCheckOut`.
  */
@@ -182,6 +193,11 @@ export type Appointment = {
   slotEnd?: string | null;
   plannedCheckIn?: string | null;
   plannedCheckOut?: string | null;
+  /** Chỉ lịch lưu trú; mã chuồng cần `GET /cages` (thẻ 150), MW-03 chỉ dùng để biết đã gán chuồng hay chưa. */
+  cageId?: string | null;
+  /** Lý do hủy khi `status = Cancelled` (MW-03 hiện ở dòng phụ của cột Trạng thái). */
+  cancelReason?: CancelReason | null;
+  cancelledAt?: string | null;
   createdAt: string;
 };
 
@@ -278,10 +294,21 @@ export type AppointmentStaffItem = {
 export type AppointmentDetail = Appointment & {
   services?: AppointmentServiceItem[];
   staff?: AppointmentStaffItem[];
-  cancelReason?: CancelReason | null;
-  cancelledAt?: string | null;
+  /** Yêu cầu xác nhận chi phí mới đang chờ khách (FR-EXE-10, FR-EXE-11); `null` hoặc vắng mặt khi không có. Chỉ khai báo `expiresAt` MW-03, MW-02 dùng. */
+  pendingCostConfirmation?: { expiresAt: string } | null;
   /** Số nhân viên cần của lịch spa. */
   staffRequired?: number | null;
+};
+
+// ── Ảnh minh chứng (FR-EXE-09) ──
+export type PhotoKind = "Before" | "After";
+
+/** Một ảnh trong `GET /appointments/{id}/photos`; `url` là URL tạm thời (backend ký có hạn 1 giờ). */
+export type Photo = {
+  photoId: string;
+  kind: PhotoKind;
+  url: string;
+  uploadedAt: string;
 };
 
 /** Body của POST /appointments/{id}/cancel khi Quản lý gọi: bắt buộc có `reason` (schema CancelRequest). */
