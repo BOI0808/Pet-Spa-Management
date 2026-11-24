@@ -10,11 +10,18 @@ export const workShiftKeys = {
   day: (date: string) => [...workShiftKeys.all, "day", date] as const,
 };
 
+export type WorkShiftQueryOptions = {
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+};
+
 /** Các ca làm giao với một ngày theo múi giờ cửa hàng (`date` dạng “YYYY-MM-DD”), cho biểu đồ tiến độ MW-02. */
-export function useWorkShiftsOfDay(date: string) {
+export function useWorkShiftsOfDay(date: string, options?: WorkShiftQueryOptions) {
   return useQuery({
     queryKey: workShiftKeys.day(date),
     queryFn: () =>
       listWorkShifts({ from: toStoreIso(date, "00:00"), to: toStoreIso(date, "23:59"), page: 1, pageSize: SHIFT_PAGE_SIZE }),
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
   });
 }

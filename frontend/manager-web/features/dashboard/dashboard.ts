@@ -127,6 +127,14 @@ function isoToMinutesOfDay(iso: string): number {
   return h * 60 + m;
 }
 
+/** So sánh ngày của ca làm với ngày hiển thị để tính phút: ngày trước tính là 0, ngày sau tính là 24×60. */
+function shiftTimeToMinutes(iso: string, targetDate: string): number {
+  const d = toStoreDate(iso);
+  if (d < targetDate) return 0;
+  if (d > targetDate) return 24 * 60;
+  return isoToMinutesOfDay(iso);
+}
+
 /**
  * Xây dựng dữ liệu cho biểu đồ tiến độ spa theo nhân viên (MW-02 vùng 3):
  * - Mỗi nhân viên spa một hàng (nhân viên đang hoạt động xếp trước theo tên; nhân viên vô hiệu hóa có lịch xếp sau).
@@ -135,6 +143,7 @@ function isoToMinutesOfDay(iso: string): number {
  * - Lịch Đã hủy không vẽ.
  */
 export function buildChartData({
+  date,
   staff,
   shifts,
   appointments,
@@ -198,9 +207,9 @@ export function buildChartData({
     if (row.id === UNASSIGNED_ROW_ID) continue;
     const staffShifts = shifts.filter((s) => s.staffId === row.id);
     for (const shift of staffShifts) {
-      const startMin = isoToMinutesOfDay(shift.shiftStart);
-      const endMin = isoToMinutesOfDay(shift.shiftEnd);
-      if (endMin <= START_MINUTE || startMin >= END_MINUTE) continue;
+      const startMin = shiftTimeToMinutes(shift.shiftStart, date);
+      const endMin = shiftTimeToMinutes(shift.shiftEnd, date);
+      if (endMin <= START_MINUTE || startMin >= END_MINUTE || startMin >= endMin) continue;
       const clampedStart = Math.max(START_MINUTE, startMin);
       const clampedEnd = Math.min(END_MINUTE, endMin);
       const leftPct = ((clampedStart - START_MINUTE) / TOTAL_MINUTES) * 100;

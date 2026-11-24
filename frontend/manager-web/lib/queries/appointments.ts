@@ -158,9 +158,9 @@ export function useSpaSuggestions(appointmentId: string) {
   });
 }
 
-// Lịch đang ở cửa hàng thay đổi theo tiến độ chăm sóc: chi tiết tải lại 30 giây/lần (Frontend-Architecture 5.1).
+// Lịch đang ở cửa hàng hoặc sắp đến thay đổi theo tiến độ chăm sóc: chi tiết tải lại 30 giây/lần (Frontend-Architecture 5.1).
 const LIVE_DETAIL_REFETCH_MS = 30_000;
-const LIVE_STATUSES: readonly AppointmentStatus[] = ["Received", "InProgress"];
+const LIVE_STATUSES: readonly AppointmentStatus[] = ["Confirmed", "Received", "InProgress"];
 
 type AppointmentDetailOptions = {
   /** `false` cho dòng MW-03 chưa cần nhân viên phụ trách (lịch chờ xác nhận, đã hủy, lưu trú). */

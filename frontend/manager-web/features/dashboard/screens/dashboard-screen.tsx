@@ -26,6 +26,11 @@ import { useMinuteClock } from "../use-minute-clock";
 const linkButtonClass =
   "inline-flex min-h-[40px] items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border border-lagoon bg-white px-4 font-semibold text-lagoon-700 hover:bg-lagoon-25";
 
+const DASHBOARD_REFETCH_OPTIONS = {
+  refetchInterval: 60_000,
+  refetchIntervalInBackground: false,
+} as const;
+
 /** Lịch spa đã xác nhận trở đi mới có nhân viên phụ trách (và yêu cầu xác nhận chi phí); lịch chờ xác nhận, đã hủy thì không cần chi tiết. */
 function needsDetail(appointment: Appointment) {
   return appointment.type === "Spa" && appointment.status !== "Pending" && appointment.status !== "Cancelled";
@@ -41,10 +46,10 @@ function DashboardContent({ now }: { now: number }) {
   const pendingHotel = useAppointmentCount({ status: "Pending", type: "Hotel" });
   const spaToday = useTodayAppointments("Spa", today);
   const hotelToday = useTodayAppointments("Hotel", today);
-  const staff = useStaff();
-  const shifts = useWorkShiftsOfDay(today);
-  const unpaidSummary = useUnpaidSummary();
-  const unpaidPayments = useUnpaidPayments();
+  const staff = useStaff(DASHBOARD_REFETCH_OPTIONS);
+  const shifts = useWorkShiftsOfDay(today, DASHBOARD_REFETCH_OPTIONS);
+  const unpaidSummary = useUnpaidSummary(DASHBOARD_REFETCH_OPTIONS);
+  const unpaidPayments = useUnpaidPayments(DASHBOARD_REFETCH_OPTIONS);
 
   const spaItems = spaToday.data?.items;
   const detailIds = (spaItems ?? []).filter(needsDetail).map((item) => item.appointmentId);
@@ -56,9 +61,18 @@ function DashboardContent({ now }: { now: number }) {
   const detailsLoading = detailResults.some((result) => result.isPending);
 
   // Vùng 2 – Thẻ số liệu.
+  const isPendingPending = pendingSpa.isPending || pendingHotel.isPending;
+  const isErrorPending =
+    (pendingSpa.isError && pendingSpa.data === undefined) || (pendingHotel.isError && pendingHotel.data === undefined);
   const pendingTotal = pendingSpa.data !== undefined && pendingHotel.data !== undefined ? pendingSpa.data + pendingHotel.data : undefined;
+
+  const isPendingSpa = spaToday.isPending;
+  const isErrorSpa = spaToday.isError && !spaItems;
   const spaSummary = spaItems ? summarizeSpaToday(spaItems) : undefined;
   const todayQuery = `?type=Spa&date=${today}`;
+
+  const isPendingUnpaid = unpaidSummary.isPending;
+  const isErrorUnpaid = unpaidSummary.isError && unpaidSummary.data === undefined;
 
   // Vùng 3 – Biểu đồ.
   const chart =
@@ -69,12 +83,13 @@ function DashboardContent({ now }: { now: number }) {
   const hasBlocks = chart?.rows.some((row) => row.blocks.length > 0) ?? false;
 
   // Vùng 4 – Cần chú ý.
+  const attentionError = (spaToday.isError && !spaItems) || (hotelToday.isError && !hotelToday.data);
   const attentionItems =
-    spaItems && hotelToday.data
+    (spaItems || hotelToday.data) && !attentionError
       ? buildAttentionItems({
           date: today,
-          spaAppointments: spaItems,
-          hotelAppointments: hotelToday.data.items,
+          spaAppointments: spaItems ?? [],
+          hotelAppointments: hotelToday.data?.items ?? [],
           details,
           unpaidStayAppointmentIds: new Set(
             (unpaidPayments.data ?? []).filter((payment) => payment.kind === "Stay").map((payment) => payment.appointmentId),
@@ -105,39 +120,45 @@ function DashboardContent({ now }: { now: number }) {
         <KpiTile
           icon="clipboard"
           label="Chờ xác nhận"
-          value={pendingTotal ?? kpiValueFallback}
+          value={isPendingPending ? kpiValueFallback : (pendingTotal ?? kpiValueFallback)}
           accent={pendingTotal !== undefined && pendingTotal > 0}
           href={ROUTES.pending}
           note={
-            pendingTotal === undefined
-              ? "Chưa tải được số liệu."
-              : `Spa ${pendingSpa.data}, lưu trú ${pendingHotel.data}.${pendingTotal > 0 ? " Cần bạn xử lý." : ""}`
+            isPendingPending
+              ? "Đang tải…"
+              : isErrorPending || pendingTotal === undefined
+                ? "Chưa tải được số liệu."
+                : `Spa ${pendingSpa.data}, lưu trú ${pendingHotel.data}.${pendingTotal > 0 ? " Cần bạn xử lý." : ""}`
           }
         />
         <KpiTile
           icon="droplet"
           label="Lịch spa hôm nay"
-          value={spaSummary?.total ?? kpiValueFallback}
+          value={isPendingSpa ? kpiValueFallback : (spaSummary?.total ?? kpiValueFallback)}
           href={`${ROUTES.appointments}${todayQuery}`}
           note={
-            spaSummary === undefined
-              ? "Chưa tải được số liệu."
-              : spaSummary.total === 0
-                ? "Chưa có lịch spa nào."
-                : `${spaSummary.description}.${spaToday.data && spaToday.data.total > spaToday.data.items.length ? " Chỉ tính 100 lịch đầu." : ""}`
+            isPendingSpa
+              ? "Đang tải…"
+              : isErrorSpa || spaSummary === undefined
+                ? "Chưa tải được số liệu."
+                : spaSummary.total === 0
+                  ? "Chưa có lịch spa nào."
+                  : `${spaSummary.description}.${spaToday.data && spaToday.data.total > spaToday.data.items.length ? " Chỉ tính 100 lịch đầu." : ""}`
           }
         />
         <KpiTile
           icon="wallet"
           label="Khoản chưa thanh toán"
-          value={unpaidSummary.data?.count ?? kpiValueFallback}
+          value={isPendingUnpaid ? kpiValueFallback : (unpaidSummary.data?.count ?? kpiValueFallback)}
           href={ROUTES.payments}
           note={
-            unpaidSummary.data === undefined
-              ? "Chưa tải được số liệu."
-              : unpaidSummary.data.count === 0
-                ? "Không có khoản nào."
-                : `${formatMoney(unpaidSummary.data.amount)}${unpaidSummary.data.isPartial ? " (tính trên 100 khoản đầu)" : ""}`
+            isPendingUnpaid
+              ? "Đang tải…"
+              : isErrorUnpaid || unpaidSummary.data === undefined
+                ? "Chưa tải được số liệu."
+                : unpaidSummary.data.count === 0
+                  ? "Không có khoản nào."
+                  : `${formatMoney(unpaidSummary.data.amount)}${unpaidSummary.data.isPartial ? " (tính trên 100 khoản đầu)" : ""}`
           }
         />
       </div>
@@ -175,7 +196,7 @@ function DashboardContent({ now }: { now: number }) {
         </Card>
 
         {/* Vùng 4 – Cần chú ý */}
-        <AttentionCard items={attentionItems} isError={hotelToday.isError && !hotelToday.data} />
+        <AttentionCard items={attentionItems} isError={attentionError} />
       </div>
     </>
   );

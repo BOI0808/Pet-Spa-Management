@@ -6,8 +6,18 @@ export const staffKeys = {
   all: ["staff"] as const,
 };
 
-export function useStaff() {
-  return useQuery({ queryKey: staffKeys.all, queryFn: listStaff });
+export type StaffQueryOptions = {
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+};
+
+export function useStaff(options?: StaffQueryOptions) {
+  return useQuery({
+    queryKey: staffKeys.all,
+    queryFn: listStaff,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
+  });
 }
 
 // Sau mỗi thao tác ghi tải lại danh sách (Frontend-Architecture 5.1); lỗi 409 (vd. trùng số điện thoại,
