@@ -7,9 +7,14 @@ export function formatPhone(phone: string) {
 
 const MONEY_FORMAT = new Intl.NumberFormat("vi-VN");
 
+/** 270000 → “270.000”: số tiền không kèm “đ”, để điền sẵn vào ô có hậu tố “đ” (cùng tên với manager-web). */
+export function formatAmount(amount: number) {
+  return MONEY_FORMAT.format(amount);
+}
+
 /** 270000 → “270.000đ”: số nguyên VND, dấu chấm hàng nghìn, “đ” liền sau số. */
 export function formatMoney(amount: number) {
-  return `${MONEY_FORMAT.format(amount)}đ`;
+  return `${formatAmount(amount)}đ`;
 }
 
 // Tên người Việt: tên gọi nằm cuối, nên tên ngắn và chữ cái đầu lấy từ hai chữ cuối (“Trần Minh Anh” → “Minh Anh”, “MA”).

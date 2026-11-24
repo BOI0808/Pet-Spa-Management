@@ -6,9 +6,9 @@ import { StatusBadge } from "@/components/domain/status-badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment } from "@/lib/api/types";
-import { useAppointment } from "@/lib/queries/appointments";
+import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { appointmentDetailRoute, checkInRoute } from "@/lib/routes";
+import { appointmentDetailRoute, checkInRoute, paymentsRoute } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
 import { canCheckIn, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
 
@@ -34,6 +34,11 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
   // Lịch Chờ xác nhận chưa có nhân viên; lịch đã hủy không cần tên nhân viên nên không tải chi tiết.
   const needsStaff = isSpa && appointment.status !== "Pending" && appointment.status !== "Cancelled";
   const detail = useAppointment(appointment.appointmentId, { enabled: needsStaff });
+  // Lịch spa Hoàn tất: đọc khoản thanh toán để biết còn phải thu không (nút “Thu tiền” → SW-09, thẻ 128).
+  const isCompletedSpa = isSpa && appointment.status === "Completed";
+  const payments = useAppointmentPayments(appointment.appointmentId, { enabled: isCompletedSpa });
+  const hasUnpaidSpa =
+    isCompletedSpa && (payments.data ?? []).some((payment) => payment.kind === "Spa" && payment.status === "Unpaid");
 
   const moment = rowMoment(appointment, date);
   const petName = appointment.petName ?? pet.data?.name ?? "Thú cưng";
@@ -95,10 +100,14 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
         <StatusBadge status={appointment.status} />
       </td>
       <td className={`${CELL} text-right`}>
-        {/* Thao tác theo trạng thái (UI-Screens SW-02 vùng 3). “Trả thú cưng”, “Thu tiền” thêm ở thẻ 127, 128. */}
+        {/* Thao tác theo trạng thái (UI-Screens SW-02 vùng 3). “Trả thú cưng” thêm ở thẻ 127. */}
         {canCheckIn(appointment, today) ? (
           <ButtonLink href={checkInRoute(appointment.appointmentId)} size="sm">
             Tiếp nhận
+          </ButtonLink>
+        ) : hasUnpaidSpa ? (
+          <ButtonLink href={paymentsRoute(appointment.appointmentId)} size="sm">
+            Thu tiền
           </ButtonLink>
         ) : (
           <ButtonLink href={appointmentDetailRoute(appointment.appointmentId)} variant="ghost" size="sm">

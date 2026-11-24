@@ -319,6 +319,20 @@ export type Payment = {
   paidAt?: string | null;
 };
 
+// Ba kiểu dưới cùng tên với manager-web (MW-10·D1).
+/** Phương thức ghi nhận tại quầy; `Online` chỉ do cổng thanh toán xác nhận nên không có ở đây. */
+export type CounterMethod = Extract<PaymentMethod, "Cash" | "BankQR">;
+
+/** Body của POST /payments/{id}/counter. Không gửi `amount`: số tiền phải trả do backend xác định (BR-17). */
+export type CounterPaymentRequest = {
+  method: CounterMethod;
+  /** Số tiền thực nhận (VND), phải từ số tiền phải trả trở lên. */
+  receivedAmount: number;
+};
+
+/** Phản hồi của POST /payments/{id}/counter. */
+export type PaymentStatusResult = { status: PaymentStatus };
+
 // ── Tiếp nhận (SW-07) ──
 export type WeightCheckResult = "OK" | "PRICE_DECREASED" | "NEEDS_CONFIRMATION";
 
