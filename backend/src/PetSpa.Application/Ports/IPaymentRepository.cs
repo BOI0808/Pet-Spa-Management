@@ -25,4 +25,7 @@ public interface IPaymentRepository
     void Add(Payment payment);
 
     Task SaveChangesAsync(CancellationToken ct = default);
+
+    // Cập nhật số tiền khoản lưu trú chưa thanh toán (PaymentKind.Stay, PaymentStatus.Unpaid).
+    Task UpdateStayAmountAsync(Guid appointmentId, decimal newAmount, CancellationToken ct = default);
 }

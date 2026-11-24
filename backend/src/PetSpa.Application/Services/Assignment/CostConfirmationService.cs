@@ -12,7 +12,8 @@ public sealed class CostConfirmationService(
     IPetRepository pets,
     IHotelAssignmentRepository hotelAssignments,
     IConcurrencyGuard concurrencyGuard,
-    IStaffRoleReader staffRoles)
+    IStaffRoleReader staffRoles,
+    IPaymentRepository payments)
 {
     public async Task<CostConfirmationResult> RespondAsync(
         CurrentUser user, Guid appointmentId, bool accept, CancellationToken ct = default)
@@ -82,6 +83,8 @@ public sealed class CostConfirmationService(
         bool? cageSuitable = null;
         if (appointment is HotelAppointment stay)
         {
+            await payments.UpdateStayAmountAsync(stay.AppointmentId, confirmation.NewAmount, ct);
+
             var cage = stay.CageId is { } cageId ? await hotelAssignments.FindCageAsync(cageId, ct) : null;
             cageSuitable = stay.IsCageSuitable(cage, pet.Species);
         }

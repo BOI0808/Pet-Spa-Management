@@ -80,4 +80,11 @@ public sealed class PaymentRepository(AppDbContext db) : IPaymentRepository
     {
         return await db.Set<PaymentTransaction>().FirstOrDefaultAsync(t => t.TxnRef == txnRef, ct);
     }
+
+    public Task UpdateStayAmountAsync(Guid appointmentId, decimal newAmount, CancellationToken ct = default) =>
+        db.Set<Payment>()
+            .Where(p => p.AppointmentId == appointmentId
+                && p.Kind == PaymentKind.Stay
+                && p.Status == PaymentStatus.Unpaid)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Amount, newAmount), ct);
 }

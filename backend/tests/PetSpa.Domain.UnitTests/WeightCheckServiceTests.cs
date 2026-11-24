@@ -173,7 +173,8 @@ public sealed class WeightCheckServiceTests
             SpaAmountSnapshot? spaSnapshot = null,
             Appointment? appointment = null,
             Cage? cage = null,
-            FakeCostConfirmationRepository? costConfirmations = null)
+            FakeCostConfirmationRepository? costConfirmations = null,
+            FakeStayPaymentRepository? payments = null)
     {
         var pets = new FakePetRepository { Pet = pet };
         var paymentAmounts = new FakePaymentAmountRepository { SpaSnapshot = spaSnapshot };
@@ -191,9 +192,41 @@ public sealed class WeightCheckServiceTests
             hotelCatalog,
             costConfirmations ?? new FakeCostConfirmationRepository(),
             timeZoneProvider,
-            guard);
+            guard,
+            payments ?? new FakeStayPaymentRepository());
 
         return (sut, pets, paymentAmounts, bookings, hotelAssignments, guard);
+    }
+
+    private static (WeightCheckService Sut, FakePetRepository Pets, FakeHotelAssignmentRepository HotelAssignments, FakeStayPaymentRepository Payments)
+        CreateHotelSut(
+            Pet? pet = null,
+            Appointment? appointment = null,
+            Cage? cage = null,
+            FakeCostConfirmationRepository? costConfirmations = null,
+            FakeStayPaymentRepository? payments = null)
+    {
+        var pets = new FakePetRepository { Pet = pet };
+        var paymentAmounts = new FakePaymentAmountRepository();
+        var bookings = new FakeBookingRepository();
+        var hotelAssignments = new FakeHotelAssignmentRepository { Appointment = appointment, Cage = cage };
+        var hotelCatalog = new FakeHotelCatalogRepository();
+        var timeZoneProvider = new FakeStoreTimeZoneProvider();
+        var guard = new FakeConcurrencyGuard();
+        var stayPayments = payments ?? new FakeStayPaymentRepository();
+
+        var sut = new WeightCheckService(
+            pets,
+            paymentAmounts,
+            bookings,
+            hotelAssignments,
+            hotelCatalog,
+            costConfirmations ?? new FakeCostConfirmationRepository(),
+            timeZoneProvider,
+            guard,
+            stayPayments);
+
+        return (sut, pets, hotelAssignments, stayPayments);
     }
 
     #region Spa Tests
@@ -626,6 +659,54 @@ public sealed class WeightCheckServiceTests
         Assert.Null(outcome.CageSuitable);
         Assert.Null(outcome.ExpiresAt);
         Assert.Empty(confirmations.Added);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenPriceDecreased_UpdatesUnpaidStayPaymentAmount()
+    {
+        var cage = CatCage(SizeGroup.Small);
+        var stay = ConfirmedStay(SizeGroup.Medium, cage.CageId);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 4.0m, SizeGroup = SizeGroup.Medium };
+        var payments = new FakeStayPaymentRepository();
+        var initialPayment = new Payment
+        {
+            PaymentId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Kind = PaymentKind.Stay,
+            Amount = 300_000m,
+        };
+        payments.Payments.Add(initialPayment);
+
+        var (sut, _, _, _) = CreateHotelSut(pet: pet, appointment: stay, cage: cage, payments: payments);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 2.9m);
+
+        Assert.Equal(WeightCheckResult.PRICE_DECREASED, outcome.Result);
+        Assert.NotNull(outcome.NewAmount);
+        Assert.Equal(outcome.NewAmount.Value, initialPayment.Amount);
+    }
+
+    [Fact]
+    public async Task CheckHotelAsync_WhenOk_DoesNotUpdateStayPaymentAmount()
+    {
+        var stay = ConfirmedStay(SizeGroup.Small);
+        var pet = new Pet { PetId = PetId, Species = Species.Cat, WeightKg = 2.8m, SizeGroup = SizeGroup.Small };
+        var payments = new FakeStayPaymentRepository();
+        var initialPayment = new Payment
+        {
+            PaymentId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Kind = PaymentKind.Stay,
+            Amount = 200_000m,
+        };
+        payments.Payments.Add(initialPayment);
+
+        var (sut, _, _, _) = CreateHotelSut(pet: pet, appointment: stay, payments: payments);
+
+        var outcome = await sut.CheckHotelAsync(AppointmentId, 3.2m);
+
+        Assert.Equal(WeightCheckResult.OK, outcome.Result);
+        Assert.Equal(200_000m, initialPayment.Amount);
     }
 
     #endregion

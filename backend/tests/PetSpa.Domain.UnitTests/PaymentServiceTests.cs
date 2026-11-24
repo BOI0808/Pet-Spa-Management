@@ -64,6 +64,30 @@ public class PaymentServiceTests
 
         public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
 
+        public Task UpdateStayAmountAsync(Guid appointmentId, decimal newAmount, CancellationToken ct = default)
+        {
+            if (Stored is not null
+                && Stored.AppointmentId == appointmentId
+                && Stored.Kind == PaymentKind.Stay
+                && Stored.Status == PaymentStatus.Unpaid)
+            {
+                Stored.Amount = newAmount;
+            }
+
+            foreach (var list in AppointmentPayments.Values)
+            {
+                foreach (var p in list.Where(p =>
+                    p.AppointmentId == appointmentId
+                    && p.Kind == PaymentKind.Stay
+                    && p.Status == PaymentStatus.Unpaid))
+                {
+                    p.Amount = newAmount;
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task AddTransactionAsync(PaymentTransaction transaction, CancellationToken ct = default)
         {
             Transactions.Add(transaction);

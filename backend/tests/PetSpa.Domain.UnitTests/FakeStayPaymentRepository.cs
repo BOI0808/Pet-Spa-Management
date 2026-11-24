@@ -35,4 +35,17 @@ internal sealed class FakeStayPaymentRepository : IPaymentRepository
 
     public Task<PaymentTransaction?> FindTransactionByTxnRefAsync(string txnRef, CancellationToken ct = default) =>
         throw new NotImplementedException();
+
+    public Task UpdateStayAmountAsync(Guid appointmentId, decimal newAmount, CancellationToken ct = default)
+    {
+        var stay = Payments.FirstOrDefault(p =>
+            p.AppointmentId == appointmentId
+            && p.Kind == PaymentKind.Stay
+            && p.Status == PaymentStatus.Unpaid);
+
+        if (stay is not null)
+            stay.Amount = newAmount;
+
+        return Task.CompletedTask;
+    }
 }
