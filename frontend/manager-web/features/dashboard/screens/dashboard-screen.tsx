@@ -82,14 +82,15 @@ function DashboardContent({ now }: { now: number }) {
   const chartError = spaToday.isError && !spaItems ? spaToday : staff.isError && !staff.data ? staff : null;
   const hasBlocks = chart?.rows.some((row) => row.blocks.length > 0) ?? false;
 
-  // Vùng 4 – Cần chú ý.
+  // Vùng 4 – Cần chú ý: chỉ dựng khi cả hai nguồn lịch đã tải xong để không báo “chưa có việc” trong lúc còn đang tải;
+  // báo lỗi ngay khi một trong hai nguồn gặp lỗi mà chưa có dữ liệu để không kẹt khung xương.
   const attentionError = (spaToday.isError && !spaItems) || (hotelToday.isError && !hotelToday.data);
   const attentionItems =
-    (spaItems || hotelToday.data) && !attentionError
+    spaItems && hotelToday.data && !attentionError
       ? buildAttentionItems({
           date: today,
-          spaAppointments: spaItems ?? [],
-          hotelAppointments: hotelToday.data?.items ?? [],
+          spaAppointments: spaItems,
+          hotelAppointments: hotelToday.data.items,
           details,
           unpaidStayAppointmentIds: new Set(
             (unpaidPayments.data ?? []).filter((payment) => payment.kind === "Stay").map((payment) => payment.appointmentId),
