@@ -212,7 +212,8 @@ public class CheckInServiceTests
             hotelCatalogRepo,
             new FakeCostConfirmationRepository(),
             timeZoneProvider,
-            guard);
+            guard,
+            new FakeStayPaymentRepository());
         return (new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, new FakeCostConfirmationRepository(), new FakeStayPaymentRepository()), repo, guard);
     }
 
@@ -276,7 +277,8 @@ public class CheckInServiceTests
             hotelCatalogRepo,
             costRepo,
             timeZoneProvider,
-            guard);
+            guard,
+            new FakeStayPaymentRepository());
 
         var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, costRepo, new FakeStayPaymentRepository());
 

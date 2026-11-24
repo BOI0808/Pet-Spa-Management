@@ -106,13 +106,14 @@ public class CostConfirmationServiceTests
         public FakePetRepository Pets { get; } = new();
         public FakeHotelAssignmentRepository Hotel { get; } = new();
         public FakeStaffRoleReader StaffRoles { get; } = new();
+        public FakeStayPaymentRepository Payments { get; } = new();
         public CostConfirmationService Service { get; }
 
         public Fixture()
         {
             StaffRoles.Roles[ReceptionistUserId] = StaffRole.Receptionist;
             StaffRoles.Roles[SpaStaffUserId] = StaffRole.SpaStaff;
-            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard(), StaffRoles);
+            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard(), StaffRoles, Payments);
         }
     }
 
@@ -353,5 +354,45 @@ public class CostConfirmationServiceTests
         var f = Create(ReceivedSpa(AppointmentStatus.Confirmed));
 
         await AssertErrorAsync(ErrorCodes.InvalidTransition, () => f.Service.RespondAsync(Owner, AppointmentId, accept: true));
+    }
+
+    [Fact]
+    public async Task Respond_WhenAcceptedForHotelStay_UpdatesUnpaidStayPaymentAmount()
+    {
+        var stay = ConfirmedStay(cageId: null);
+        var f = Create(stay);
+        var stayPayment = new Payment
+        {
+            PaymentId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Kind = PaymentKind.Stay,
+            Amount = 100_000m,
+        };
+        f.Payments.Payments.Add(stayPayment);
+
+        var result = await f.Service.RespondAsync(Owner, AppointmentId, accept: true);
+
+        Assert.Equal(AppointmentStatus.Confirmed, result.Status);
+        Assert.Equal(150_000m, stayPayment.Amount);
+    }
+
+    [Fact]
+    public async Task Respond_WhenAcceptedForSpa_DoesNotModifyStayPayment()
+    {
+        var spa = ReceivedSpa();
+        var f = Create(spa);
+        var stayPayment = new Payment
+        {
+            PaymentId = Guid.NewGuid(),
+            AppointmentId = AppointmentId,
+            Kind = PaymentKind.Stay,
+            Amount = 100_000m,
+        };
+        f.Payments.Payments.Add(stayPayment);
+
+        var result = await f.Service.RespondAsync(Owner, AppointmentId, accept: true);
+
+        Assert.Equal(AppointmentStatus.Received, result.Status);
+        Assert.Equal(100_000m, stayPayment.Amount);
     }
 }

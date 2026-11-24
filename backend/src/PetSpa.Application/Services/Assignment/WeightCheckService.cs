@@ -14,7 +14,8 @@ public sealed class WeightCheckService(
     IHotelCatalogRepository hotelCatalog,
     ICostConfirmationRepository costConfirmations,
     IStoreTimeZoneProvider timeZoneProvider,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    IPaymentRepository payments)
 {
     public async Task<WeightCheckOutcome> RecordForSpaAsync(
         SpaAppointment appointment, decimal actualWeightKg, CancellationToken ct = default)
@@ -96,6 +97,9 @@ public sealed class WeightCheckService(
 
             if (outcome.Result == WeightCheckResult.PRICE_DECREASED)
             {
+                if (outcome.NewAmount is { } decreasedAmount)
+                    await payments.UpdateStayAmountAsync(appointmentId, decreasedAmount, ct);
+
                 var cageSuitable = await IsCageSuitableAsync(hotelStay, found.Species, ct);
                 return outcome with { CageSuitable = cageSuitable };
             }
