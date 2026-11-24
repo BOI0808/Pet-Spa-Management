@@ -11,12 +11,13 @@ namespace PetSpa.Api.Controllers;
 public sealed class CustomersController(AccountService accountService) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Policy = AuthorizationPolicies.Receptionist)]
-    [EndpointSummary("Lễ tân tìm khách hàng")]
-    [EndpointDescription("search là số điện thoại (khớp một phần). Mặc định page = 1, pageSize = 20 (tối đa 100). Phần quản lý xem khách bị khóa làm ở ID 99.")]
+    [Authorize(Policy = AuthorizationPolicies.ReceptionistOrManager)]
+    [EndpointSummary("Lễ tân tìm khách hàng; quản lý xem khách bị khóa tự đặt lịch")]
+    [EndpointDescription("search là số điện thoại (khớp một phần). Lễ tân tìm trong mọi khách hàng. Quản lý chỉ nhận khách đang bị khóa quyền tự đặt lịch (isBookingLocked = true) để gỡ khóa (FR-BOOK-07). Mặc định page = 1, pageSize = 20 (tối đa 100).")]
     public async Task<IActionResult> Search([FromQuery] ListCustomersQuery query, CancellationToken ct)
     {
-        var result = await accountService.SearchCustomersAsync(query.Search, query.Page, query.PageSize, ct);
+        var result = await accountService.SearchCustomersAsync(
+            User.ToCurrentUser(), query.Search, query.Page, query.PageSize, ct);
         return Ok(result);
     }
 
@@ -28,5 +29,15 @@ public sealed class CustomersController(AccountService accountService) : Control
     {
         var customerId = await accountService.CreateWalkInAsync(request.FullName, request.Phone, ct);
         return StatusCode(StatusCodes.Status201Created, new WalkInResponse(customerId));
+    }
+
+    [HttpPost("{id}/unlock-booking")]
+    [Authorize(Policy = AuthorizationPolicies.Manager)]
+    [EndpointSummary("Quản lý gỡ khóa quyền tự đặt lịch")]
+    [EndpointDescription("Đặt IsBookingLocked = false để khách hàng tự đặt lịch trực tuyến trở lại (FR-BOOK-07, BR-15). Không tìm thấy khách hàng trả 404 NOT_FOUND; khách hàng không bị khóa trả 409 CUSTOMER_NOT_LOCKED. Thành công trả 204.")]
+    public async Task<IActionResult> UnlockBooking(Guid id, CancellationToken ct)
+    {
+        await accountService.UnlockBookingAsync(id, ct);
+        return NoContent();
     }
 }

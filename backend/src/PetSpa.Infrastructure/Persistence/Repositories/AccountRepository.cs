@@ -144,10 +144,11 @@ public sealed class AccountRepository(UserManager<AppUser> userManager, AppDbCon
     }
 
     public async Task<PagedResult<CustomerSummary>> SearchCustomersAsync(
-        string? phone, int page, int pageSize, CancellationToken ct = default)
+        string? phone, bool lockedOnly, int page, int pageSize, CancellationToken ct = default)
     {
         var query = db.Set<Customer>().AsNoTracking();
         if (phone is not null) query = query.Where(c => c.Phone.Contains(phone));
+        if (lockedOnly) query = query.Where(c => c.IsBookingLocked);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -158,6 +159,21 @@ public sealed class AccountRepository(UserManager<AppUser> userManager, AppDbCon
 
         return new PagedResult<CustomerSummary>(items, page, pageSize, total);
     }
+    public async Task<bool?> GetBookingLockStateAsync(Guid customerId, CancellationToken ct = default)
+    {
+        var row = await db.Set<Customer>().AsNoTracking()
+            .Where(c => c.CustomerId == customerId)
+            .Select(c => new { c.IsBookingLocked })
+            .FirstOrDefaultAsync(ct);
+
+        return row?.IsBookingLocked;
+    }
+
+    public Task UnlockBookingAsync(Guid customerId, CancellationToken ct = default) =>
+        db.Set<Customer>()
+            .Where(c => c.CustomerId == customerId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(c => c.IsBookingLocked, false), ct);
+
     private static BusinessException ToBusinessException(IdentityResult result)
     {
         if (result.Errors.Any(e => e.Code == "DuplicateUserName"))

@@ -16,7 +16,7 @@ public sealed class JobsController(AutoCancelService autoCancel, JobsOptions opt
     [HttpPost("run")]
     [AllowAnonymous]
     [EndpointSummary("Kích hoạt tác vụ tự động")]
-    [EndpointDescription("cron-job.org gọi mỗi 5 phút. Không dùng JWT và không nhận dữ liệu trong body; xác minh header X-Job-Secret (giá trị Jobs__Secret), thiếu hoặc sai trả 401 UNAUTHENTICATED. Xử lý idempotent: tự hủy lịch hẹn vắng mặt sau thời gian giữ chỗ, tự hủy lịch hẹn khi khách không phản hồi chi phí mới quá hạn. Trả { processed } là số lịch hẹn đã bị hủy trong lần chạy này.")]
+    [EndpointDescription("cron-job.org gọi mỗi 5 phút. Không dùng JWT và không nhận dữ liệu trong body; xác minh header X-Job-Secret (giá trị Jobs__Secret), thiếu hoặc sai trả 401 UNAUTHENTICATED. Xử lý idempotent: tự hủy lịch hẹn vắng mặt sau thời gian giữ chỗ (khách vắng mặt quá ngưỡng trong NoShow.WindowDays ngày gần nhất thì bị khóa quyền tự đặt lịch, FR-BOOK-06), tự hủy lịch hẹn khi khách không phản hồi chi phí mới quá hạn. Trả { processed } là số lịch hẹn đã bị hủy trong lần chạy này.")]
     public async Task<IActionResult> Run(
         [FromHeader(Name = "X-Job-Secret")] string? secret, CancellationToken ct)
     {

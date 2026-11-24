@@ -54,6 +54,9 @@ public sealed class AutoCancelService(
                     if (appointment is SpaAppointment)
                         await appointments.ReleaseStaffHoldsAsync(id, ct);
 
+                    // FR-BOOK-06 (BR-15): xét khóa tự đặt lịch trong cùng giao dịch với việc hủy để không bỏ sót.
+                    await LockBookingIfExceededAsync(appointment.CustomerId, ct);
+
                     return true;
                 }, ct);
 
@@ -67,6 +70,19 @@ public sealed class AutoCancelService(
         }
 
         return processed;
+    }
+
+    // BR-15: quá NoShow.LockThreshold lần vắng mặt trong NoShow.WindowDays ngày gần nhất thì khóa quyền tự đặt lịch.
+    // Gọi sau khi appointment.Cancel(NoShow); lịch vừa hủy chưa được ghi xuống CSDL (ghi khi giao dịch kết thúc)
+    // nên số lần đã ghi nhận được cộng thêm 1 cho lịch này.
+    private async Task LockBookingIfExceededAsync(Guid customerId, CancellationToken ct)
+    {
+        var rule = await candidates.GetNoShowLockRuleAsync(ct);
+        var since = DateTimeOffset.UtcNow.AddDays(-rule.WindowDays);
+
+        var noShowCount = await candidates.CountNoShowsSinceAsync(customerId, since, ct) + 1;
+        if (noShowCount > rule.LockThreshold)
+            await candidates.LockBookingAsync(customerId, ct);
     }
 
     // Khách không phản hồi chi phí mới trong CostConfirm.TimeoutMinutes (30 phút).
