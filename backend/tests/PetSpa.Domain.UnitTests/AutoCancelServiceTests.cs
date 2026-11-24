@@ -10,6 +10,7 @@ namespace PetSpa.Domain.UnitTests;
 public class AutoCancelServiceTests
 {
     private static readonly Guid AppointmentId = Guid.NewGuid();
+    private static readonly Guid CustomerId = Guid.NewGuid();
 
     private sealed class FakeAutoCancelRepository : IAutoCancelRepository
     {
@@ -333,5 +334,71 @@ public class AutoCancelServiceTests
         Assert.Equal(0, processed);
         Assert.Equal(ConfirmationStatus.Expired, cost.Status);
         Assert.Equal(AppointmentStatus.Cancelled, spa.Status);
+    }
+
+    // ── Khóa tự đặt lịch (FR-BOOK-06, BR-15) ──
+
+    [Fact]
+    public async Task RunAsync_ThirdNoShowInWindow_DoesNotLockBooking()
+    {
+        var f = new Fixture();
+        var spa = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-20));
+        spa.CustomerId = CustomerId;
+        f.Changes.Stored[AppointmentId] = spa;
+        f.Candidates.NoShowIds.Add(AppointmentId);
+        f.Candidates.PriorNoShows = 2; // lịch này là lần vắng mặt thứ 3: chưa quá 3 lần
+
+        await f.Service.RunAsync();
+
+        Assert.Equal(CancelReason.NoShow, spa.CancelReason);
+        Assert.Empty(f.Candidates.LockedCustomers);
+    }
+
+    [Fact]
+    public async Task RunAsync_FourthNoShowInWindow_LocksBooking()
+    {
+        var f = new Fixture();
+        var spa = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-20));
+        spa.CustomerId = CustomerId;
+        f.Changes.Stored[AppointmentId] = spa;
+        f.Candidates.NoShowIds.Add(AppointmentId);
+        f.Candidates.PriorNoShows = 3; // lịch này là lần vắng mặt thứ 4: quá 3 lần
+
+        await f.Service.RunAsync();
+
+        Assert.Equal(CustomerId, Assert.Single(f.Candidates.LockedCustomers));
+    }
+
+    [Fact]
+    public async Task RunAsync_NoShow_CountsOnlyWithinConfiguredWindow()
+    {
+        var f = new Fixture();
+        f.Candidates.Rule = new NoShowLockRule(3, 10);
+        var spa = Spa(AppointmentStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(-20));
+        spa.CustomerId = CustomerId;
+        f.Changes.Stored[AppointmentId] = spa;
+        f.Candidates.NoShowIds.Add(AppointmentId);
+
+        await f.Service.RunAsync();
+
+        var expectedSince = DateTimeOffset.UtcNow.AddDays(-10);
+        Assert.InRange(f.Candidates.LastCountSince, expectedSince.AddMinutes(-1), expectedSince.AddMinutes(1));
+    }
+
+    [Fact]
+    public async Task RunAsync_CostNotConfirmedCancel_DoesNotLockBooking()
+    {
+        var f = new Fixture();
+        var spa = Spa(AppointmentStatus.Received, DateTimeOffset.UtcNow.AddMinutes(-40));
+        spa.CustomerId = CustomerId;
+        f.Changes.Stored[AppointmentId] = spa;
+        f.Confirmations.Added.Add(PendingCost(DateTimeOffset.UtcNow.AddMinutes(-1)));
+        f.Candidates.ExpiredCostIds.Add(AppointmentId);
+        f.Candidates.PriorNoShows = 3; // không liên quan: hủy do không phản hồi chi phí không phải vắng mặt
+
+        await f.Service.RunAsync();
+
+        Assert.Equal(CancelReason.CostNotConfirmed, spa.CancelReason);
+        Assert.Empty(f.Candidates.LockedCustomers);
     }
 }
