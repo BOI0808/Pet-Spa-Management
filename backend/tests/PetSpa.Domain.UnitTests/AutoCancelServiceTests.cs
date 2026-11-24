@@ -23,6 +23,27 @@ public class AutoCancelServiceTests
         public Task<IReadOnlyList<Guid>> ListExpiredCostConfirmationAppointmentIdsAsync(
             DateTimeOffset now, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Guid>>(ExpiredCostIds.ToList());
+
+        // Khóa tự đặt lịch (FR-BOOK-06): PriorNoShows là số lần vắng mặt đã ghi nhận trước lịch đang xử lý.
+        public NoShowLockRule Rule { get; set; } = new NoShowLockRule(3, 30);
+        public int PriorNoShows { get; set; }
+        public DateTimeOffset LastCountSince { get; private set; }
+        public List<Guid> LockedCustomers { get; } = [];
+
+        public Task<NoShowLockRule> GetNoShowLockRuleAsync(CancellationToken ct = default) =>
+            Task.FromResult(Rule);
+
+        public Task<int> CountNoShowsSinceAsync(Guid customerId, DateTimeOffset since, CancellationToken ct = default)
+        {
+            LastCountSince = since;
+            return Task.FromResult(PriorNoShows);
+        }
+
+        public Task LockBookingAsync(Guid customerId, CancellationToken ct = default)
+        {
+            LockedCustomers.Add(customerId);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeAssignmentRepository : IAssignmentRepository
