@@ -1,7 +1,8 @@
 "use client";
 
 // CW-09·D3 Thanh toán trực tuyến – UI-Screens CW-09, UF-11, FR-PAY-03.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Alert } from "@/components/feedback/alert";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { Button } from "@/components/ui/button";
 import { ChoiceCard } from "@/components/ui/choice-card";
@@ -12,7 +13,11 @@ import { PAYMENT_GATEWAY_LABELS } from "@/lib/labels";
 import { useStartOnlinePayment } from "@/lib/queries/payments";
 import { rememberPendingPayment } from "../online-payment";
 
-/** Thẻ chọn cổng (`.gw` của ui-demo): logo chữ trên nền màu của cổng (Design-System `GatewayOption`). */
+/**
+ * Thẻ chọn cổng (`.gw` của ui-demo): logo chữ trên nền màu nhận diện của cổng (Design-System `GatewayOption`).
+ * Ngoại lệ có chủ ý với danh sách cấm FC 11: đây là màu thương hiệu của VNPAY/MoMo lấy đúng từ ui-demo (`#m-pay`),
+ * không phải màu giao diện của hệ thống nên không đưa vào token `@theme`.
+ */
 const GATEWAYS: { value: PaymentGateway; logo: string; logoClass: string; note: string }[] = [
   { value: "VNPAY", logo: "VNPAY", logoClass: "bg-[#005BAA]", note: "Thẻ ngân hàng, ví VNPAY, QR" },
   { value: "MoMo", logo: "MoMo", logoClass: "bg-[#A50064]", note: "Thanh toán bằng ứng dụng MoMo" },
@@ -23,18 +28,37 @@ type OnlinePaymentDialogProps = {
   appointment: AppointmentDetail;
   payment: Payment;
   petName: string;
+  /**
+   * Khoản còn thanh toán trực tuyến được (lịch spa `Completed`, khoản `Unpaid`). Khi khoản vừa đổi (vd. vừa ghi nhận tại
+   * quầy, POST trả 409) hộp thoại vẫn mở để khách đọc lỗi, chỉ khóa nút gửi.
+   */
+  canPay: boolean;
   onClose: () => void;
 };
 
-export function OnlinePaymentDialog({ open, appointment, payment, petName, onClose }: OnlinePaymentDialogProps) {
+export function OnlinePaymentDialog({ open, appointment, payment, petName, canPay, onClose }: OnlinePaymentDialogProps) {
   const [gateway, setGateway] = useState<PaymentGateway>("VNPAY");
   const start = useStartOnlinePayment(appointment.appointmentId);
+  const { reset } = start;
   // Đã nhận `paymentUrl`: giữ trạng thái đang gửi cho tới khi trình duyệt rời trang.
   const [redirecting, setRedirecting] = useState(false);
   const busy = start.isPending || redirecting;
 
+  // Khách bấm Back từ cổng: trình duyệt khôi phục trang từ bfcache với `redirecting = true`, hộp thoại sẽ kẹt ở trạng
+  // thái đang gửi (Modal bỏ qua đóng khi `busy`). Mở khóa lại để khách chọn cổng khác hoặc “Để sau”.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (!event.persisted) return;
+      setRedirecting(false);
+      reset();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [reset]);
+
   function close() {
-    start.reset();
+    setRedirecting(false);
+    reset();
     onClose();
   }
 
@@ -65,7 +89,7 @@ export function OnlinePaymentDialog({ open, appointment, payment, petName, onClo
           <Button variant="ghost" onClick={close} disabled={busy}>
             Để sau
           </Button>
-          <Button variant="primary" loading={busy} onClick={submit}>
+          <Button variant="primary" loading={busy} disabled={!canPay} onClick={submit}>
             Tiếp tục đến cổng thanh toán
           </Button>
         </>
@@ -109,6 +133,10 @@ export function OnlinePaymentDialog({ open, appointment, payment, petName, onClo
         </p>
         {/* 409 PAYMENT_NOT_DUE / INVALID_TRANSITION, 400 cổng chưa hỗ trợ: báo tại chỗ, khoản đã được tải lại. */}
         {start.error && <ErrorAlert error={start.error} />}
+        {/* Khoản đổi trạng thái khi hộp thoại đang mở mà không qua lỗi (vd. cửa hàng vừa ghi nhận tại quầy). */}
+        {!canPay && !start.error && (
+          <Alert tone="info">Khoản thanh toán này vừa được cập nhật, không cần thanh toán trực tuyến nữa.</Alert>
+        )}
       </div>
     </Modal>
   );

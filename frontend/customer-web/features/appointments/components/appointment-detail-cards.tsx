@@ -219,8 +219,8 @@ function EstimateAmount({ label, amount, note }: { label: string; amount: number
 
 type PayOnlineProps = {
   /**
-   * Mở CW-09·D3 với khoản spa chưa thanh toán (FR-PAY-03). Không truyền thì ẩn nút, vd. khi vùng 9 đang hiện kết quả
-   * thanh toán và đã có nút “Thử lại” (mỗi màn tối đa một nút chính – ui-demo).
+   * Mở CW-09·D3 với khoản spa chưa thanh toán (FR-PAY-03). Không truyền thì ẩn nút, vd. khi vùng 9 đang kiểm tra kết
+   * quả thanh toán hoặc đang có nút “Thử lại” (mỗi màn tối đa một nút chính – ui-demo).
    */
   onPayOnline?: (payment: Payment) => void;
 };
@@ -238,23 +238,21 @@ function SpaPayment({
   const pricingOf = useSpaPricing(appointment, pet);
   const spaPayment = findPayment(payments, "Spa");
   if (spaPayment) {
-    const canPayOnline = spaPayment.status === "Unpaid" && appointment.status === "Completed";
+    const showPayButton = onPayOnline && spaPayment.status === "Unpaid" && appointment.status === "Completed";
     return (
       <>
         <PaymentAmount payment={spaPayment} />
-        {canPayOnline && (
-          <>
-            {onPayOnline && (
-              <Button variant="primary" block className="mt-4" onClick={() => onPayOnline(spaPayment)}>
-                <Icon name="card" />
-                Thanh toán trực tuyến
-              </Button>
-            )}
-            <p className="mt-2 text-xs text-muted">Hoặc thanh toán tại quầy (tiền mặt, chuyển khoản QR) khi đón bé.</p>
-          </>
+        {showPayButton && (
+          <Button variant="primary" block className="mt-4" onClick={() => onPayOnline(spaPayment)}>
+            <Icon name="card" />
+            Thanh toán trực tuyến
+          </Button>
         )}
-        {spaPayment.status === "Unpaid" && !canPayOnline && (
-          <p className="mt-2 text-xs text-muted">Bạn có thể thanh toán tại quầy (tiền mặt, chuyển khoản QR) khi đón bé.</p>
+        {/* Chỉ viết “Hoặc…” khi ngay phía trên có nút thanh toán trực tuyến. */}
+        {spaPayment.status === "Unpaid" && (
+          <p className="mt-2 text-xs text-muted">
+            {showPayButton ? "Hoặc thanh toán" : "Bạn có thể thanh toán"} tại quầy (tiền mặt, chuyển khoản QR) khi đón bé.
+          </p>
         )}
       </>
     );

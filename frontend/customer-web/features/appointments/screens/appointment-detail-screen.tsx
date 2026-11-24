@@ -36,7 +36,7 @@ import { AppointmentInfoCard, HotelStayCard, PaymentCard, SpaServicesCard } from
 import { ChangeCancelCard } from "../components/change-cancel-card";
 import { CostConfirmationBanner } from "../components/cost-confirmation-banner";
 import { OnlinePaymentDialog } from "../components/online-payment-dialog";
-import { PaymentResultCard } from "../components/payment-result-card";
+import { PaymentResultCard, usePaymentReturnCheck } from "../components/payment-result-card";
 import { PhotosCard } from "../components/photos-card";
 import { PAYMENT_RETURN_PARAM, PAYMENT_RETURN_VALUE } from "../online-payment";
 
@@ -92,6 +92,11 @@ function AppointmentDetailView({ appointment, pet, isPaymentReturn }: DetailView
   const canPayOnline =
     appointment.type === "Spa" && appointment.status === "Completed" && spaPayment?.status === "Unpaid";
   const showPaymentResult = isPaymentReturn && appointment.type === "Spa";
+  const paymentCheck = usePaymentReturnCheck(appointment.appointmentId, showPaymentResult);
+  // Vùng 7 ẩn nút khi vùng 9 đang kiểm tra (tránh trả lần hai lúc webhook chưa về) hoặc đang có nút “Thử lại”
+  // (mỗi màn một nút chính). Kết quả thành công thì khoản đã `Paid`, vùng 7 tự không có nút.
+  const hidePayButton =
+    showPaymentResult && (paymentCheck.state === "checking" || (paymentCheck.state === "unpaid" && canPayOnline));
   return (
     <>
       <Breadcrumb
@@ -102,7 +107,14 @@ function AppointmentDetailView({ appointment, pet, isPaymentReturn }: DetailView
       />
       {/* Vùng 9 – kết quả thanh toán khi quay về từ cổng (UF-11); chỉ lịch spa mới thanh toán trực tuyến. */}
       {showPaymentResult && (
-        <PaymentResultCard appointment={appointment} onRetry={() => setPayOpen(true)} />
+        <PaymentResultCard
+          appointment={appointment}
+          state={paymentCheck.state}
+          spaPayment={paymentCheck.spaPayment}
+          canPayOnline={canPayOnline}
+          onRecheck={paymentCheck.recheck}
+          onRetry={() => setPayOpen(true)}
+        />
       )}
       <DetailHeader appointment={appointment} pet={pet} />
 
@@ -141,7 +153,7 @@ function AppointmentDetailView({ appointment, pet, isPaymentReturn }: DetailView
           <PaymentCard
             appointment={appointment}
             pet={pet}
-            onPayOnline={showPaymentResult ? undefined : () => setPayOpen(true)}
+            onPayOnline={hidePayButton ? undefined : () => setPayOpen(true)}
           />
           {/* Vùng 8 – đổi hoặc hủy (FR-CHG-01, FR-CHG-02) */}
           <ChangeCancelCard appointment={appointment} />
@@ -157,10 +169,11 @@ function AppointmentDetailView({ appointment, pet, isPaymentReturn }: DetailView
       {/* CW-09·D3 – thanh toán trực tuyến (FR-PAY-03) */}
       {spaPayment && (
         <OnlinePaymentDialog
-          open={payOpen && canPayOnline}
+          open={payOpen}
           appointment={appointment}
           payment={spaPayment}
           petName={petName}
+          canPay={canPayOnline}
           onClose={() => setPayOpen(false)}
         />
       )}
