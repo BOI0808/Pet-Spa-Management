@@ -93,7 +93,7 @@ public sealed class HotelAssignmentService(
 
     public async Task<AppointmentRejectResult> RejectAsync(Guid appointmentId, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -104,5 +104,8 @@ public sealed class HotelAssignmentService(
 
             return new AppointmentRejectResult(appointment.Status, appointment.CancelReason!.Value);
         }, ct);
+
+        await notifier.NotifyCancelledAsync(appointmentId, ct);
+        return result;
     }
 }

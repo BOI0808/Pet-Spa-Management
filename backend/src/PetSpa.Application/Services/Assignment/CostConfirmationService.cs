@@ -1,5 +1,6 @@
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -13,7 +14,8 @@ public sealed class CostConfirmationService(
     IHotelAssignmentRepository hotelAssignments,
     IConcurrencyGuard concurrencyGuard,
     IStaffRoleReader staffRoles,
-    IPaymentRepository payments)
+    IPaymentRepository payments,
+    AppointmentNotifier notifier)
 {
     public async Task<CostConfirmationResult> RespondAsync(
         CurrentUser user, Guid appointmentId, bool accept, CancellationToken ct = default)
@@ -62,7 +64,13 @@ public sealed class CostConfirmationService(
         }, ct);
 
         if (isExpired)
+        {
+            await notifier.NotifyCancelledAsync(appointmentId, ct);
             throw new BusinessException(ErrorCodes.CostConfirmationExpired);
+        }
+
+        if (result.Status == AppointmentStatus.Cancelled)
+            await notifier.NotifyCancelledAsync(appointmentId, ct);
 
         return result;
     }
