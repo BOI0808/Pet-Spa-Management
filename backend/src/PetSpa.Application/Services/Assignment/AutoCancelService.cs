@@ -1,4 +1,5 @@
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 
@@ -13,7 +14,8 @@ public sealed class AutoCancelService(
     IAssignmentRepository assignments,
     IAppointmentChangeRepository appointments,
     ICostConfirmationRepository costConfirmations,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    AppointmentNotifier notifier)
 {
     // Trả về số lịch hẹn đã bị hủy trong lần chạy này.
     public async Task<int> RunAsync(CancellationToken ct = default)
@@ -60,7 +62,11 @@ public sealed class AutoCancelService(
                     return true;
                 }, ct);
 
-                if (cancelled) processed++;
+                if (cancelled)
+                {
+                    processed++;
+                    await notifier.NotifyCancelledAsync(id, ct);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -120,7 +126,11 @@ public sealed class AutoCancelService(
                     return true;
                 }, ct);
 
-                if (cancelled) processed++;
+                if (cancelled)
+                {
+                    processed++;
+                    await notifier.NotifyCancelledAsync(id, ct);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

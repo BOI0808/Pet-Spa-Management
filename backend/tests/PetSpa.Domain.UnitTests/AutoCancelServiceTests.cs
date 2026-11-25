@@ -134,7 +134,7 @@ public class AutoCancelServiceTests
 
         public Fixture() =>
             Service = new AutoCancelService(
-                Candidates, new FakeAssignmentRepository(), Changes, Confirmations, Guard);
+                Candidates, new FakeAssignmentRepository(), Changes, Confirmations, Guard, TestNotifier.Create());
     }
 
     private static SpaAppointment Spa(AppointmentStatus status, DateTimeOffset slotStart) => new()
