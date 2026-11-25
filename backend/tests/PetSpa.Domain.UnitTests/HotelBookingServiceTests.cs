@@ -143,7 +143,7 @@ public class HotelBookingServiceTests
         var tz = new FakeTimeZoneProvider(StoreTimeZone);
         var guard = new FakeConcurrencyGuard();
 
-        var service = new HotelBookingService(pets, bookings, catalog, staff, tz, guard);
+        var service = new HotelBookingService(pets, bookings, catalog, staff, tz, guard, TestNotifier.Create());
         return (service, pets, bookings, guard);
     }
 

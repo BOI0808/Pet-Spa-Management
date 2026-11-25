@@ -1,6 +1,7 @@
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -29,7 +30,8 @@ public sealed class BookingService(
     IBookingRepository bookings,
     IStaffRoleReader staffRoles,
     IConcurrencyGuard concurrency,
-    ShopTimeZone shopTimeZone)
+    ShopTimeZone shopTimeZone,
+    AppointmentNotifier notifier)
 {
     public async Task<SpaSlotsResult> GetSpaSlotsAsync(
         CurrentUser user, DateOnly date, Guid petId, IReadOnlyList<Guid> serviceIds, CancellationToken ct = default)
@@ -112,7 +114,7 @@ public sealed class BookingService(
         var busyUntil = slotEnd.AddMinutes(plan.BufferMinutes);
 
         // Lấy khóa theo ngày, đọc lại ca làm và lịch đang giữ chỗ rồi mới ghi.
-        return await concurrency.RunAsync(async () =>
+        var result = await concurrency.RunAsync(async () =>
         {
             await concurrency.LockSpaDayAsync(day, ct);
 
@@ -143,6 +145,9 @@ public sealed class BookingService(
                 appointment.AppointmentId, appointment.Status, appointment.SizeGroup,
                 slotStartUtc, slotEnd, plan.StaffRequired, estimatedAmount);
         }, ct);
+
+        await notifier.NotifyBookingReceivedAsync(result.AppointmentId, ct);
+        return result;
     }
 
     // Phần tính chung của một lịch spa, dùng cho cả xem mốc giờ và tạo lịch.

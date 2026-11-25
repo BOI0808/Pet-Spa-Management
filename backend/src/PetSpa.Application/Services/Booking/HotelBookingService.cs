@@ -1,5 +1,6 @@
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -13,7 +14,8 @@ public sealed class HotelBookingService(
     IHotelCatalogRepository hotelCatalog,
     IStaffRoleReader staffRoles,
     IStoreTimeZoneProvider timeZoneProvider,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    AppointmentNotifier notifier)
 {
     private enum BookingActor
     {
@@ -92,6 +94,8 @@ public sealed class HotelBookingService(
 
             return appointment.AppointmentId;
         }, ct);
+
+        await notifier.NotifyBookingReceivedAsync(appointmentId, ct);
 
         return new HotelBookingResult(appointmentId, AppointmentStatus.Pending, nights, estimatedAmount);
     }
