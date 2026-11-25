@@ -234,7 +234,7 @@ public class SpaProgressServiceTests
 
             var photoService = new AppointmentPhotoService(Query, Photos, new FakePhotoStorage(), Roles, Guard);
             Sut = new SpaProgressService(
-                Assignments, Query, Roles, photoService, Photos, Progress, Changes, Amounts, Payments, Guard);
+                Assignments, Query, Roles, photoService, Photos, Progress, Changes, Amounts, Payments, Guard, TestNotifier.Create());
         }
     }
 

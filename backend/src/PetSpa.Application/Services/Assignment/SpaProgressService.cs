@@ -1,5 +1,6 @@
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -19,14 +20,15 @@ public sealed class SpaProgressService(
     IAppointmentChangeRepository changes,
     IPaymentAmountRepository paymentAmounts,
     IPaymentRepository payments,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    AppointmentNotifier notifier)
 {
     public async Task<AppointmentStatus> StartAsync(
         CurrentUser user, Guid appointmentId, CancellationToken ct = default)
     {
         await EnsureCanOperateAsync(user, appointmentId, ct);
 
-        return await concurrencyGuard.RunAsync(async () =>
+        var status = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -45,6 +47,9 @@ public sealed class SpaProgressService(
 
             return appointment.Status;
         }, ct);
+
+        await notifier.NotifyStatusChangedAsync(appointmentId, status, ct);
+        return status;
     }
 
     public async Task UpdateServiceAsync(
@@ -75,7 +80,7 @@ public sealed class SpaProgressService(
     {
         await EnsureCanOperateAsync(user, appointmentId, ct);
 
-        return await concurrencyGuard.RunAsync(async () =>
+        var status = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -115,6 +120,9 @@ public sealed class SpaProgressService(
 
             return appointment.Status;
         }, ct);
+
+        await notifier.NotifyStatusChangedAsync(appointmentId, status, ct);
+        return status;
     }
 
     // Kiểm tra quyền ngoài giao dịch (Backend-Conventions 7.2): vai trò → lịch tồn tại và là lịch spa → NVS được phân công.

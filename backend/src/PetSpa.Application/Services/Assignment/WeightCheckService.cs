@@ -1,4 +1,5 @@
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -15,7 +16,8 @@ public sealed class WeightCheckService(
     ICostConfirmationRepository costConfirmations,
     IStoreTimeZoneProvider timeZoneProvider,
     IConcurrencyGuard concurrencyGuard,
-    IPaymentRepository payments)
+    IPaymentRepository payments,
+    AppointmentNotifier notifier)
 {
     public async Task<WeightCheckOutcome> RecordForSpaAsync(
         SpaAppointment appointment, decimal actualWeightKg, CancellationToken ct = default)
@@ -57,7 +59,7 @@ public sealed class WeightCheckService(
     public async Task<WeightCheckOutcome> CheckHotelAsync(
         Guid appointmentId, decimal actualWeightKg, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -106,6 +108,12 @@ public sealed class WeightCheckService(
 
             return outcome;
         }, ct);
+
+        if (result is
+            { Result: WeightCheckResult.NEEDS_CONFIRMATION, NewAmount: { } newAmount, ExpiresAt: { } expiresAt })
+            await notifier.NotifyCostConfirmationAsync(appointmentId, actualWeightKg, newAmount, expiresAt, ct);
+
+        return result;
     }
 
     private async Task<WeightCheckContext> CompareAsync(

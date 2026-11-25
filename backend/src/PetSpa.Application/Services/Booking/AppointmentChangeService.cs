@@ -1,6 +1,7 @@
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -19,7 +20,8 @@ public sealed class AppointmentChangeService(
     IConcurrencyGuard concurrency,
     IAssignmentRepository assignments,
     IHotelAssignmentRepository hotelAssignments,
-    ICostConfirmationRepository costConfirmations)
+    ICostConfirmationRepository costConfirmations,
+    AppointmentNotifier notifier)
 {
     public async Task<AppointmentStatus> CancelAsync(
         CurrentUser user, Guid appointmentId, CancelReason? reason = null, CancellationToken ct = default)
@@ -37,7 +39,7 @@ public sealed class AppointmentChangeService(
             throw new BusinessException(
                 ErrorCodes.ValidationError, "Quản lý phải gửi lý do hủy là StoreUnable hoặc CustomerBeyondDeadline.");
 
-        return await concurrency.RunAsync(async () =>
+        var status = await concurrency.RunAsync(async () =>
         {
             await concurrency.LockAppointmentAsync(appointmentId, ct);
 
@@ -55,6 +57,9 @@ public sealed class AppointmentChangeService(
 
             return appointment.Status;
         }, ct);
+
+        await notifier.NotifyCancelledAsync(appointmentId, ct);
+        return status;
     }
 
     private async Task<AppointmentStatus> CancelByCustomerAsync(
@@ -70,7 +75,7 @@ public sealed class AppointmentChangeService(
         var deadlineMinutes = await changes.GetChangeDeadlineMinutesAsync(ct);
         EnsureChangeAllowed(found.Appointment, deadlineMinutes);
 
-        return await concurrency.RunAsync(async () =>
+        var status = await concurrency.RunAsync(async () =>
         {
             await concurrency.LockAppointmentAsync(appointmentId, ct);
 
@@ -90,6 +95,9 @@ public sealed class AppointmentChangeService(
 
             return appointment.Status;
         }, ct);
+
+        await notifier.NotifyCancelledAsync(appointmentId, ct);
+        return status;
     }
 
     public async Task<AppointmentStatus> ChangeAsync(

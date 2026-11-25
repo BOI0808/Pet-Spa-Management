@@ -1,4 +1,5 @@
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -10,7 +11,8 @@ public sealed class CheckOutService(
     IHotelAssignmentRepository hotelAssignments,
     IPaymentRepository payments,
     IPaymentAmountRepository paymentAmounts,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    AppointmentNotifier notifier)
 {
     public async Task<CheckOutResult> CheckOutHotelAsync(Guid appointmentId, CancellationToken ct = default)
     {
@@ -69,6 +71,7 @@ public sealed class CheckOutService(
         if (lateFeeUnpaid)
             throw new BusinessException(ErrorCodes.PaymentNotDue);
 
+        await notifier.NotifyStatusChangedAsync(appointmentId, result.Status, ct);
         return result;
     }
 }

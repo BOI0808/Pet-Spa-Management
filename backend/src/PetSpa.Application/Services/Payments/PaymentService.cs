@@ -2,6 +2,7 @@ using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Security;
 using PetSpa.Application.Services.Booking;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -13,12 +14,13 @@ public sealed class PaymentService(
     ICostConfirmationRepository costConfirmations,
     IConcurrencyGuard concurrencyGuard,
     AppointmentQueryService appointmentQueries,
-    IPaymentGateway paymentGateway)
+    IPaymentGateway paymentGateway,
+    AppointmentNotifier notifier)
 {
     public async Task<PaymentStatus> RecordCounterAsync(
         CurrentUser user, Guid paymentId, PaymentMethod method, decimal receivedAmount, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var paid = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockPaymentAsync(paymentId, ct);
 
@@ -37,8 +39,11 @@ public sealed class PaymentService(
 
             payment.MarkPaid(appointmentStatus, method, receivedAmount, user.UserId);
 
-            return payment.Status;
+            return payment;
         }, ct);
+
+        await notifier.NotifyPaymentRecordedAsync(paid.AppointmentId, paid.Kind, paid.Amount, ct);
+        return paid.Status;
     }
 
     public async Task<OnlinePaymentResult> InitiateOnlineAsync(
@@ -91,7 +96,9 @@ public sealed class PaymentService(
         if (paymentId is null)
             return GatewayCallbackOutcome.TransactionNotFound;
 
-        return await concurrencyGuard.RunAsync(async () =>
+        Payment? paid = null;
+
+        var outcome = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockPaymentAsync(paymentId.Value, ct);
 
@@ -131,9 +138,15 @@ public sealed class PaymentService(
 
             payment.MarkPaid(appointmentStatus, PaymentMethod.Online, confirmedAmount, null);
             transaction.RecordCallback(confirmedAmount, true, DateTimeOffset.UtcNow);
+            paid = payment;
 
             return GatewayCallbackOutcome.Paid;
         }, ct);
+
+        if (paid is not null)
+            await notifier.NotifyPaymentRecordedAsync(paid.AppointmentId, paid.Kind, paid.Amount, ct);
+
+        return outcome;
     }
 
     public async Task<IReadOnlyList<Payment>> ListByAppointmentAsync(

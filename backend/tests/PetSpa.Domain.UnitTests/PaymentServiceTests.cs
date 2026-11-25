@@ -189,7 +189,7 @@ public class PaymentServiceTests
                 null!,
                 StaffRoles);
 
-            Service = new PaymentService(Payments, Confirmations, Guard, AppointmentQueries, Gateway);
+            Service = new PaymentService(Payments, Confirmations, Guard, AppointmentQueries, Gateway, TestNotifier.Create());
         }
     }
 

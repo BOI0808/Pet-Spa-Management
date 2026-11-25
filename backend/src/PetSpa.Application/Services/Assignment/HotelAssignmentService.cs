@@ -1,4 +1,5 @@
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Entities;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
@@ -11,7 +12,8 @@ public sealed class HotelAssignmentService(
     IStoreTimeZoneProvider timeZoneProvider,
     IConcurrencyGuard concurrencyGuard,
     IHotelCatalogRepository hotelCatalog,
-    IPaymentRepository payments)
+    IPaymentRepository payments,
+    AppointmentNotifier notifier)
 {
     public async Task<Cage?> SuggestCageAsync(Guid appointmentId, CancellationToken ct = default)
     {
@@ -32,7 +34,7 @@ public sealed class HotelAssignmentService(
 
     public async Task<AppointmentStatus> ConfirmAsync(Guid appointmentId, Guid cageId, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var status = await concurrencyGuard.RunAsync(async () =>
         {
             var meta = await assignments.FindHotelAppointmentAsync(appointmentId, asNoTracking: true, ct)
                 ?? throw new BusinessException(ErrorCodes.NotFound);
@@ -84,11 +86,14 @@ public sealed class HotelAssignmentService(
 
             return found.Appointment.Status;
         }, ct);
+
+        await notifier.NotifyConfirmedAsync(appointmentId, null, ct);
+        return status;
     }
 
     public async Task<AppointmentRejectResult> RejectAsync(Guid appointmentId, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -99,5 +104,8 @@ public sealed class HotelAssignmentService(
 
             return new AppointmentRejectResult(appointment.Status, appointment.CancelReason!.Value);
         }, ct);
+
+        await notifier.NotifyCancelledAsync(appointmentId, ct);
+        return result;
     }
 }

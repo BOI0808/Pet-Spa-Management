@@ -147,6 +147,8 @@ public class AssignmentServiceConfirmSpaTests
         public FakeAssignmentRepository Assignments { get; }
         public FakeBookingRepository Bookings { get; }
         public FakeConcurrencyGuard Guard { get; } = new();
+        public FakeNotificationReader Reader { get; } = new();
+        public RecordingNotificationRepository Sent { get; } = new();
         public AssignmentService Service { get; }
 
         public Fixture(AppointmentStatus status = AppointmentStatus.Pending, short staffRequired = 1)
@@ -171,7 +173,7 @@ public class AssignmentServiceConfirmSpaTests
                         new ServicePricing { ServiceId = TrimId, Species = Species.Dog, SizeGroup = SizeGroup.Medium, Price = 120_000m },
                     ]),
             };
-            Service = new AssignmentService(Assignments, Bookings, payments, Guard);
+            Service = new AssignmentService(Assignments, Bookings, payments, Guard, TestNotifier.Create(Reader, Sent));
         }
     }
 
@@ -198,6 +200,37 @@ public class AssignmentServiceConfirmSpaTests
         Assert.Equal(At(12, 15), row.BusyUntil);
         Assert.True(row.IsHolding);
         Assert.Equal(AppointmentId, f.Guard.LockedAppointmentId);
+    }
+
+    [Fact]
+    public async Task ConfirmSpa_WhenValid_NotifiesCustomerWithAmountAndAssignedStaff()
+    {
+        var f = new Fixture();
+        var customerUserId = Guid.NewGuid();
+        var staffUserId = Guid.NewGuid();
+        f.Reader.Targets[AppointmentId] = new AppointmentNotificationTarget(
+            AppointmentType.Spa, customerUserId, "Mimi", At(10), null, [staffUserId]);
+
+        await f.Service.ConfirmSpaAsync(AppointmentId, [f.StaffA], confirmOutOfShift: false);
+
+        Assert.Equal(2, f.Sent.Sent.Count);
+        Assert.Equal(customerUserId, f.Sent.Sent[0].RecipientUserId);
+        Assert.Equal(NotificationType.ConfirmedAssigned, f.Sent.Sent[0].Type);
+        Assert.Contains("270.000đ", f.Sent.Sent[0].Message);
+        Assert.Equal(staffUserId, f.Sent.Sent[1].RecipientUserId);
+    }
+
+    [Fact]
+    public async Task ConfirmSpa_WhenNotPending_DoesNotNotify()
+    {
+        var f = new Fixture(AppointmentStatus.Confirmed);
+        f.Reader.Targets[AppointmentId] = new AppointmentNotificationTarget(
+            AppointmentType.Spa, Guid.NewGuid(), "Mimi", At(10), null, []);
+
+        await AssertCodeAsync(ErrorCodes.InvalidTransition,
+            () => f.Service.ConfirmSpaAsync(AppointmentId, [f.StaffA], confirmOutOfShift: false));
+
+        Assert.Empty(f.Sent.Sent);
     }
 
     [Fact]

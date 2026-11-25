@@ -113,7 +113,7 @@ public class CostConfirmationServiceTests
         {
             StaffRoles.Roles[ReceptionistUserId] = StaffRole.Receptionist;
             StaffRoles.Roles[SpaStaffUserId] = StaffRole.SpaStaff;
-            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard(), StaffRoles, Payments);
+            Service = new CostConfirmationService(Changes, Confirmations, Pets, Hotel, new FakeConcurrencyGuard(), StaffRoles, Payments, TestNotifier.Create());
         }
     }
 

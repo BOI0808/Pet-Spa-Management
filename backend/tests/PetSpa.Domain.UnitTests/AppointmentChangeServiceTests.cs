@@ -321,7 +321,7 @@ public class AppointmentChangeServiceTests
 
             Service = new AppointmentChangeService(
                 Changes, Pets, Bookings, new FakeServiceCatalogRepository(), Hotel,
-                new FakeTimeZoneProvider(StoreTimeZone), Shop, new FakeConcurrencyGuard(), Assignments, HotelAssignments, CostConfirmations);
+                new FakeTimeZoneProvider(StoreTimeZone), Shop, new FakeConcurrencyGuard(), Assignments, HotelAssignments, CostConfirmations, TestNotifier.Create());
         }
     }
 
