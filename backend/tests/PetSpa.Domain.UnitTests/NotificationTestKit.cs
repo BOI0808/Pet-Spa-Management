@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Services.Notifications;
@@ -51,5 +52,5 @@ internal static class TestNotifier
     public static AppointmentNotifier Create() => Create(new FakeNotificationReader(), new RecordingNotificationRepository());
 
     public static AppointmentNotifier Create(FakeNotificationReader reader, RecordingNotificationRepository sent) =>
-        new(reader, new NotificationService(sent), new ShopTimeZone(StoreTimeZone));
+        new(reader, new NotificationService(sent), new ShopTimeZone(StoreTimeZone), NullLogger<AppointmentNotifier>.Instance);
 }

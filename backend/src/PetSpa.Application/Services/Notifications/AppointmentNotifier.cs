@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Domain.Enums;
@@ -8,73 +9,92 @@ namespace PetSpa.Application.Services.Notifications;
 public sealed class AppointmentNotifier(
     IAppointmentNotificationReader reader,
     NotificationService notifications,
-    ShopTimeZone shopTimeZone)
+    ShopTimeZone shopTimeZone,
+    ILogger<AppointmentNotifier> logger)
 {
-    public async Task NotifyBookingReceivedAsync(Guid appointmentId, CancellationToken ct = default)
-    {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+    public Task NotifyBookingReceivedAsync(Guid appointmentId, CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyBookingReceivedAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
 
-        await SendToCustomerAsync(
-            target, NotificationType.BookingReceived, appointmentId,
-            $"Yêu cầu đặt {Subject(target)} đã được ghi nhận ở trạng thái Chờ xác nhận. Cửa hàng sẽ xác nhận sớm.", ct);
-    }
+            await SendToCustomerAsync(
+                target, NotificationType.BookingReceived, appointmentId,
+                $"Yêu cầu đặt {Subject(target)} đã được ghi nhận ở trạng thái Chờ xác nhận. Cửa hàng sẽ xác nhận sớm.", ct);
+        });
 
-    public async Task NotifyConfirmedAsync(Guid appointmentId, decimal? amount, CancellationToken ct = default)
-    {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+    public Task NotifyConfirmedAsync(Guid appointmentId, decimal? amount, CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyConfirmedAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
 
-        var amountText = amount is { } value ? $" Số tiền: {Money(value)}." : string.Empty;
-        await SendToCustomerAsync(
-            target, NotificationType.ConfirmedAssigned, appointmentId,
-            $"{Capitalize(Subject(target))} đã được xác nhận.{amountText}", ct);
+            var amountText = amount is { } value ? $" Số tiền: {Money(value)}." : string.Empty;
+            await SendToCustomerAsync(
+                target, NotificationType.ConfirmedAssigned, appointmentId,
+                $"{Capitalize(Subject(target))} đã được xác nhận.{amountText}", ct);
 
-        await SendToStaffAsync(
-            target, NotificationType.ConfirmedAssigned, appointmentId,
-            $"Bạn được phân công {Subject(target)}.", ct);
-    }
+            await SendToStaffAsync(
+                target, NotificationType.ConfirmedAssigned, appointmentId,
+                $"Bạn được phân công {Subject(target)}.", ct);
+        });
 
-    public async Task NotifyStatusChangedAsync(
-        Guid appointmentId, AppointmentStatus status, CancellationToken ct = default)
-    {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+    public Task NotifyStatusChangedAsync(
+        Guid appointmentId, AppointmentStatus status, CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyStatusChangedAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
 
-        await SendToCustomerAsync(
-            target, NotificationType.StatusChanged, appointmentId,
-            $"{Capitalize(Subject(target))} đã chuyển sang trạng thái {StatusText(status)}.", ct);
-    }
+            await SendToCustomerAsync(
+                target, NotificationType.StatusChanged, appointmentId,
+                $"{Capitalize(Subject(target))} đã chuyển sang trạng thái {StatusText(status)}.", ct);
+        });
 
-    public async Task NotifyCancelledAsync(Guid appointmentId, CancellationToken ct = default)
-    {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
-        if (target.CancelReason is not { } reason) return;
+    public Task NotifyCancelledAsync(Guid appointmentId, CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyCancelledAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+            if (target.CancelReason is not { } reason) return;
 
-        var message = $"{Capitalize(Subject(target))} đã bị hủy. Lý do: {ReasonText(reason)}.";
-        await SendToCustomerAsync(target, NotificationType.Cancelled, appointmentId, message, ct);
-        await SendToStaffAsync(target, NotificationType.Cancelled, appointmentId, message, ct);
-    }
+            var message = $"{Capitalize(Subject(target))} đã bị hủy. Lý do: {ReasonText(reason)}.";
+            await SendToCustomerAsync(target, NotificationType.Cancelled, appointmentId, message, ct);
+            await SendToStaffAsync(target, NotificationType.Cancelled, appointmentId, message, ct);
+        });
 
-    public async Task NotifyPaymentRecordedAsync(
-        Guid appointmentId, PaymentKind kind, decimal amount, CancellationToken ct = default)
-    {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+    public Task NotifyPaymentRecordedAsync(
+        Guid appointmentId, PaymentKind kind, decimal amount, CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyPaymentRecordedAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
 
-        await SendToCustomerAsync(
-            target, NotificationType.PaymentRecorded, appointmentId,
-            $"Đã ghi nhận thanh toán {PaymentKindText(kind)} {Money(amount)} cho {Subject(target)}.", ct);
-    }
+            await SendToCustomerAsync(
+                target, NotificationType.PaymentRecorded, appointmentId,
+                $"Đã ghi nhận thanh toán {PaymentKindText(kind)} {Money(amount)} cho {Subject(target)}.", ct);
+        });
 
-    public async Task NotifyCostConfirmationAsync(
+    public Task NotifyCostConfirmationAsync(
         Guid appointmentId, decimal actualWeightKg, decimal newAmount, DateTimeOffset expiresAt,
-        CancellationToken ct = default)
+        CancellationToken ct = default) =>
+        SafeNotifyAsync(appointmentId, nameof(NotifyCostConfirmationAsync), async () =>
+        {
+            if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
+
+            var weight = actualWeightKg.ToString("0.##", CultureInfo.InvariantCulture);
+            var (day, time) = shopTimeZone.ToLocal(expiresAt);
+            var message = FormattableString.Invariant(
+                $"Cân nặng thực tế của {target.PetName} là {weight} kg, chuyển sang nhóm kích cỡ lớn hơn. Chi phí mới của {Subject(target)} là {Money(newAmount)}. Vui lòng xác nhận hoặc từ chối trước {time:HH:mm} ngày {day:dd/MM/yyyy}, quá hạn lịch hẹn sẽ tự động bị hủy.");
+
+            await SendToCustomerAsync(target, NotificationType.CostConfirmation, appointmentId, message, ct);
+        });
+
+    private async Task SafeNotifyAsync(Guid appointmentId, string eventName, Func<Task> work)
     {
-        if (await reader.FindAsync(appointmentId, ct) is not { } target) return;
-
-        var weight = actualWeightKg.ToString("0.##", CultureInfo.InvariantCulture);
-        var (day, time) = shopTimeZone.ToLocal(expiresAt);
-        var message = FormattableString.Invariant(
-            $"Cân nặng thực tế của {target.PetName} là {weight} kg, chuyển sang nhóm kích cỡ lớn hơn. Chi phí mới của {Subject(target)} là {Money(newAmount)}. Vui lòng xác nhận hoặc từ chối trước {time:HH:mm} ngày {day:dd/MM/yyyy}, quá hạn lịch hẹn sẽ tự động bị hủy.");
-
-        await SendToCustomerAsync(target, NotificationType.CostConfirmation, appointmentId, message, ct);
+        try
+        {
+            await work();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Gửi thông báo {EventName} thất bại cho lịch hẹn {AppointmentId}", eventName, appointmentId);
+        }
     }
 
     private async Task SendToCustomerAsync(
@@ -105,7 +125,8 @@ public sealed class AppointmentNotifier(
                 $"lịch lưu trú của {target.PetName} nhận phòng lúc {time:HH:mm} ngày {day:dd/MM/yyyy}");
     }
 
-    private static string Capitalize(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+    private static string Capitalize(string text) =>
+        string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text[1..];
 
     private static string Money(decimal amount) =>
         amount.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.') + "đ";

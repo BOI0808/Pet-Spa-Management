@@ -1,3 +1,4 @@
+using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
 using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Enums;
@@ -147,13 +148,85 @@ public class AppointmentNotifierTests
     }
 
     [Fact]
-    public async Task StatusChanged_StatusWithoutNotification_Throws()
+    public async Task StatusChanged_StatusWithoutNotification_SendsNothingAndDoesNotThrow()
     {
         var f = new Fixture();
         f.AddSpa();
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => f.Notifier.NotifyStatusChangedAsync(AppointmentId, AppointmentStatus.Pending));
+        await f.Notifier.NotifyStatusChangedAsync(AppointmentId, AppointmentStatus.Pending);
+
+        Assert.Empty(f.Sent.Sent);
+    }
+
+    [Fact]
+    public async Task AnyEvent_WhenReaderThrows_DoesNotThrow()
+    {
+        var reader = new ThrowingNotificationReader();
+        var sent = new RecordingNotificationRepository();
+        var notifier = new AppointmentNotifier(
+            reader, new NotificationService(sent), new ShopTimeZone(TimeZoneInfo.Utc),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AppointmentNotifier>.Instance);
+
+        await notifier.NotifyBookingReceivedAsync(AppointmentId);
+
+        Assert.Empty(sent.Sent);
+    }
+
+    [Fact]
+    public async Task AnyEvent_WhenRepositoryThrows_DoesNotThrow()
+    {
+        var reader = new FakeNotificationReader();
+        reader.Targets[AppointmentId] = new AppointmentNotificationTarget(
+            AppointmentType.Spa, CustomerUserId, "Mimi", Start, null, []);
+        var notifier = new AppointmentNotifier(
+            reader, new NotificationService(new ThrowingNotificationRepository()), new ShopTimeZone(TimeZoneInfo.Utc),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AppointmentNotifier>.Instance);
+
+        await notifier.NotifyPaymentRecordedAsync(AppointmentId, PaymentKind.Spa, 100_000m);
+    }
+
+    [Fact]
+    public async Task AnyEvent_WhenOperationCancelled_Rethrows()
+    {
+        var notifier = new AppointmentNotifier(
+            new CancellingNotificationReader(), new NotificationService(new RecordingNotificationRepository()),
+            new ShopTimeZone(TimeZoneInfo.Utc),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AppointmentNotifier>.Instance);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => notifier.NotifyBookingReceivedAsync(AppointmentId));
+    }
+
+    private sealed class ThrowingNotificationReader : IAppointmentNotificationReader
+    {
+        public Task<AppointmentNotificationTarget?> FindAsync(Guid appointmentId, CancellationToken ct = default) =>
+            throw new InvalidOperationException("DB connection lost");
+    }
+
+    private sealed class CancellingNotificationReader : IAppointmentNotificationReader
+    {
+        public Task<AppointmentNotificationTarget?> FindAsync(Guid appointmentId, CancellationToken ct = default) =>
+            throw new OperationCanceledException();
+    }
+
+    private sealed class ThrowingNotificationRepository : INotificationRepository
+    {
+        public Task<Guid> AddAsync(
+            Guid recipientUserId, NotificationType type, Guid? appointmentId, string message,
+            CancellationToken ct = default) =>
+            throw new InvalidOperationException("Insert failed");
+
+        public Task<PagedResult<PetSpa.Domain.Entities.Notification>> ListByRecipientAsync(
+            Guid recipientUserId, int page, int pageSize, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<int> CountUnreadAsync(Guid recipientUserId, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task<Guid?> FindRecipientUserIdAsync(Guid notificationId, CancellationToken ct = default) =>
+            throw new NotImplementedException();
+
+        public Task MarkReadAsync(Guid notificationId, CancellationToken ct = default) =>
+            throw new NotImplementedException();
     }
 
     [Fact]
