@@ -189,10 +189,14 @@ export type Appointment = {
   petName?: string;
   status: AppointmentStatus;
   sizeGroup: SizeGroup;
+  /** Cân nặng ghi nhận khi tiếp nhận (spa) hoặc đối chiếu cân nặng (lưu trú); `null` khi chưa ghi nhận. */
+  actualWeightKg?: number | null;
   slotStart?: string | null;
   slotEnd?: string | null;
   plannedCheckIn?: string | null;
   plannedCheckOut?: string | null;
+  /** Chỉ lịch lưu trú; giờ trả thực tế, có giá trị từ lần gọi check-out đầu tiên. */
+  actualCheckOut?: string | null;
   /** Chỉ lịch lưu trú; mã chuồng cần `GET /cages` (thẻ 150), MW-03 chỉ dùng để biết đã gán chuồng hay chưa. */
   cageId?: string | null;
   /** Lý do hủy khi `status = Cancelled` (MW-03 hiện ở dòng phụ của cột Trạng thái). */
@@ -309,6 +313,37 @@ export type Photo = {
   kind: PhotoKind;
   url: string;
   uploadedAt: string;
+};
+
+// ── Thực hiện lịch hẹn (FR-EXE-05, MW-05 vùng 7) – cùng tên với staff-web ──
+export type WeightCheckResult = "OK" | "PRICE_DECREASED" | "NEEDS_CONFIRMATION";
+
+/** Kết quả đối chiếu cân nặng thực tế với hồ sơ (BR-23). */
+export type WeightCheck = {
+  result: WeightCheckResult;
+  newSizeGroup?: SizeGroup;
+  /** VND. */
+  oldAmount?: number;
+  newAmount?: number;
+  /** Hạn khách phản hồi chi phí mới; chỉ có khi `result` = NEEDS_CONFIRMATION. */
+  expiresAt?: string;
+  /** Chỉ lịch lưu trú, khi `PRICE_DECREASED`: `false` → chuồng đã gán không còn phù hợp nhóm mới (BR-21). */
+  cageSuitable?: boolean;
+};
+
+/** Phản hồi POST /appointments/{id}/weight-check (lịch lưu trú). */
+export type WeightCheckResponse = { weightCheck: WeightCheck };
+
+/** Phản hồi POST /appointments/{id}/check-in. `weightCheck` chỉ có ở lịch spa. */
+export type CheckInResult = {
+  status: AppointmentStatus;
+  weightCheck?: WeightCheck;
+};
+
+/** Phản hồi POST /appointments/{id}/check-out. `lateFee` là phí trả muộn (VND) nếu có. */
+export type CheckOutResult = {
+  status: AppointmentStatus;
+  lateFee?: number;
 };
 
 /** Body của POST /appointments/{id}/cancel khi Quản lý gọi: bắt buộc có `reason` (schema CancelRequest). */

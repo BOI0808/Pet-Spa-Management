@@ -1,6 +1,10 @@
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   cancelAppointment,
+  checkInHotelAppointment,
+  checkInSpaAppointment,
+  checkOutHotelAppointment,
+  completeAppointment,
   confirmHotelAppointment,
   confirmSpaAppointment,
   getAppointment,
@@ -9,11 +13,13 @@ import {
   listAppointmentPhotos,
   listAppointments,
   rejectAppointment,
+  startAppointment,
   updateAppointment,
+  weightCheckHotelAppointment,
   type AppointmentListParams,
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
-import type { Appointment, AppointmentDetail, AppointmentStatus, AppointmentType, Photo } from "@/lib/api/types";
+import type { Appointment, AppointmentDetail, AppointmentStatus, AppointmentType, Photo, WeightCheck } from "@/lib/api/types";
 
 // Backend giới hạn `pageSize` tối đa 100 và luôn sắp theo `CreatedAt` tăng dần;
 // tạm tải hết các trang `Pending` (tối đa 1.000 lịch) để web sắp theo giờ hẹn gần nhất, đếm đúng và tìm đủ `?appointmentId=`.
@@ -299,6 +305,49 @@ export function useUpdateAppointment() {
     },
     onError: (error) => {
       if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
+    },
+  });
+}
+
+/** Một thao tác cập nhật trạng thái thực hiện ở MW-05 vùng 7 (FR-EXE-05). */
+export type ExecutionRequest =
+  | { action: "checkInSpa" | "weightCheckHotel"; appointmentId: string; actualWeightKg: number }
+  | { action: "checkInHotel" | "start" | "complete" | "checkOut"; appointmentId: string };
+
+/** Phần phản hồi mà giao diện dùng; mỗi endpoint trả một phần (`weightCheck` chỉ ở tiếp nhận/đối chiếu, `lateFee` chỉ ở trả thú cưng). */
+export type ExecutionResult = { status?: AppointmentStatus; weightCheck?: WeightCheck; lateFee?: number };
+
+function runExecution(request: ExecutionRequest): Promise<ExecutionResult> {
+  const { appointmentId } = request;
+  switch (request.action) {
+    case "checkInSpa":
+      return checkInSpaAppointment({ appointmentId, actualWeightKg: request.actualWeightKg });
+    case "weightCheckHotel":
+      return weightCheckHotelAppointment({ appointmentId, actualWeightKg: request.actualWeightKg });
+    case "checkInHotel":
+      return checkInHotelAppointment(appointmentId);
+    case "start":
+      return startAppointment(appointmentId);
+    case "complete":
+      return completeAppointment(appointmentId);
+    case "checkOut":
+      return checkOutHotelAppointment(appointmentId);
+  }
+}
+
+/**
+ * Tiếp nhận, đối chiếu cân nặng, bắt đầu, hoàn tất, trả thú cưng (FR-EXE-05). Sau khi ghi và sau lỗi 409 (vd. INVALID_TRANSITION khi nhân
+ * viên vừa đổi trạng thái, PAYMENT_NOT_DUE khi vừa phát sinh khoản LateFee) tải lại chi tiết, ảnh, danh sách và số liệu lịch hẹn.
+ * Trả về lời hứa tải lại để nút vẫn ở trạng thái đang gửi cho đến khi chi tiết mới về, tránh bấm lại bước cũ (INVALID_TRANSITION).
+ * Chưa tải lại danh sách chuồng vì web Quản lý chưa có query chuồng (thẻ 150).
+ */
+export function useUpdateExecutionStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runExecution,
+    onSuccess: () => invalidateAppointments(queryClient),
+    onError: (error) => {
+      if (toApiError(error).status === 409) return invalidateAppointments(queryClient);
     },
   });
 }
