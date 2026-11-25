@@ -49,6 +49,11 @@ public sealed class CheckInService(
         }, ct);
 
         await notifier.NotifyStatusChangedAsync(appointmentId, result.Status, ct);
+
+        if (result.WeightCheck is
+            { Result: WeightCheckResult.NEEDS_CONFIRMATION, NewAmount: { } newAmount, ExpiresAt: { } expiresAt })
+            await notifier.NotifyCostConfirmationAsync(appointmentId, actualWeightKg, newAmount, expiresAt, ct);
+
         return result;
     }
 

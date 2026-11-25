@@ -193,7 +193,8 @@ public sealed class WeightCheckServiceTests
             costConfirmations ?? new FakeCostConfirmationRepository(),
             timeZoneProvider,
             guard,
-            payments ?? new FakeStayPaymentRepository());
+            payments ?? new FakeStayPaymentRepository(),
+            TestNotifier.Create());
 
         return (sut, pets, paymentAmounts, bookings, hotelAssignments, guard);
     }
@@ -224,7 +225,8 @@ public sealed class WeightCheckServiceTests
             costConfirmations ?? new FakeCostConfirmationRepository(),
             timeZoneProvider,
             guard,
-            stayPayments);
+            stayPayments,
+            TestNotifier.Create());
 
         return (sut, pets, hotelAssignments, stayPayments);
     }
