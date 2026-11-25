@@ -338,16 +338,19 @@ function runExecution(request: ExecutionRequest): Promise<ExecutionResult> {
 /**
  * Tiếp nhận, đối chiếu cân nặng, bắt đầu, hoàn tất, trả thú cưng (FR-EXE-05). Sau khi ghi và sau lỗi 409 (vd. INVALID_TRANSITION khi nhân
  * viên vừa đổi trạng thái, PAYMENT_NOT_DUE khi vừa phát sinh khoản LateFee) tải lại chi tiết, ảnh, danh sách và số liệu lịch hẹn.
- * Trả về lời hứa tải lại để nút vẫn ở trạng thái đang gửi cho đến khi chi tiết mới về, tránh bấm lại bước cũ (INVALID_TRANSITION).
+ * Dùng `void` giống `useCancelAppointment`/`useUpdateAppointment` để callback `onSuccess` tại nơi gọi (`showSuccess`) luôn chạy trước khi
+ * chi tiết mới làm đổi `key` hoặc ẩn thẻ (tránh TanStack Query bỏ qua callback khi observer unmount).
  * Chưa tải lại danh sách chuồng vì web Quản lý chưa có query chuồng (thẻ 150).
  */
 export function useUpdateExecutionStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: runExecution,
-    onSuccess: () => invalidateAppointments(queryClient),
+    onSuccess: () => {
+      void invalidateAppointments(queryClient);
+    },
     onError: (error) => {
-      if (toApiError(error).status === 409) return invalidateAppointments(queryClient);
+      if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
     },
   });
 }

@@ -130,11 +130,12 @@ function StatusActionForm({ appointment, plan }: StatusActionFormProps) {
         </p>
       )}
 
+      {/* Giữ trạng thái đang gửi cả khi `update.isSuccess` cho tới lúc chi tiết mới về làm đổi `key={plan.action}` hoặc ẩn thẻ, tránh bấm lại bước cũ. */}
       <Button
         type="submit"
         variant="primary"
         block
-        loading={update.isPending}
+        loading={update.isPending || update.isSuccess}
         disabled={plan.lockReason !== null}
         aria-describedby={reason ? REASON_ID : undefined}
       >
