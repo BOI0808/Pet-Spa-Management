@@ -15,10 +15,12 @@ import { AppointmentHeaderCard } from "../components/appointment-header-card";
 import { AppointmentLifecycleCard } from "../components/appointment-lifecycle-card";
 import { AppointmentPhotosCard } from "../components/appointment-photos-card";
 import { AppointmentServicesCard } from "../components/appointment-services-card";
+import { AppointmentStatusCard } from "../components/appointment-status-card";
+import { hasStatusUpdateStep } from "../status-update";
 
 /**
  * MW-05 Chi tiết lịch hẹn (quản lý) – `/lich-hen/[appointmentId]`. Thẻ 148 làm vùng 1 (đầu trang + nút Hủy lịch, Đổi lịch);
- * thẻ 147 làm vùng 2 (vòng đời), 3 (dịch vụ và tiến độ, chỉ spa), 4 (ảnh minh chứng, chỉ spa); thẻ 149 bổ sung vùng 7 (cập nhật trạng thái).
+ * thẻ 147 làm vùng 2 (vòng đời), 3 (dịch vụ và tiến độ, chỉ spa), 4 (ảnh minh chứng, chỉ spa); thẻ 149 làm vùng 7 (cập nhật trạng thái, cột phải).
  * Chi tiết tải lại 30 giây/lần khi lịch đang Đã tiếp nhận hoặc Đang thực hiện để tiến độ và ảnh mới hiện ra.
  */
 export function AppointmentDetailScreen() {
@@ -40,12 +42,23 @@ export function AppointmentDetailScreen() {
         <div className="flex flex-col gap-4">
           <AppointmentHeaderCard appointment={query.data} />
           <AppointmentLifecycleCard appointment={query.data} />
-          {query.data.type === "Spa" && (
-            <>
-              <AppointmentServicesCard appointment={query.data} />
-              <AppointmentPhotosCard appointment={query.data} />
-            </>
-          )}
+          {/* Hai cột như `.split` của ui-demo (cột phải 360px, một cột từ 1180px trở xuống): vùng 3, 4 bên trái, vùng 7 bên phải.
+              Lịch không còn bước kế tiếp (Chờ xác nhận, Hoàn tất, Đã hủy) giữ một cột như trước để không bỏ trống cột phải. */}
+          <div className={hasStatusUpdateStep(query.data) ? "grid grid-cols-[minmax(0,1fr)_360px] items-start gap-4 max-[1180px]:grid-cols-1" : undefined}>
+            <div className="flex min-w-0 flex-col gap-4">
+              {query.data.type === "Spa" && (
+                <>
+                  <AppointmentServicesCard appointment={query.data} />
+                  <AppointmentPhotosCard appointment={query.data} />
+                </>
+              )}
+            </div>
+            {hasStatusUpdateStep(query.data) && (
+              <aside aria-label="Cập nhật trạng thái" className="col-start-2 flex min-w-0 flex-col gap-4 max-[1180px]:col-start-1">
+                <AppointmentStatusCard appointment={query.data} />
+              </aside>
+            )}
+          </div>
         </div>
       ) : query.isError ? (
         isForbiddenError(query.error) ? (
