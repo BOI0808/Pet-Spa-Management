@@ -1,5 +1,6 @@
 using PetSpa.Application.Common;
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
 
@@ -12,12 +13,13 @@ public sealed class CheckInService(
     WeightCheckService weightCheckService,
     IHotelAssignmentRepository hotelAssignments,
     ICostConfirmationRepository costConfirmations,
-    IPaymentRepository payments)
+    IPaymentRepository payments,
+    AppointmentNotifier notifier)
 {
     public async Task<SpaCheckInResult> CheckInSpaAsync(
         Guid appointmentId, decimal actualWeightKg, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -45,6 +47,9 @@ public sealed class CheckInService(
 
             return new SpaCheckInResult(appointment.Status, weightCheck);
         }, ct);
+
+        await notifier.NotifyStatusChangedAsync(appointmentId, result.Status, ct);
+        return result;
     }
 
     public async Task<AppointmentType> GetAppointmentTypeAsync(Guid appointmentId, CancellationToken ct = default) =>
@@ -53,7 +58,7 @@ public sealed class CheckInService(
 
     public async Task<AppointmentStatus> CheckInHotelAsync(Guid appointmentId, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var status = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -100,5 +105,8 @@ public sealed class CheckInService(
 
             return stay.Status;
         }, ct);
+
+        await notifier.NotifyStatusChangedAsync(appointmentId, status, ct);
+        return status;
     }
 }

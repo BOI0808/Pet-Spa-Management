@@ -97,7 +97,7 @@ public class CheckOutServiceTests
         var hotelAssignments = new FakeHotelAssignmentRepository { Appointment = stay };
         var payments = new FakeStayPaymentRepository();
         var guard = new FakeConcurrencyGuard();
-        var sut = new CheckOutService(hotelAssignments, payments, new FakePaymentAmountRepository(), guard);
+        var sut = new CheckOutService(hotelAssignments, payments, new FakePaymentAmountRepository(), guard, TestNotifier.Create());
 
         return new Fixture(sut, stay, hotelAssignments, payments, guard);
     }

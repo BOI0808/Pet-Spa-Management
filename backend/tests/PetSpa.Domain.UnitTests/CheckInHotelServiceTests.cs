@@ -159,7 +159,8 @@ public class CheckInHotelServiceTests
             null!,
             hotelAssignments,
             costConfirmations,
-            payments);
+            payments,
+            TestNotifier.Create());
 
         return new Fixture(sut, stay, assignments, payments, costConfirmations, guard, hotelAssignments);
     }

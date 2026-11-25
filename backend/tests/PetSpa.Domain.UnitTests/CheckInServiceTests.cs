@@ -214,7 +214,7 @@ public class CheckInServiceTests
             timeZoneProvider,
             guard,
             new FakeStayPaymentRepository());
-        return (new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, new FakeCostConfirmationRepository(), new FakeStayPaymentRepository()), repo, guard);
+        return (new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, new FakeCostConfirmationRepository(), new FakeStayPaymentRepository(), TestNotifier.Create()), repo, guard);
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class CheckInServiceTests
             guard,
             new FakeStayPaymentRepository());
 
-        var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, costRepo, new FakeStayPaymentRepository());
+        var sut = new CheckInService(repo, guard, shopTimeZone, weightCheck, hotelAssignRepo, costRepo, new FakeStayPaymentRepository(), TestNotifier.Create());
 
         // Pet weighs 3.6kg, moves from Small to Medium, exceeding tolerance -> NEEDS_CONFIRMATION
         var result = await sut.CheckInSpaAsync(AppointmentId, 3.6m);
