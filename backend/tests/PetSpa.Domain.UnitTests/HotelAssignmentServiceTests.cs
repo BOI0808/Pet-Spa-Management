@@ -132,7 +132,7 @@ public class HotelAssignmentServiceTests
         var catalog = new FakeHotelCatalogRepository();
         var payments = new FakeStayPaymentRepository();
         var service = new HotelAssignmentService(
-            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, catalog, payments);
+            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, catalog, payments, TestNotifier.Create());
         return (service, repository, guard, payments);
     }
 
@@ -303,7 +303,7 @@ public class HotelAssignmentServiceTests
         };
         var guard = new FakeConcurrencyGuard();
         var service = new HotelAssignmentService(
-            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, new FakeHotelCatalogRepository(), new FakeStayPaymentRepository());
+            repository, new FakeTimeZoneProvider(StoreTimeZone), guard, new FakeHotelCatalogRepository(), new FakeStayPaymentRepository(), TestNotifier.Create());
 
         var result = await service.RejectAsync(spaAppointment.AppointmentId);
 

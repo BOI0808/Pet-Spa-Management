@@ -1,4 +1,5 @@
 using PetSpa.Application.Ports;
+using PetSpa.Application.Services.Notifications;
 using PetSpa.Domain.Enums;
 using PetSpa.Domain.Exceptions;
 using PetSpa.Domain.Services;
@@ -18,7 +19,8 @@ public sealed class AssignmentService(
     IAssignmentRepository assignments,
     IBookingRepository bookings,
     IPaymentAmountRepository paymentAmounts,
-    IConcurrencyGuard concurrencyGuard)
+    IConcurrencyGuard concurrencyGuard,
+    AppointmentNotifier notifier)
 {
     // Đề xuất nhân viên phù hợp cho lịch spa; chỉ đề xuất, không ghi dữ liệu và không giữ chỗ.
     public async Task<SpaSuggestionsResult> GetSuggestionsAsync(Guid appointmentId, CancellationToken ct = default)
@@ -50,7 +52,7 @@ public sealed class AssignmentService(
     public async Task<SpaConfirmResult> ConfirmSpaAsync(
         Guid appointmentId, IReadOnlyCollection<Guid> staffIds, bool confirmOutOfShift, CancellationToken ct = default)
     {
-        return await concurrencyGuard.RunAsync(async () =>
+        var result = await concurrencyGuard.RunAsync(async () =>
         {
             await concurrencyGuard.LockAppointmentAsync(appointmentId, ct);
 
@@ -101,6 +103,9 @@ public sealed class AssignmentService(
 
             return new SpaConfirmResult(appointment.Status, amount);
         }, ct);
+
+        await notifier.NotifyConfirmedAsync(appointmentId, result.Amount, ct);
+        return result;
     }
 }
 
