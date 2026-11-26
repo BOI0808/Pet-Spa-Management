@@ -106,7 +106,7 @@ export function CagesScreen() {
             today={today}
             dueToday={isDueForCheckOut(cage, today)}
             stayAppointmentId={
-              (cage.occupant && findStayAppointment(stays.data?.items, cage.occupant.petId)?.appointmentId) ?? null
+              (cage.occupant && findStayAppointment(stays.data?.items, cage.cageId)?.appointmentId) ?? null
             }
           />
         ))}

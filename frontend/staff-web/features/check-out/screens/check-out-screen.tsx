@@ -21,8 +21,8 @@ import { useAppointment, useAppointments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
 import { checkOutRoute } from "@/lib/routes";
 import { getStoreToday, toStoreDate } from "@/lib/time";
-import { IN_STAY_PARAMS } from "@/features/cages/cages";
-import { formatStayMoment, sortByPlannedCheckOut } from "../check-out";
+import { formatStayMoment, IN_STAY_PARAMS } from "@/features/cages/cages";
+import { sortByPlannedCheckOut } from "../check-out";
 import { CheckOutCard } from "../components/check-out-card";
 
 const DESCRIPTION = "Ghi nhận giờ đón thực tế, thu phí trả muộn nếu có, rồi bàn giao bé.";
@@ -67,7 +67,7 @@ function StayRow({ stay, today }: { stay: Appointment; today: string }) {
           <span className="block truncate text-xs text-muted">Chủ: {stay.customerName ?? "—"}</span>
         </span>
         <span className="flex flex-col items-end gap-1 text-right text-xs text-muted">
-          {stay.plannedCheckOut && <span>Trả dự kiến {formatStayMoment(stay.plannedCheckOut)}</span>}
+          {stay.plannedCheckOut && <span>Trả dự kiến {formatStayMoment(stay.plannedCheckOut, today)}</span>}
           {dueDate !== null && dueDate === today && <Tag tone="warn">Trả hôm nay</Tag>}
           {dueDate !== null && dueDate < today && <Tag tone="warn">Quá hạn trả</Tag>}
         </span>

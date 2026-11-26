@@ -18,9 +18,10 @@ import { APPOINTMENT_STATUS_LABELS, SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/
 import { useAppointmentPayments, useCheckOut } from "@/lib/queries/appointments";
 import { useCages } from "@/lib/queries/cages";
 import { paymentsRoute, ROUTES } from "@/lib/routes";
-import { toStoreDate, toStoreTime } from "@/lib/time";
+import { getStoreToday, toStoreDate, toStoreTime } from "@/lib/time";
 import { findPayment, speciesAndBreed } from "@/features/appointments/appointments";
-import { checkOutMoment, formatStayMoment, minutesFromPlanned, paidLine } from "../check-out";
+import { formatStayMoment } from "@/features/cages/cages";
+import { checkOutMoment, minutesFromPlanned, paidLine } from "../check-out";
 
 /** Giờ hiện tại, cập nhật mỗi 30 giây: đủ để ô giờ trả (chỉ hiện đến phút) không lệch quá nửa phút. */
 function useNow() {
@@ -47,7 +48,11 @@ function InfoBox({ label, value }: { label: string; value: string }) {
  */
 function LateNote({ minutes, lateFee }: { minutes: number; lateFee: Payment | undefined }) {
   if (minutes <= 0) {
-    const early = minutes < 0 ? `Đón sớm ${-minutes} phút so với giờ trả dự kiến.` : "Đón đúng giờ trả dự kiến.";
+    // Sớm hơn một giờ thì số phút không còn ý nghĩa với khách (sớm cả ngày là hàng nghìn phút).
+    let early = "Đón đúng giờ trả dự kiến.";
+    if (minutes < 0) {
+      early = -minutes < 60 ? `Đón sớm ${-minutes} phút so với giờ trả dự kiến.` : "Đón sớm hơn giờ trả dự kiến.";
+    }
     return (
       <Alert tone="success" title="Không tính phí trả muộn">
         {early} Xử lý như trả bình thường, không hoàn tiền.
@@ -59,9 +64,9 @@ function LateNote({ minutes, lateFee }: { minutes: number; lateFee: Payment | un
       tone="warn"
       title={lateFee ? `Trễ ${minutes} phút: phí trả muộn ${formatMoney(lateFee.amount)}` : `Trễ ${minutes} phút so với giờ trả dự kiến`}
     >
-      {lateFee
-        ? "Thu phí trả muộn tại quầy trước khi hoàn tất."
-        : "Hệ thống tính phí trả muộn (nếu có) khi bạn xác nhận trả: trễ trong thời gian miễn phí thì không phát sinh."}
+      {!lateFee && "Hệ thống tính phí trả muộn (nếu có) khi bạn xác nhận trả: trễ trong thời gian miễn phí thì không phát sinh."}
+      {lateFee?.status === "Unpaid" && "Thu phí trả muộn tại quầy trước khi hoàn tất."}
+      {lateFee?.status === "Paid" && "Đã thu phí trả muộn. Xác nhận trả thú cưng để hoàn tất lịch."}
     </Alert>
   );
 }
@@ -75,6 +80,7 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
   const router = useRouter();
   const { showSuccess } = useToast();
   const now = useNow();
+  const today = getStoreToday();
   const cages = useCages();
   const payments = useAppointmentPayments(appointment.appointmentId);
   const checkOut = useCheckOut();
@@ -108,7 +114,7 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
   let statusNote: string | null = null;
   if (appointment.status === "Completed") {
     statusNote = appointment.actualCheckOut
-      ? `Lịch đã hoàn tất, bé đã được trả lúc ${formatStayMoment(appointment.actualCheckOut)}.`
+      ? `Lịch đã hoàn tất, bé đã được trả lúc ${formatStayMoment(appointment.actualCheckOut, today)}.`
       : "Lịch đã hoàn tất, bé đã được trả.";
   } else if (!isInStay) {
     statusNote = `Lịch đang ở trạng thái ${APPOINTMENT_STATUS_LABELS[appointment.status]}, không ở bước trả thú cưng.`;
@@ -178,10 +184,10 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
                   : "—"
               }
             />
-            <InfoBox label="Nhận" value={appointment.plannedCheckIn ? formatStayMoment(appointment.plannedCheckIn) : "—"} />
+            <InfoBox label="Nhận" value={appointment.plannedCheckIn ? formatStayMoment(appointment.plannedCheckIn, today) : "—"} />
             <InfoBox
               label="Trả dự kiến"
-              value={appointment.plannedCheckOut ? formatStayMoment(appointment.plannedCheckOut) : "—"}
+              value={appointment.plannedCheckOut ? formatStayMoment(appointment.plannedCheckOut, today) : "—"}
             />
           </div>
 

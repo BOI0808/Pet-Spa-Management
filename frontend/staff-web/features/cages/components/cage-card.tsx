@@ -2,11 +2,10 @@ import { PetAvatar } from "@/components/domain/pet-avatar";
 import { Icon } from "@/components/icons";
 import { ButtonLink } from "@/components/ui/button";
 import type { Cage } from "@/lib/api/types";
-import { formatDayMonth } from "@/lib/format";
 import { SIZE_GROUP_LABELS, SPECIES_LABELS } from "@/lib/labels";
 import { checkOutRoute } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
-import { cageState, type CageState } from "../cages";
+import { cageState, formatStayMoment, type CageState } from "../cages";
 
 // `.cage` của ui-demo: trống thì nền kẻ sọc nhạt, đang chứa viền Lagoon nhạt, ngừng sử dụng nền xám.
 const CARD_CLASS: Record<CageState, string> = {
@@ -36,7 +35,6 @@ export function CageCard({ cage, dueToday, stayAppointmentId, today }: CageCardP
   const pill = PILL[state];
   const { occupant } = cage;
   const checkOutDate = occupant ? toStoreDate(occupant.plannedCheckOut) : "";
-  const checkOutTime = occupant ? toStoreTime(occupant.plannedCheckOut) : "";
 
   return (
     <li
@@ -71,13 +69,11 @@ export function CageCard({ cage, dueToday, stayAppointmentId, today }: CageCardP
             {dueToday ? (
               <span className="font-semibold text-apricot-700">
                 {checkOutDate === today
-                  ? `Trả hôm nay ${checkOutTime}`
-                  : `Quá hạn trả ${checkOutTime}, ${formatDayMonth(checkOutDate)}`}
+                  ? `Trả hôm nay ${toStoreTime(occupant.plannedCheckOut)}`
+                  : `Quá hạn trả ${formatStayMoment(occupant.plannedCheckOut, today)}`}
               </span>
             ) : (
-              <span>
-                Trả dự kiến {checkOutTime}, {formatDayMonth(checkOutDate)}
-              </span>
+              <span>Trả dự kiến {formatStayMoment(occupant.plannedCheckOut, today)}</span>
             )}
             {dueToday && stayAppointmentId && (
               <ButtonLink href={checkOutRoute(stayAppointmentId)} size="sm" className="ml-auto">

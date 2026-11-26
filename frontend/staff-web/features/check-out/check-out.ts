@@ -4,11 +4,6 @@ import { formatDayMonth } from "@/lib/format";
 import { PAYMENT_METHOD_LABELS } from "@/lib/labels";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 
-/** “18:00, 06/10” – mốc nhận, trả trong ba ô thông tin (ui-demo SW-10). */
-export function formatStayMoment(isoDateTime: string) {
-  return `${toStoreTime(isoDateTime)}, ${formatDayMonth(toStoreDate(isoDateTime))}`;
-}
-
 /**
  * Mốc dùng để báo sớm/trễ (vùng 3, 4). Backend ghi `actualCheckOut` ở lần bấm xác nhận đầu tiên (G-12, kể cả khi trả 409
  * vì có phí trễ) và tính phí theo mốc đó, nên đã có thì dùng nó; chưa có thì dùng giờ hiện tại để báo trước cho khách.

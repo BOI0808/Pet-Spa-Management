@@ -1,6 +1,7 @@
 // Luật hiển thị của SW-08 Tình trạng chuồng (UI-Screens.md, FR-HTL-08, BR-21). Không gọi API ở đây.
 import type { Appointment, Cage, SizeGroup, Species } from "@/lib/api/types";
-import { toStoreDate } from "@/lib/time";
+import { formatDate, formatDayMonth } from "@/lib/format";
+import { toStoreDate, toStoreTime } from "@/lib/time";
 
 /** Trạng thái thẻ chuồng: đang chứa bé, trống, hoặc ngừng sử dụng (không tính vào sức chứa). */
 export type CageState = "busy" | "free" | "off";
@@ -19,6 +20,16 @@ export function countCages(cages: Cage[]) {
   const counts = { busy: 0, free: 0, off: 0 };
   for (const cage of cages) counts[cageState(cage)] += 1;
   return { ...counts, inUse: counts.busy + counts.free };
+}
+
+/**
+ * “18:00, 06/10” – giờ nhận, trả của lịch lưu trú (ui-demo SW-08, SW-10). Khác năm của `today` thì thêm năm
+ * (“11:32, 02/03/2027”) để lịch đặt xa không bị đọc nhầm sang năm nay.
+ */
+export function formatStayMoment(isoDateTime: string, today: string) {
+  const date = toStoreDate(isoDateTime);
+  const day = date.slice(0, 4) === today.slice(0, 4) ? formatDayMonth(date) : formatDate(date);
+  return `${toStoreTime(isoDateTime)}, ${day}`;
 }
 
 /** Bộ lọc vùng 2, lọc ở web vì GET /cages không có tham số lọc. `null` = không lọc. */
@@ -54,11 +65,12 @@ export function isDueForCheckOut(cage: Cage, today: string) {
 }
 
 /**
- * Lịch Đang lưu trú của bé trong chuồng (G-17: `occupant` không có `appointmentId`). Mỗi bé chỉ có một lịch Đang lưu
- * trú tại một thời điểm nên tìm theo `petId` là đủ.
+ * Lịch Đang lưu trú của bé trong chuồng (G-17: `occupant` không có `appointmentId`). Tìm theo `cageId` của lịch thay vì
+ * `petId` như UI-Screens gợi ý: dữ liệu thử đã có một bé Đang lưu trú ở hai chuồng cùng lúc, tìm theo bé sẽ mở nhầm
+ * lịch. Mỗi chuồng chỉ chứa một bé tại một thời điểm (BR-21) nên `cageId` không nhập nhằng.
  */
-export function findStayAppointment(stays: Appointment[] | undefined, petId: string) {
-  return stays?.find((stay) => stay.petId === petId && stay.status === "InStay");
+export function findStayAppointment(stays: Appointment[] | undefined, cageId: string) {
+  return stays?.find((stay) => stay.cageId === cageId && stay.status === "InStay");
 }
 
 /**
