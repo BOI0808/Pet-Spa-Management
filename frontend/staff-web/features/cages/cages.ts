@@ -1,5 +1,6 @@
 // Luật hiển thị của SW-08 Tình trạng chuồng (UI-Screens.md, FR-HTL-08, BR-21). Không gọi API ở đây.
 import type { Appointment, Cage, SizeGroup, Species } from "@/lib/api/types";
+import { isCheckOutDue } from "@/features/appointments/appointments";
 import { formatDate, formatDayMonth } from "@/lib/format";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 
@@ -56,12 +57,9 @@ export function sortByCode(cages: Cage[]) {
   return [...cages].sort((a, b) => a.code.localeCompare(b.code, "vi", { numeric: true }));
 }
 
-/**
- * Chuồng cần trả trong hôm nay (vùng 4): giờ trả dự kiến là hôm nay, hoặc đã qua mà bé vẫn còn trong chuồng (khách đón
- * trễ qua ngày). Cả hai đều cần nút “Trả thú cưng”.
- */
+/** Chuồng có bé đến lúc trả (vùng 4), cùng luật với SW-02 (`isCheckOutDue`). */
 export function isDueForCheckOut(cage: Cage, today: string) {
-  return cage.occupant ? toStoreDate(cage.occupant.plannedCheckOut) <= today : false;
+  return cage.occupant ? isCheckOutDue(cage.occupant.plannedCheckOut, today) : false;
 }
 
 /**

@@ -2,7 +2,7 @@
 import type { Appointment, Payment } from "@/lib/api/types";
 import { formatDayMonth } from "@/lib/format";
 import { PAYMENT_METHOD_LABELS } from "@/lib/labels";
-import { toStoreDate, toStoreTime } from "@/lib/time";
+import { toStoreDate } from "@/lib/time";
 
 /**
  * Mốc dùng để báo sớm/trễ (vùng 3, 4). Backend ghi `actualCheckOut` ở lần bấm xác nhận đầu tiên (G-12, kể cả khi trả 409
@@ -22,11 +22,11 @@ export function minutesFromPlanned(appointment: Appointment, momentMs: number) {
   return diff >= 0 ? Math.floor(diff) : -Math.floor(-diff);
 }
 
-/** “04/10, tiền mặt” dưới tên khoản đã thu (ui-demo SW-10 vùng 5); chưa thu → `null`. */
+/** “04/10, tiền mặt” dưới tên khoản đã thu (UI-Screens SW-10 vùng 5: “dd/MM, <phương thức>”); chưa thu → `null`. */
 export function paidLine(payment: Payment | undefined) {
   if (payment?.status !== "Paid") return null;
   const parts = [
-    payment.paidAt && `${toStoreTime(payment.paidAt)} ${formatDayMonth(toStoreDate(payment.paidAt))}`,
+    payment.paidAt && formatDayMonth(toStoreDate(payment.paidAt)),
     payment.method && PAYMENT_METHOD_LABELS[payment.method].toLocaleLowerCase("vi-VN"),
   ];
   return parts.filter(Boolean).join(", ");

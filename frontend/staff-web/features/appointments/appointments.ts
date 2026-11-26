@@ -118,12 +118,16 @@ export function canCheckIn(appointment: Appointment, today: string) {
 }
 
 /**
- * Lịch Đang lưu trú có giờ trả dự kiến hôm nay hoặc đã qua (khách đón trễ qua ngày): SW-02 hiện “Trả thú cưng” → SW-10
- * (UI-Screens SW-02 vùng 3). Cùng luật “trả hôm nay” với thẻ chuồng ở SW-08.
+ * Luật “đến lúc trả bé” dùng chung cho SW-02 và SW-08: giờ trả dự kiến là hôm nay, hoặc đã qua mà bé vẫn còn lưu trú
+ * (khách đón trễ qua ngày). Cả hai trường hợp đều hiện nút “Trả thú cưng” → SW-10.
  */
+export function isCheckOutDue(plannedCheckOut: string | null | undefined, today: string) {
+  return plannedCheckOut != null && toStoreDate(plannedCheckOut) <= today;
+}
+
+/** SW-02 vùng 3: lịch Đang lưu trú đến lúc trả → thao tác “Trả thú cưng”. */
 export function isDueForCheckOutToday(appointment: Appointment, today: string) {
-  const { status, plannedCheckOut } = appointment;
-  return status === "InStay" && plannedCheckOut != null && toStoreDate(plannedCheckOut) <= today;
+  return appointment.status === "InStay" && isCheckOutDue(appointment.plannedCheckOut, today);
 }
 
 /**

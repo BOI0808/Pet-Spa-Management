@@ -262,6 +262,10 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
           </CardBody>
         </Card>
 
+        {/* Lỗi khi xác nhận, ngoài thẻ xác nhận: 409 INVALID_TRANSITION làm lịch tải lại sang trạng thái khác (thẻ ẩn
+            đi) nhưng lễ tân vẫn phải thấy vì sao không trả được. */}
+        {otherError && <ErrorAlert error={otherError} />}
+
         {/* Vùng 6 – xác nhận. */}
         {isInStay && (
           <Card className="flex flex-col gap-3 p-5">
@@ -281,8 +285,9 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
                 variant="primary"
                 size="lg"
                 block
-                // Khoản thanh toán chưa tải xong thì chưa biết còn phí trễ chưa thu không.
-                disabled={payments.isPending}
+                // Khoản thanh toán chưa tải xong thì chưa biết còn phí trễ chưa thu không. Vừa nhận 409 PAYMENT_NOT_DUE
+                // thì backend đã tạo khoản phí: giữ nút khóa tới khi tải lại xong để không mở lại trong chốc lát.
+                disabled={payments.isPending || (lateFeeJustCreated && payments.isFetching)}
                 loading={checkOut.isPending}
                 onClick={confirm}
               >
@@ -290,7 +295,6 @@ export function CheckOutCard({ appointment, pet }: CheckOutCardProps) {
                 Xác nhận trả thú cưng
               </Button>
             )}
-            {otherError && <ErrorAlert error={otherError} />}
             <p className="text-xs text-muted">
               Sau khi xác nhận, lịch chuyển Hoàn tất và chuồng {cageCode || "đã gán"} trống để nhận bé khác.
             </p>
