@@ -370,7 +370,13 @@ export type CheckInResult = {
   weightCheck?: WeightCheck;
 };
 
-// ── Chuồng (SW-02: mã chuồng của lịch lưu trú) ──
+/** Phản hồi 200 của POST /appointments/{id}/check-out: `status` = Completed; `lateFee` (VND) khi có phí trả muộn. */
+export type CheckOutResult = {
+  status: AppointmentStatus;
+  lateFee?: number | null;
+};
+
+// ── Chuồng (SW-08; SW-02, SW-07, SW-10 tra mã chuồng của lịch lưu trú) ──
 export type CageOccupant = {
   petId: string;
   petName: string;

@@ -58,3 +58,7 @@ export const paymentsRoute = (appointmentId?: string | null) =>
 /** SW-07 Tiếp nhận (`?appointmentId=` chọn sẵn lịch, User-Flows 2.2). */
 export const checkInRoute = (appointmentId?: string | null) =>
   appointmentId ? `${ROUTES.checkIn}?appointmentId=${encodeURIComponent(appointmentId)}` : ROUTES.checkIn;
+
+/** SW-10 Trả thú cưng lưu trú (`?appointmentId=` chọn sẵn lịch Đang lưu trú, User-Flows 2.2). */
+export const checkOutRoute = (appointmentId?: string | null) =>
+  appointmentId ? `${ROUTES.checkOut}?appointmentId=${encodeURIComponent(appointmentId)}` : ROUTES.checkOut;
