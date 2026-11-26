@@ -307,8 +307,8 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
           {checkIn.error && <ErrorAlert error={checkIn.error} />}
 
           {acceptedElsewhere && (
-            // Phản hồi `cageSuitable` chỉ có khi lễ tân ghi nhận ở D1; khách tự đồng ý thì màn này không biết chuồng còn
-            // phù hợp không (GET /cages chưa dùng được tới thẻ 88), nên nhắc kiểm tra thay vì im lặng.
+            // Phản hồi `cageSuitable` chỉ có khi lễ tân ghi nhận ở D1; khách tự đồng ý thì màn này không nhận được kết
+            // quả kiểm tra chuồng của backend, nên nhắc kiểm tra thay vì im lặng.
             <Alert tone="warn" title={`Khách đã đồng ý chi phí mới, lịch sang nhóm ${SIZE_GROUP_LABELS[appointment.sizeGroup]}`}>
               Kiểm tra chuồng {cageCode || "đã gán"} còn phù hợp nhóm mới không; nếu không, báo quản lý gán chuồng phù hợp
               khác trước khi đưa bé vào chuồng.
