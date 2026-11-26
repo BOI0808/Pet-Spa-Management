@@ -1,8 +1,9 @@
 "use client";
 
-// SW-07 vùng 8 → 11 – thẻ tiếp nhận lịch lưu trú (UI-Screens.md, FR-EXE-10, FR-EXE-11, UF-03, UF-10).
-// Thẻ 126 làm bước 1 “Đối chiếu cân nặng”; thẻ 128 thêm nút “Thu tiền” ở bước 2 (→ SW-09). Bước 3 “Đưa bé vào chuồng”
-// (`POST /appointments/{id}/check-in` không body, thẻ 127) mới hiện trạng thái, chưa có thao tác.
+// SW-07 vùng 8 → 11 – thẻ tiếp nhận lịch lưu trú (UI-Screens.md, FR-EXE-10, FR-EXE-11, FR-HTL-07, UF-03, UF-10).
+// Thẻ 126 làm bước 1 “Đối chiếu cân nặng”; thẻ 128 thêm nút “Thu tiền” ở bước 2 (→ SW-09); thẻ 127 làm bước 3 “Đưa bé
+// vào chuồng” (`POST /appointments/{id}/check-in` không body) → SW-08.
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { PetAvatar } from "@/components/domain/pet-avatar";
@@ -20,9 +21,9 @@ import { Tag } from "@/components/ui/tag";
 import type { AppointmentDetail, Payment, Pet, WeightCheck } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth, formatMoney, formatWeight } from "@/lib/format";
 import { APPOINTMENT_STATUS_LABELS, CANCEL_REASON_LABELS, PAYMENT_METHOD_LABELS, SIZE_GROUP_LABELS } from "@/lib/labels";
-import { useAppointmentPayments, useWeightCheckHotel } from "@/lib/queries/appointments";
+import { useAppointmentPayments, useCheckInHotel, useWeightCheckHotel } from "@/lib/queries/appointments";
 import { useCages } from "@/lib/queries/cages";
-import { paymentsRoute, ROUTES } from "@/lib/routes";
+import { checkOutRoute, paymentsRoute, ROUTES } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 import { parseDecimal, validateActualWeightKg } from "@/lib/validation";
 import { findPayment, speciesAndBreed } from "@/features/appointments/appointments";
@@ -85,16 +86,21 @@ function paidDetail(payment: Payment | undefined) {
 }
 
 /**
- * Lý do nút “Xác nhận tiếp nhận” bị khóa (vùng 11, Đề xuất). Khi đang chờ khách, chân thẻ hiện nút “Ghi nhận phản hồi
- * của khách” thay cho nút này. Thẻ 127 bật nút khi đã thu tiền lưu trú.
+ * Lý do nút “Xác nhận tiếp nhận” bị khóa (vùng 11, Đề xuất); `null` = đủ điều kiện (FR-HTL-07: đã đối chiếu cân nặng,
+ * đã thu tiền lưu trú). Khi đang chờ khách, chân thẻ hiện nút “Ghi nhận phản hồi của khách” thay cho nút này. Giờ giữ
+ * chỗ (BR-08) web không đọc được (G-03): quá giờ thì backend trả 409 INVALID_TRANSITION.
  */
-function lockReason(weighed: boolean) {
-  return weighed ? "Cần thu tiền lưu trú trước khi tiếp nhận." : "Cần đối chiếu cân nặng trước.";
+function lockReason(weighed: boolean, stayPaid: boolean) {
+  if (!weighed) return "Cần đối chiếu cân nặng trước.";
+  if (!stayPaid) return "Cần thu tiền lưu trú trước khi tiếp nhận.";
+  return null;
 }
 
 export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
   const { showSuccess } = useToast();
+  const router = useRouter();
   const weighCheck = useWeightCheckHotel();
+  const checkIn = useCheckInHotel();
   const cages = useCages();
   const payments = useAppointmentPayments(appointment.appointmentId);
   const { pending, overdue } = usePendingCostConfirmation(appointment);
@@ -122,6 +128,7 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
   const stayPayment = findPayment(payments.data, "Stay");
 
   const isConfirmed = appointment.status === "Confirmed";
+  const stayPaid = stayPayment?.status === "Paid";
   // Đang chờ khách: backend đã ghi `actualWeightKg` nhưng chưa đổi nhóm, nên phải xét `pending` trước.
   const weighed = !pending && appointment.actualWeightKg != null;
   // Vừa gửi đối chiếu nhưng chi tiết lịch chưa tải lại: chưa hiện lại ô cân nặng, để lễ tân không gửi lần nữa và nhận
@@ -153,6 +160,20 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
       },
     );
   });
+
+  const checkInLock = lockReason(weighed, stayPaid);
+  // 409 PAYMENT_NOT_DUE: tiền lưu trú chưa thu (có thể vừa có người khác sửa) → viền bước 2 (UI-Screens SW-07, mã lỗi).
+  const highlightPayment = checkIn.error?.code === "PAYMENT_NOT_DUE" && !stayPaid;
+
+  const confirmCheckIn = () => {
+    checkIn.mutate(appointment.appointmentId, {
+      onSuccess: () => {
+        // Câu và nơi đến theo ui-demo SW-07 (lưu trú, đã thu tiền): xong thì sang SW-08 xem chuồng.
+        showSuccess(`${petName} đã vào chuồng${cageCode ? ` ${cageCode}` : ""}. Lịch chuyển sang Đang lưu trú.`);
+        router.push(ROUTES.cages);
+      },
+    });
+  };
 
   let statusNote: string | null = null;
   if (appointment.status === "Cancelled") {
@@ -255,7 +276,8 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
               {/* Vùng 10 – bước 2: thu tiền lưu trú. Nút “Thu tiền” → SW-09 chỉ hiện sau khi đối chiếu cân nặng xong
                   và không chờ khách xác nhận chi phí, vì backend từ chối thu lúc đó (409 COST_CONFIRMATION_PENDING). */}
               <ServiceTask
-                done={stayPayment?.status === "Paid"}
+                done={stayPaid}
+                highlighted={highlightPayment}
                 name={
                   stayPayment
                     ? `${stayPayment.status === "Paid" ? "Đã thu" : "Thu"} tiền lưu trú: ${formatMoney(stayPayment.amount)}`
@@ -273,7 +295,7 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
                 }
               />
 
-              {/* Vùng 11 – bước 3: đưa bé vào chuồng (thẻ 127). */}
+              {/* Vùng 11 – bước 3: đưa bé vào chuồng; nút ở chân thẻ. */}
               <ServiceTask
                 done={false}
                 name={cageCode ? `Đưa bé vào chuồng ${cageCode}` : "Đưa bé vào chuồng"}
@@ -281,6 +303,8 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
               />
             </ol>
           )}
+
+          {checkIn.error && <ErrorAlert error={checkIn.error} />}
 
           {acceptedElsewhere && (
             // Phản hồi `cageSuitable` chỉ có khi lễ tân ghi nhận ở D1; khách tự đồng ý thì màn này không biết chuồng còn
@@ -307,16 +331,28 @@ export function HotelCheckInCard({ appointment, pet }: HotelCheckInCardProps) {
               Ghi nhận phản hồi của khách
             </Button>
           )}
-          {isConfirmed && !pending && (
+          {isConfirmed && !pending && checkInLock && (
             <div className="ml-auto flex flex-col items-end gap-1.5 max-[640px]:items-stretch">
               <Button variant="primary" disabled>
                 Xác nhận tiếp nhận
               </Button>
               <p className="flex items-start gap-1.5 text-xs leading-4 text-muted">
                 <Icon name="lock" className="mt-px size-3.5" />
-                {lockReason(weighed)}
+                {checkInLock}
               </p>
             </div>
+          )}
+          {isConfirmed && !pending && !checkInLock && (
+            // `type="button"`: nút nằm trong form của ô cân nặng; Enter ở ô đó không được tiếp nhận thay cho đối chiếu.
+            <Button type="button" variant="primary" className="ml-auto" loading={checkIn.isPending} onClick={confirmCheckIn}>
+              Xác nhận tiếp nhận
+            </Button>
+          )}
+          {appointment.status === "InStay" && (
+            // Mở lại lịch đã vào chuồng (ví dụ phiếu “Trả” trong danh sách hôm nay): lối sang SW-10.
+            <ButtonLink href={checkOutRoute(appointment.appointmentId)} variant="primary" className="ml-auto">
+              Trả thú cưng
+            </ButtonLink>
           )}
         </CardFooter>
       </form>
