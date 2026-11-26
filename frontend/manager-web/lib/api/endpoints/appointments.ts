@@ -5,6 +5,8 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CancelRequest,
+  CheckInResult,
+  CheckOutResult,
   ConfirmHotelRequest,
   ConfirmSpaRequest,
   HotelSuggestions,
@@ -13,6 +15,7 @@ import type {
   SpaSuggestions,
   StatusResult,
   UpdateAppointmentRequest,
+  WeightCheckResponse,
 } from "@/lib/api/types";
 
 export type AppointmentListParams = {
@@ -130,5 +133,69 @@ export async function updateAppointment({ appointmentId, body }: { appointmentId
  */
 export async function listAppointmentPhotos(appointmentId: string) {
   const { data } = await apiClient.get<Photo[]>(`/appointments/${encodeURIComponent(appointmentId)}/photos`);
+  return data;
+}
+
+// ── Cập nhật trực tiếp trạng thái thực hiện (MW-05 vùng 7) – FR-EXE-05, BR-05 ──
+// Quản lý gọi được các thao tác dưới đây cùng nhân viên (x-roles có QL). Backend kiểm tra trình tự vòng đời; web không gửi `status`.
+
+/**
+ * POST /appointments/{id}/check-in, lịch spa – FR-EXE-02. Backend chuyển lịch sang Đã tiếp nhận rồi đối chiếu cân nặng (BR-23);
+ * chỉ hợp lệ trong ngày hẹn và trước khi hết thời gian giữ chỗ (Booking.HoldMinutes), quá hạn → 409 INVALID_TRANSITION.
+ */
+export async function checkInSpaAppointment({ appointmentId, actualWeightKg }: { appointmentId: string; actualWeightKg: number }) {
+  const { data } = await apiClient.post<CheckInResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`, {
+    actualWeightKg,
+  });
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/weight-check, lịch lưu trú – FR-EXE-10, BR-23. Bước 1 của tiếp nhận lưu trú, trước khi thu tiền lưu trú;
+ * lịch vẫn ở Đã xác nhận. 409 `COST_CONFIRMATION_PENDING` khi đang chờ khách xác nhận chi phí mới.
+ */
+export async function weightCheckHotelAppointment({ appointmentId, actualWeightKg }: { appointmentId: string; actualWeightKg: number }) {
+  const { data } = await apiClient.post<WeightCheckResponse>(
+    `/appointments/${encodeURIComponent(appointmentId)}/weight-check`,
+    { actualWeightKg },
+  );
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/check-in, lịch lưu trú, không có body – FR-HTL-07. Đã xác nhận → Đang lưu trú khi đã đối chiếu cân nặng,
+ * không chờ khách xác nhận chi phí mới, chuồng còn phù hợp và tiền lưu trú đã thanh toán. 409: `INVALID_TRANSITION`,
+ * `COST_CONFIRMATION_PENDING`, `CAGE_CONFLICT`, `PAYMENT_NOT_DUE`.
+ */
+export async function checkInHotelAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/start – FR-EXE-03, FR-EXE-05. Đã tiếp nhận → Đang thực hiện. 409 `PHOTO_REQUIRED` (chưa có ảnh trước
+ * hợp lệ, BR-20), `COST_CONFIRMATION_PENDING` (BR-23), `INVALID_TRANSITION` (lịch không còn ở Đã tiếp nhận).
+ */
+export async function startAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/start`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/complete – FR-EXE-04, FR-EXE-05. Đang thực hiện → Hoàn tất, hình thành khoản thanh toán spa. 409
+ * `SERVICES_INCOMPLETE` (BR-06), `PHOTO_REQUIRED` (chưa có ảnh sau, BR-20), `INVALID_TRANSITION`.
+ */
+export async function completeAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<StatusResult>(`/appointments/${encodeURIComponent(appointmentId)}/complete`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/check-out, lịch lưu trú – FR-HTL-09, BR-22. Đang lưu trú → Hoàn tất, backend ghi giờ trả thực tế và giải
+ * phóng chuồng. Có phí trả muộn: lần gọi đầu tạo khoản `LateFee` chưa thanh toán và trả 409 `PAYMENT_NOT_DUE`; sau khi ghi nhận
+ * khoản đó ở MW-10 thì gọi lại để hoàn tất (BR-07, UI-Screens G-12).
+ */
+export async function checkOutHotelAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<CheckOutResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-out`);
   return data;
 }
