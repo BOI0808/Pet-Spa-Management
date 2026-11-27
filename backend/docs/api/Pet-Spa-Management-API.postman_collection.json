@@ -35505,26 +35505,1937 @@
       "name": "10. Automated Jobs & Booking Lock",
       "item": [
         {
-          "name": "/internal/jobs/run",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "10.0 Chuẩn bị dữ liệu (task 171)",
+          "item": [
+            {
+              "name": "POST /auth/login – quản lý (200)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "if (!pm.variables.get(\"managerUserName\") && pm.variables.get(\"managerPhone\")) {",
+                      "    pm.variables.set(\"managerUserName\", pm.variables.get(\"managerPhone\"));",
+                      "}",
+                      "if (!pm.variables.get(\"managerPhone\") && pm.variables.get(\"managerUserName\")) {",
+                      "    pm.variables.set(\"managerPhone\", pm.variables.get(\"managerUserName\"));",
+                      "}",
+                      "if (!pm.environment.get(\"testPassword\") || pm.environment.get(\"testPassword\") === \"Test@123\") {",
+                      "    pm.environment.set(\"testPassword\", \"Test@1234\");",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"managerToken\", body.accessToken);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{managerUserName}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – lễ tân thử (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"receptionistToken\", body.accessToken);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"0900000201\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/register – khách hàng thử cho task 171, số điện thoại ngẫu nhiên (201)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const day = 24 * 60 * 60 * 1000;",
+                      "const offset = 200 + Math.floor(Math.random() * 2800);",
+                      "const date = new Date(Date.now() + 7 * 60 * 60 * 1000 + offset * day).toISOString().slice(0, 10);",
+                      "const at = (hhmm) => `${date}T${hhmm}:00+07:00`;",
+                      "",
+                      "pm.environment.set(\"jobSlot0900\", at(\"09:00\"));",
+                      "pm.environment.set(\"jobSlot1000\", at(\"10:00\"));",
+                      "pm.environment.set(\"jobSlot1100\", at(\"11:00\"));",
+                      "pm.environment.set(\"jobSlot1200\", at(\"12:00\"));",
+                      "pm.environment.set(\"jobSlot1300\", at(\"13:00\"));",
+                      "pm.environment.set(\"jobSlot1400\", at(\"14:00\"));",
+                      "pm.environment.set(\"jobSlot1500\", at(\"15:00\"));",
+                      "pm.environment.set(\"jobShiftStart\", at(\"08:00\"));",
+                      "pm.environment.set(\"jobShiftEnd\", at(\"22:00\"));",
+                      "pm.environment.set(\"jobRunId\", Date.now().toString(36).toUpperCase());",
+                      "",
+                      "const phone = () => \"09\" + String(Math.floor(Math.random() * 1e8)).padStart(8, \"0\");",
+                      "const customerPhone = phone();",
+                      "let staffPhone = phone();",
+                      "while (staffPhone === customerPhone) staffPhone = phone();",
+                      "pm.environment.set(\"jobCustomerPhone\", customerPhone);",
+                      "pm.environment.set(\"jobStaffAPhone\", staffPhone);",
+                      "",
+                      "const hotelFirst = new Date();",
+                      "hotelFirst.setUTCHours(3, 0, 0, 0);",
+                      "const hotelStart = hotelFirst.getTime() + (200 + Math.floor(Math.random() * 2800)) * day;",
+                      "pm.environment.set(\"jobHotelIn\", new Date(hotelStart).toISOString());",
+                      "pm.environment.set(\"jobHotelOut\", new Date(hotelStart + 2 * day).toISOString());"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    pm.test(\"Có userId dạng GUID\", function () {",
+                      "        pm.expect(pm.response.json().userId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{jobCustomerPhone}}\",\n  \"fullName\": \"Postman Khách Job {{jobRunId}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /auth/login – khách hàng thử cho task 171 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có accessToken\", function () {",
+                      "        pm.expect(body.accessToken).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobCustomerToken\", body.accessToken);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{jobCustomerPhone}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /customers – lễ tân tìm khách thử, lấy jobCustomerId (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const customer = body.items.find((c) => c.phone === pm.environment.get(\"jobCustomerPhone\"));",
+                      "    pm.test(\"Tìm thấy khách hàng thử, chưa bị khóa\", function () {",
+                      "        pm.expect(customer !== undefined).to.eql(true);",
+                      "        pm.expect(customer.isBookingLocked).to.eql(false);",
+                      "    });",
+                      "    pm.environment.set(\"jobCustomerId\", customer.customerId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers?search={{jobCustomerPhone}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "{{jobCustomerPhone}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff – tạo nhân viên spa A (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có staffId dạng GUID\", function () {",
+                      "        pm.expect(body.staffId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobStaffAId\", body.staffId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userName\": \"{{jobStaffAPhone}}\",\n  \"fullName\": \"Postman Job A {{jobRunId}}\",\n  \"staffRole\": \"SpaStaff\",\n  \"password\": \"{{testPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /work-shifts – ca của nhân viên spa A (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    pm.test(\"Có shiftId dạng GUID\", function () {",
+                      "        pm.expect(pm.response.json().shiftId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/work-shifts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "work-shifts"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffId\": \"{{jobStaffAId}}\",\n  \"shiftStart\": \"{{jobShiftStart}}\",\n  \"shiftEnd\": \"{{jobShiftEnd}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /services – dịch vụ spa thử, 30 phút (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có serviceId dạng GUID\", function () {",
+                      "        pm.expect(body.serviceId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobServiceId\", body.serviceId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/services",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "services"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Job Tắm {{jobRunId}}\",\n  \"description\": \"Dịch vụ thử cho task 171\",\n  \"latestStartTime\": \"19:00\",\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"price\": 100000,\n      \"durationMinutes\": 30,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Medium\",\n      \"price\": 130000,\n      \"durationMinutes\": 45,\n      \"staffRequired\": 1\n    },\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Large\",\n      \"price\": 160000,\n      \"durationMinutes\": 60,\n      \"staffRequired\": 2\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – khách thử tạo chó Small cho lịch spa (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobPetSpaId\", body.petId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Job Chó spa {{jobRunId}}\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 171)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /hotel/pricing – thiết lập giá Dog/Small cho kiểm thử lưu trú (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hotel/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hotel",
+                    "pricing"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pricing\": [\n    {\n      \"species\": \"Dog\",\n      \"sizeGroup\": \"Small\",\n      \"pricePerNight\": 100000,\n      \"foodPerNight\": 30000\n    }\n  ],\n  \"lateFeePerBlock\": 50000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /cages – thêm chuồng Dog/Small A (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có cageId dạng GUID\", function () {",
+                      "        pm.expect(body.cageId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobCageAId\", body.cageId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cages",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cages"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"JA{{jobRunId}}\",\n  \"species\": \"Dog\",\n  \"sizeGroup\": \"Small\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /cages – thêm chuồng Dog/Small B (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có cageId dạng GUID\", function () {",
+                      "        pm.expect(body.cageId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobCageBId\", body.cageId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cages",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cages"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"JB{{jobRunId}}\",\n  \"species\": \"Dog\",\n  \"sizeGroup\": \"Small\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – khách thử tạo chó Small cho lưu trú H1 (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobPetHotel1Id\", body.petId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Job Chó lưu trú 1 {{jobRunId}}\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 171)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /pets – khách thử tạo chó Small cho lưu trú H2 (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có petId dạng GUID\", function () {",
+                      "        pm.expect(body.petId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Nhóm kích cỡ là Small\", function () {",
+                      "        pm.expect(body.sizeGroup).to.eql(\"Small\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobPetHotel2Id\", body.petId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/pets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "pets"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Job Chó lưu trú 2 {{jobRunId}}\",\n  \"species\": \"Dog\",\n  \"breed\": \"Poodle\",\n  \"temperament\": \"Calm\",\n  \"weightKg\": 8,\n  \"heightCm\": 30,\n  \"notes\": \"Test data created by Postman (task 171)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ],
+          "description": "### Chuẩn bị dữ liệu cho tác vụ tự động và khóa/gỡ khóa đặt lịch (task 171)\n\nChạy folder này đầu tiên, theo thứ tự từ trên xuống. Nếu một request không mong đợi trả 401 (token hết hạn sau 15 phút) thì gửi lại 3 request đăng nhập (quản lý, lễ tân, khách hàng thử) rồi gửi lại request vừa lỗi. Không gửi lại request đăng ký khách hàng thử vì nó sinh lại toàn bộ ngày giờ, số điện thoại, mã lần chạy.\n\nMỗi lần chạy sinh ra:\n\n- một khách hàng thử mới (số điện thoại ngẫu nhiên) để các lần vắng mặt không ảnh hưởng khách thử dùng chung của các task khác,\n- 1 nhân viên spa A có ca 08:00 đến 22:00 vào ngày thử, 1 dịch vụ spa 30 phút,\n- 1 chó Small cho lịch spa, 2 chó Small cho lịch lưu trú,\n- giá lưu trú Dog/Small và 2 chuồng Dog/Small (A, B).\n\nCần đặt tay biến môi trường jobSecret (giá trị Jobs__Secret của backend) trước khi vào folder 10.3."
         },
         {
-          "name": "/customers/{id}/unlock-booking",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
+          "name": "10.1 Tạo lịch thử và in SQL (task 171)",
+          "item": [
+            {
+              "name": "POST /appointments/spa – khách thử đặt T1 lúc 09:00 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT1\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot0900}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử đặt T2 lúc 10:00 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT2\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1000}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử đặt T3 lúc 11:00 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT3\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1100}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử đặt T4 lúc 12:00 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT4\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1200}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử đặt T5 lúc 13:00 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT5\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1300}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/hotel – khách thử đặt H1 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch lưu trú ở trạng thái Pending, 2 đêm\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "        pm.expect(body.nights).to.eql(2);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobHotelH1\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/hotel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "hotel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetHotel1Id}}\",\n  \"plannedCheckIn\": \"{{jobHotelIn}}\",\n  \"plannedCheckOut\": \"{{jobHotelOut}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/hotel – khách thử đặt H2 (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch lưu trú ở trạng thái Pending, 2 đêm\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "        pm.expect(body.nights).to.eql(2);",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobHotelH2\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/hotel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "hotel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetHotel2Id}}\",\n  \"plannedCheckIn\": \"{{jobHotelIn}}\",\n  \"plannedCheckOut\": \"{{jobHotelOut}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận T1 với nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT1}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT1}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffIds\": [\n    \"{{jobStaffAId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận T2 với nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT2}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT2}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffIds\": [\n    \"{{jobStaffAId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận T3 với nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT3}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT3}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffIds\": [\n    \"{{jobStaffAId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận T4 với nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT4}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT4}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffIds\": [\n    \"{{jobStaffAId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận T5 với nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT5}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT5}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"staffIds\": [\n    \"{{jobStaffAId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – xác nhận H1 với chuồng A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch lưu trú chuyển sang Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobHotelH1}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobHotelH1}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cageId\": \"{{jobCageAId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/confirm – H2 chọn chuồng A đang giữ cho H1 trùng đêm (409 CAGE_CONFLICT)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 409 Conflict\", function () {",
+                      "    pm.response.to.have.status(409);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là CAGE_CONFLICT\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"CAGE_CONFLICT\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobHotelH2}}/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobHotelH2}}",
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cageId\": \"{{jobCageAId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – quản lý thấy T1 Đã xác nhận, in SQL-1 đến SQL-4 ra Console (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T1 đang ở Confirmed\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Confirmed\");",
+                      "    });",
+                      "",
+                      "    const id = (key) => pm.environment.get(key);",
+                      "",
+                      "    const sql1 = `UPDATE \"Appointment\"",
+                      "SET \"SlotStart\" = now() - interval '20 minutes',",
+                      "    \"SlotEnd\" = now() + interval '10 minutes',",
+                      "    \"BusyUntil\" = now() + interval '25 minutes',",
+                      "    \"UpdatedAt\" = now()",
+                      "WHERE \"AppointmentId\" IN ('${id(\"jobApptT1\")}'::uuid, '${id(\"jobApptT2\")}'::uuid, '${id(\"jobApptT3\")}'::uuid);`;",
+                      "",
+                      "    const sql2 = `UPDATE \"Appointment\"",
+                      "SET \"Status\" = 'Received', \"UpdatedAt\" = now()",
+                      "WHERE \"AppointmentId\" = '${id(\"jobApptT5\")}'::uuid;",
+                      "",
+                      "INSERT INTO \"CostConfirmation\"",
+                      "  (\"ConfirmationId\",\"AppointmentId\",\"ActualWeightKg\",\"NewSizeGroup\",\"OldAmount\",\"NewAmount\",\"Status\",\"CreatedAt\",\"ExpiresAt\")",
+                      "VALUES (gen_random_uuid(), '${id(\"jobApptT5\")}'::uuid, 12, 'Medium', 100000, 130000, 'Pending',",
+                      "        now() - interval '40 minutes', now() - interval '10 minutes');`;",
+                      "",
+                      "    const sql3 = `UPDATE \"Appointment\"",
+                      "SET \"CancelledAt\" = now() - interval '31 days', \"UpdatedAt\" = now()",
+                      "WHERE \"AppointmentId\" = '${id(\"jobApptT1\")}'::uuid;",
+                      "",
+                      "UPDATE \"Appointment\"",
+                      "SET \"SlotStart\" = now() - interval '20 minutes',",
+                      "    \"SlotEnd\" = now() + interval '10 minutes',",
+                      "    \"BusyUntil\" = now() + interval '25 minutes',",
+                      "    \"UpdatedAt\" = now()",
+                      "WHERE \"AppointmentId\" = '${id(\"jobApptT4\")}'::uuid;`;",
+                      "",
+                      "    const sql4 = `UPDATE \"Appointment\"",
+                      "SET \"PlannedCheckIn\" = now() - interval '20 minutes', \"UpdatedAt\" = now()",
+                      "WHERE \"AppointmentId\" = '${id(\"jobHotelH1\")}'::uuid;`;",
+                      "",
+                      "    console.log(\"===== SQL-1 (folder 10.3) =====\\n\" + sql1",
+                      "        + \"\\n\\n===== SQL-2 (folder 10.4) =====\\n\" + sql2",
+                      "        + \"\\n\\n===== SQL-3 (folder 10.5) =====\\n\" + sql3",
+                      "        + \"\\n\\n===== SQL-4 (folder 10.6) =====\\n\" + sql4);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT1}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT1}}"
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ],
+          "description": "### Tạo lịch thử (task 171)\n\nChạy sau 10.0. Đặt lịch, xác nhận, chuồng đã được kiểm thử ở task 165, 166; folder này chỉ dựng dữ liệu.\n\nSau khi chạy xong có 7 lịch của khách thử, 2 chuồng và 1 nhân viên spa:\n\n- T1 đến T5: lịch spa Đã xác nhận (nhân viên A), lần lượt lúc 09:00, 10:00, 11:00, 12:00, 13:00.\n- H1: lịch lưu trú Đã xác nhận, giữ chuồng A.\n- H2: lịch lưu trú Chờ xác nhận, cùng đêm với H1. Request xác nhận H2 vào chuồng A trả 409 vì chuồng A đang giữ cho H1.\n\nRequest cuối in 4 câu SQL (SQL-1 đến SQL-4) ra Postman Console (Ctrl+Alt+C), mỗi câu đã điền sẵn Id của lịch. Các folder 10.3 đến 10.6 mỗi folder dùng một câu SQL. Chưa chạy câu nào ở bước này."
+        },
+        {
+          "name": "10.2 Bảo mật endpoint tác vụ tự động – X-Job-Secret",
+          "item": [
+            {
+              "name": "POST /internal/jobs/run – không có header X-Job-Secret (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/internal/jobs/run",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "internal",
+                    "jobs",
+                    "run"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /internal/jobs/run – sai X-Job-Secret (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Job-Secret",
+                    "value": "sai-bi-mat-task-171",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/internal/jobs/run",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "internal",
+                    "jobs",
+                    "run"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "### Endpoint tác vụ tự động chỉ nhận header X-Job-Secret\n\nPOST /internal/jobs/run không dùng JWT và không nhận dữ liệu trong body. Thiếu hoặc sai X-Job-Secret trả 401 UNAUTHENTICATED (FR-EXE-07). Trường hợp đúng secret trả 200 { processed } được kiểm thử ở các folder 10.3 đến 10.6."
         }
       ]
     },
