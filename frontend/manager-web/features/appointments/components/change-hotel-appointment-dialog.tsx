@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useToast } from "@/components/feedback/toast";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { toApiError } from "@/lib/api/errors";
 import type { AppointmentDetail, UpdateHotelAppointmentRequest } from "@/lib/api/types";
 import { formatAppointmentCode } from "@/lib/format";
 import { useUpdateAppointment } from "@/lib/queries/appointments";
+import { useCages } from "@/lib/queries/cages";
 import { getStoreToday, toStoreDate, toStoreIso, toStoreTime } from "@/lib/time";
 import { ChangeDialogShell } from "./change-dialog-shell";
 
@@ -22,12 +23,29 @@ type FormErrors = { checkInDate?: string; checkInTime?: string; checkOutDate?: s
 
 /**
  * MW-05·D2 Đổi lịch lưu trú – UI-Screens.md (UC-15, FR-CHG-03; BR-08, BR-21). Đổi ngày giờ nhận và trả; backend bắt buộc đủ
- * `plannedCheckIn`, `plannedCheckOut`, `petId` nên luôn gửi cả ba. Không gửi `cageId` nên lịch Đã xác nhận giữ chuồng hiện tại:
- * chưa chọn chuồng khác vì backend chưa có `GET /cages` (thẻ 88; thẻ 150 nối API này). Hết chuồng thì backend trả 409 NO_CAPACITY.
+ * `plannedCheckIn`, `plannedCheckOut`, `petId` nên luôn gửi cả ba. Lịch Đã xác nhận còn chọn được chuồng khác cùng loài, nhóm (từ `GET /cages`);
+ * không chọn thì không gửi `cageId` và backend giữ chuồng hiện tại. Lịch Chờ xác nhận chưa có chuồng (backend bỏ qua `cageId`) nên không hiện ô chọn.
+ * Hết chuồng thì backend trả 409 NO_CAPACITY, trùng chuồng đã chọn trả 409 CAGE_CONFLICT.
  */
 export function ChangeHotelAppointmentDialog({ appointment, onClose, onChanged }: ChangeHotelAppointmentDialogProps) {
   const { showSuccess, showError } = useToast();
   const update = useUpdateAppointment();
+
+  // Chỉ lịch Đã xác nhận có chuồng để đổi; chưa tải được danh sách chuồng thì ẩn ô chọn và giữ chuồng hiện tại.
+  const canChangeCage = appointment.status === "Confirmed" && Boolean(appointment.cageId);
+  const cages = useCages({ enabled: canChangeCage }).data?.items ?? [];
+  const currentCage = canChangeCage ? cages.find((item) => item.cageId === appointment.cageId) : undefined;
+  const cageOptions = currentCage
+    ? cages.filter(
+        (item) =>
+          item.isActive &&
+          item.cageId !== currentCage.cageId &&
+          item.species === currentCage.species &&
+          item.sizeGroup === currentCage.sizeGroup,
+      )
+    : [];
+  // Rỗng là giữ nguyên chuồng hiện tại.
+  const [cageId, setCageId] = useState("");
 
   const current = {
     checkInDate: appointment.plannedCheckIn ? toStoreDate(appointment.plannedCheckIn) : "",
@@ -42,7 +60,8 @@ export function ChangeHotelAppointmentDialog({ appointment, onClose, onChanged }
     values.checkInDate === current.checkInDate &&
     values.checkInTime === current.checkInTime &&
     values.checkOutDate === current.checkOutDate &&
-    values.checkOutTime === current.checkOutTime;
+    values.checkOutTime === current.checkOutTime &&
+    cageId === "";
 
   function setValue(field: keyof typeof values, value: string) {
     setValues((previous) => ({ ...previous, [field]: value }));
@@ -69,6 +88,7 @@ export function ChangeHotelAppointmentDialog({ appointment, onClose, onChanged }
       plannedCheckIn: toStoreIso(values.checkInDate, values.checkInTime),
       plannedCheckOut: toStoreIso(values.checkOutDate, values.checkOutTime),
       petId: appointment.petId,
+      ...(cageId !== "" && { cageId }),
     };
 
     update.mutate(
@@ -145,8 +165,23 @@ export function ChangeHotelAppointmentDialog({ appointment, onClose, onChanged }
           )}
         </Field>
       </div>
+      {currentCage && (
+        <Field id="change-hotel-cage" label="Chuồng">
+          {(control) => (
+            <Select {...control} value={cageId} disabled={update.isPending} onChange={(event) => setCageId(event.target.value)}>
+              <option value="">Giữ nguyên ({currentCage.code})</option>
+              {cageOptions.map((item) => (
+                <option key={item.cageId} value={item.cageId}>
+                  {item.occupant ? `${item.code} (đang chứa ${item.occupant.petName})` : item.code}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
       <p className="text-xs text-muted">
-        Hệ thống kiểm tra lại chuồng trống và tính lại tiền lưu trú khi lưu. Chuồng hiện tại được giữ nguyên.
+        Hệ thống kiểm tra lại chuồng trống và tính lại tiền lưu trú khi lưu.{" "}
+        {currentCage ? "Không chọn chuồng khác thì chuồng hiện tại được giữ nguyên." : "Chuồng hiện tại được giữ nguyên."}
       </p>
     </ChangeDialogShell>
   );

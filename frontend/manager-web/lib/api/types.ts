@@ -386,11 +386,15 @@ export type UpdateSpaAppointmentRequest = {
   confirmOutOfShift?: true;
 };
 
-/** Body PUT /appointments/{id} của lịch lưu trú: bắt buộc đủ `plannedCheckIn`, `plannedCheckOut`, `petId`. Không gửi `cageId` thì giữ chuồng hiện tại. */
+/**
+ * Body PUT /appointments/{id} của lịch lưu trú: bắt buộc đủ `plannedCheckIn`, `plannedCheckOut`, `petId`. Không gửi `cageId` thì giữ chuồng hiện tại;
+ * `cageId` chỉ Quản lý gửi và chỉ có tác dụng với lịch Đã xác nhận (lịch Chờ xác nhận bỏ qua).
+ */
 export type UpdateHotelAppointmentRequest = {
   plannedCheckIn: string;
   plannedCheckOut: string;
   petId: string;
+  cageId?: string;
 };
 
 export type UpdateAppointmentRequest = UpdateSpaAppointmentRequest | UpdateHotelAppointmentRequest;
