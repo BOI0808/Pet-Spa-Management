@@ -8,6 +8,7 @@ import type { Appointment } from "@/lib/api/types";
 import { formatAppointmentCode } from "@/lib/format";
 import { APPOINTMENT_TYPE_LABELS, CANCEL_REASON_LABELS } from "@/lib/labels";
 import { useAppointmentDetail } from "@/lib/queries/appointments";
+import { useCages } from "@/lib/queries/cages";
 import { ROUTES } from "@/lib/routes";
 import { buildPendingHref } from "@/features/pending/params";
 import { formatListSchedule } from "../schedule";
@@ -21,15 +22,27 @@ const processLinkClass =
 const viewLinkClass = "inline-flex min-h-[34px] items-center px-3 text-[13px] font-semibold text-ink underline-offset-2 hover:underline";
 
 /**
+ * Mã chuồng của lịch lưu trú: `GET /appointments` chỉ trả `cageId` nên tra mã trong `GET /cages` (UI-Screens G-05); mọi dòng dùng chung một
+ * lần gọi. Chưa tải được danh sách chuồng thì chỉ cho biết đã gán chuồng.
+ */
+function HotelCageCell({ cageId }: { cageId: string | null | undefined }) {
+  const cages = useCages();
+  if (!cageId) return <span className="text-muted">Chưa gán</span>;
+  const code = cages.data?.items.find((item) => item.cageId === cageId)?.code;
+  if (code) return <>Chuồng {code}</>;
+  if (cages.isPending) return <Skeleton className="h-3.5 w-16" />;
+  return <>Đã gán chuồng</>;
+}
+
+/**
  * Nhân viên (spa) hoặc chuồng (lưu trú). `GET /appointments` chưa trả tên nhân viên (UI-Screens G-05) nên lịch spa đã xác nhận
  * trở đi gọi `GET /appointments/{id}` cho từng dòng của trang đang xem; lịch chờ xác nhận chưa có nhân viên nên không gọi.
- * Mã chuồng cần `GET /cages` (thẻ 150), nên lịch lưu trú chỉ cho biết đã gán chuồng hay chưa.
  */
 function AssigneeCell({ appointment, detailQuery }: { appointment: Appointment; detailQuery: ReturnType<typeof useAppointmentDetail> }) {
   if (appointment.status === "Cancelled") return <span className="text-muted">–</span>;
 
   if (appointment.type === "Hotel") {
-    return <span className={appointment.cageId ? "" : "text-muted"}>{appointment.cageId ? "Đã gán chuồng" : "Chưa gán"}</span>;
+    return <HotelCageCell cageId={appointment.cageId} />;
   }
 
   if (appointment.status === "Pending") return <span className="text-muted">Chưa phân công</span>;

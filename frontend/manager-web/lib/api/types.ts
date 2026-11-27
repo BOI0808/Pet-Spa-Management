@@ -222,7 +222,7 @@ export type Appointment = {
   plannedCheckOut?: string | null;
   /** Chỉ lịch lưu trú; giờ trả thực tế, có giá trị từ lần gọi check-out đầu tiên. */
   actualCheckOut?: string | null;
-  /** Chỉ lịch lưu trú; mã chuồng cần `GET /cages` (thẻ 150), MW-03 chỉ dùng để biết đã gán chuồng hay chưa. */
+  /** Chỉ lịch lưu trú; mã chuồng tra trong `GET /cages` theo `cageId` (UI-Screens G-05). */
   cageId?: string | null;
   /** Lý do hủy khi `status = Cancelled` (MW-03 hiện ở dòng phụ của cột Trạng thái). */
   cancelReason?: CancelReason | null;
