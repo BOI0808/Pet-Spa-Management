@@ -10,14 +10,16 @@ type ServiceTaskProps = {
   done: boolean;
   /** Phần dưới dòng phụ: ô ghi chú khi đang làm, hộp ghi chú khi đã xong (SW-11 vùng 8). */
   children?: ReactNode;
+  /** Viền Apricot để chỉ bước còn thiếu, ví dụ bước thu tiền khi tiếp nhận lưu trú trả 409 PAYMENT_NOT_DUE (SW-07). */
+  highlighted?: boolean;
 };
 
 /** Một dòng dịch vụ có vòng tick (`.svc-task` của ui-demo); đã xong thì nền xanh nhạt, tick xanh. */
-export function ServiceTask({ name, detail, aside, done, children }: ServiceTaskProps) {
+export function ServiceTask({ name, detail, aside, done, children, highlighted = false }: ServiceTaskProps) {
   return (
     <li
       className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-2xl border p-4 ${
-        done ? "border-[#c9e5d3] bg-[#f6fbf8]" : "border-line bg-white"
+        done ? "border-[#c9e5d3] bg-[#f6fbf8]" : highlighted ? "border-apricot bg-apricot-50" : "border-line bg-white"
       }`}
     >
       <span

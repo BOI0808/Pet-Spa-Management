@@ -2,7 +2,7 @@
 import type { Appointment, AppointmentDetail, Payment, PaymentKind } from "@/lib/api/types";
 import { formatAppointmentCode, formatDayMonth } from "@/lib/format";
 import { PAYMENT_KIND_LABELS } from "@/lib/labels";
-import { checkInRoute, ROUTES } from "@/lib/routes";
+import { checkInRoute, checkOutRoute, ROUTES } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 
 /**
@@ -88,11 +88,12 @@ export function transferContent(appointmentId: string) {
 }
 
 /**
- * Nơi quay về sau khi thu (UI-Screens SW-09, Hành vi): tiền lưu trú → SW-07 để làm tiếp bước đưa bé vào chuồng; spa → SW-02.
- * Phí trả muộn theo tài liệu về SW-10, nhưng SW-10 làm ở thẻ 127 (chưa có trang) nên tạm về SW-02.
+ * Nơi quay về sau khi thu (UI-Screens SW-09, Hành vi): tiền lưu trú → SW-07 để làm tiếp bước đưa bé vào chuồng; phí trả
+ * muộn → SW-10 để bấm lại “Xác nhận trả thú cưng”; spa → SW-02.
  */
 export function returnRouteAfterPaid(kind: PaymentKind, appointmentId: string) {
   if (kind === "Stay") return checkInRoute(appointmentId);
+  if (kind === "LateFee") return checkOutRoute(appointmentId);
   return ROUTES.appointments;
 }
 

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  checkInHotelAppointment,
   checkInSpaAppointment,
+  checkOutAppointment,
   completeAppointment,
   createSpaAppointment,
   getAppointment,
@@ -18,6 +20,7 @@ import {
   type UploadPhotoParams,
 } from "@/lib/api/endpoints/appointments";
 import type { Photo, ServiceProgressRequest } from "@/lib/api/types";
+import { cageKeys } from "@/lib/queries/cages";
 import { petKeys } from "@/lib/queries/pets";
 
 // Cùng khóa với customer-web.
@@ -105,6 +108,32 @@ export function useCheckInSpa() {
   const queryClient = useQueryClient();
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
   return useMutation({ mutationFn: checkInSpaAppointment, onSuccess: invalidate, onError: invalidate });
+}
+
+/**
+ * Tiếp nhận lịch lưu trú, đưa bé vào chuồng (SW-07 vùng 11). Chuồng chuyển sang đang chứa nên làm mới cả khóa `cages`
+ * (SW-08); lỗi 409 cũng tải lại lịch và khoản thanh toán để màn hiện đúng bước còn thiếu (SA 6.6).
+ */
+export function useCheckInHotel() {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+    void queryClient.invalidateQueries({ queryKey: cageKeys.all });
+  };
+  return useMutation({ mutationFn: checkInHotelAppointment, onSuccess: invalidate, onError: invalidate });
+}
+
+/**
+ * Trả thú cưng lưu trú (SW-10). 409 `PAYMENT_NOT_DUE` nghĩa là backend vừa tạo khoản phí trả muộn: tải lại khoản thanh
+ * toán (nằm dưới khóa `appointments`) để hiện khoản đó và nút “Thu phí trả muộn” (G-12). Thành công thì chuồng trống.
+ */
+export function useCheckOut() {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+    void queryClient.invalidateQueries({ queryKey: cageKeys.all });
+  };
+  return useMutation({ mutationFn: checkOutAppointment, onSuccess: invalidate, onError: invalidate });
 }
 
 /**

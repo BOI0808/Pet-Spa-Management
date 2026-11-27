@@ -5,6 +5,7 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CheckInResult,
+  CheckOutResult,
   CostConfirmationRespondRequest,
   CostConfirmationRespondResult,
   Payment,
@@ -78,6 +79,27 @@ export async function checkInSpaAppointment({ appointmentId, actualWeightKg }: {
   const { data } = await apiClient.post<CheckInResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`, {
     actualWeightKg,
   });
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/check-in, lịch lưu trú – FR-HTL-07. Không body: cân nặng đã đối chiếu ở bước 1 (weight-check).
+ * Đã xác nhận → Đang lưu trú, chuồng đã gán ghi nhận đang chứa bé. 409 `PAYMENT_NOT_DUE` (chưa thu tiền lưu trú),
+ * `COST_CONFIRMATION_PENDING`, `INVALID_TRANSITION` (quá giờ giữ chỗ, chưa đối chiếu cân nặng, đã tiếp nhận, đã hủy).
+ */
+export async function checkInHotelAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<CheckInResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-in`);
+  return data;
+}
+
+/**
+ * POST /appointments/{id}/check-out – FR-HTL-09, BR-07, BR-22. Không body: backend lấy giờ hiện tại làm giờ trả thực tế
+ * (G-12). Có phí trả muộn: lần gọi đầu ghi `actualCheckOut`, tạo khoản `LateFee` chưa thanh toán rồi trả 409
+ * `PAYMENT_NOT_DUE`; thu khoản đó tại quầy rồi gọi lại để Hoàn tất (giờ trả giữ như lần đầu). Không phát sinh phí thì
+ * Hoàn tất ngay và giải phóng chuồng. Lịch không ở Đang lưu trú → 409 `INVALID_TRANSITION`.
+ */
+export async function checkOutAppointment(appointmentId: string) {
+  const { data } = await apiClient.post<CheckOutResult>(`/appointments/${encodeURIComponent(appointmentId)}/check-out`);
   return data;
 }
 

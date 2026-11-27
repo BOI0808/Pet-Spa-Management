@@ -8,16 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment } from "@/lib/api/types";
 import { useAppointment, useAppointmentPayments } from "@/lib/queries/appointments";
 import { usePet } from "@/lib/queries/pets";
-import { appointmentDetailRoute, checkInRoute, paymentsRoute } from "@/lib/routes";
+import { appointmentDetailRoute, checkInRoute, checkOutRoute, paymentsRoute } from "@/lib/routes";
 import { toStoreTime } from "@/lib/time";
-import { canCheckIn, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
+import { canCheckIn, isDueForCheckOutToday, nightsOf, rowMoment, speciesAndBreed, staffNames } from "../appointments";
 
 type ReceptionRowProps = {
   appointment: Appointment;
   /** Ngày đang xem (`?date=`), để biết dòng lưu trú là “nhận” hay “trả”. */
   date: string;
   today: string;
-  /** `cageId` → mã chuồng, tra từ GET /cages (G-05). Rỗng khi API chuồng chưa có (thẻ 88) hoặc tải lỗi. */
+  /** `cageId` → mã chuồng, tra từ GET /cages (G-05). Rỗng khi danh sách chuồng đang tải hoặc tải lỗi. */
   cageCodes: Map<string, string>;
 };
 
@@ -57,7 +57,7 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
   } else if (appointment.status === "Cancelled") {
     assignee = <span className="text-muted">—</span>;
   } else if (appointment.cageId) {
-    // Đã xếp chuồng nhưng chưa tra được mã: GET /cages chưa có trên backend (thẻ 88, đang trả 405).
+    // Đã xếp chuồng nhưng chưa tra được mã (danh sách chuồng đang tải hoặc tải lỗi).
     const code = cageCodes.get(appointment.cageId);
     assignee = code ? `Chuồng ${code}` : "Đã xếp chuồng";
   } else {
@@ -100,10 +100,14 @@ export function ReceptionRow({ appointment, date, today, cageCodes }: ReceptionR
         <StatusBadge status={appointment.status} />
       </td>
       <td className={`${CELL} text-right`}>
-        {/* Thao tác theo trạng thái (UI-Screens SW-02 vùng 3). “Trả thú cưng” thêm ở thẻ 127. */}
+        {/* Thao tác theo trạng thái (UI-Screens SW-02 vùng 3). */}
         {canCheckIn(appointment, today) ? (
           <ButtonLink href={checkInRoute(appointment.appointmentId)} size="sm">
             Tiếp nhận
+          </ButtonLink>
+        ) : isDueForCheckOutToday(appointment, today) ? (
+          <ButtonLink href={checkOutRoute(appointment.appointmentId)} size="sm">
+            Trả thú cưng
           </ButtonLink>
         ) : hasUnpaidSpa ? (
           <ButtonLink href={paymentsRoute(appointment.appointmentId)} size="sm">
