@@ -31,12 +31,10 @@ type CageFormDialogProps = {
   /** Chuồng đang sửa; `null` khi thêm mới. */
   cage: Cage | null;
   onClose: () => void;
-  /** Gọi khi backend đã lưu xong, kèm chuồng sau khi lưu để cập nhật danh sách trong phiên. */
-  onSaved: (cage: Cage) => void;
 };
 
 /** MW-07·D1 Thêm / sửa chuồng (hộp thoại giữa màn) – UI-Screens.md. Chỉ render khi đang mở nên form luôn bắt đầu từ giá trị mới. */
-export function CageFormDialog({ cage, onClose, onSaved }: CageFormDialogProps) {
+export function CageFormDialog({ cage, onClose }: CageFormDialogProps) {
   const titleId = useId();
   const { showSuccess } = useToast();
   const createCage = useCreateCage();
@@ -82,7 +80,6 @@ export function CageFormDialog({ cage, onClose, onSaved }: CageFormDialogProps) 
         {
           onSuccess: () => {
             showSuccess(`Đã lưu chuồng ${body.code}`);
-            onSaved({ ...cage, ...body });
             onClose();
           },
           onError: handleError,
@@ -90,9 +87,8 @@ export function CageFormDialog({ cage, onClose, onSaved }: CageFormDialogProps) 
       );
     } else {
       createCage.mutate(body, {
-        onSuccess: ({ cageId }) => {
+        onSuccess: () => {
           showSuccess(`Đã thêm chuồng ${body.code}`);
-          onSaved({ cageId, ...body, isActive: true });
           onClose();
         },
         onError: handleError,

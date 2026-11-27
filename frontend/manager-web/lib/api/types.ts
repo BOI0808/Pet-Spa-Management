@@ -88,13 +88,24 @@ export type HotelPricing = {
   lateFeePerBlock: number;
 };
 
-/** Chuồng. `occupant` (đang chứa) chỉ có ở GET /cages nên thêm vào khi làm thẻ 150. */
+/** Thú cưng đang lưu trú trong chuồng (`occupant` của GET /cages): chỉ lịch `InStay` có `cageId` mới được tính là đang chứa. */
+export type CageOccupant = {
+  petId: string;
+  petName: string;
+  customerId: string;
+  customerName: string;
+  plannedCheckOut: string;
+};
+
+/** Chuồng. `occupant` (đang chứa) chỉ có ở GET /cages (FR-HTL-08); chuồng đề xuất của lịch lưu trú không có trường này. */
 export type Cage = {
   cageId: string;
   code: string;
   species: Species;
   sizeGroup: SizeGroup;
   isActive: boolean;
+  /** `null` hoặc vắng mặt khi chuồng trống. */
+  occupant?: CageOccupant | null;
 };
 
 /** Body của POST /cages. */

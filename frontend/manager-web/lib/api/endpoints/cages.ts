@@ -1,7 +1,21 @@
 import { apiClient } from "@/lib/api/client";
-import type { ActiveToggleRequest, CageCreated, CageCreateRequest, CageUpdateRequest } from "@/lib/api/types";
+import type {
+  ActiveToggleRequest,
+  Cage,
+  CageCreated,
+  CageCreateRequest,
+  CageUpdateRequest,
+  Page,
+} from "@/lib/api/types";
 
-// Chưa có hàm đọc danh sách: GET /cages (FR-HTL-08) do thẻ 88 làm ở backend và thẻ 150 nối ở web.
+// MW-07 lấy một trang 100 chuồng; cửa hàng không có nhiều hơn (số chuồng là sức chứa lưu trú).
+const CAGE_PAGE_SIZE = 100;
+
+/** GET /cages – FR-HTL-08. Gồm cả chuồng đã ngừng sử dụng; `occupant` là thú cưng đang lưu trú (lịch `InStay`), sắp theo mã chuồng. */
+export async function listCages() {
+  const { data } = await apiClient.get<Page<Cage>>("/cages", { params: { page: 1, pageSize: CAGE_PAGE_SIZE } });
+  return data;
+}
 
 /** POST /cages – FR-HTL-01. Chuồng mới ở trạng thái đang sử dụng; trùng mã → 409 DUPLICATE_CAGE_CODE. */
 export async function createCage(body: CageCreateRequest) {

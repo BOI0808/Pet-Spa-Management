@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 
-type TagTone = "default" | "ok";
+type TagTone = "default" | "ok" | "busy";
 
-// `.tag`, `.tag-ok` của ui-demo. Chỉ khai báo tông đang dùng; thêm tông khác khi có màn cần.
+// `.tag`, `.tag-ok` và `.st-pill.busy` (chuồng đang chứa) của ui-demo. Chỉ khai báo tông đang dùng; thêm tông khác khi có màn cần.
 const TONE_CLASS: Record<TagTone, string> = {
   default: "bg-line-soft text-ink",
   ok: "bg-success-50 text-success",
+  busy: "bg-st-active-bg text-st-active",
 };
 
 /** Nhãn mô tả ngắn (“Đang cung cấp”, “Đã ngừng”); không dùng cho trạng thái lịch hẹn (đã có Badge). */

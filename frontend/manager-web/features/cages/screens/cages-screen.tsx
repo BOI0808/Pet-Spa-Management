@@ -1,6 +1,6 @@
 "use client";
 
-// MW-07 Chuồng và giá lưu trú – UI-Screens.md (UC-27, FR-HTL-01 → 03)
+// MW-07 Chuồng và giá lưu trú – UI-Screens.md (UC-27, FR-HTL-01 → 03, FR-HTL-08)
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isForbiddenError } from "@/lib/api/errors";
 import type { Cage } from "@/lib/api/types";
+import { useCages } from "@/lib/queries/cages";
 import { useHotelPricing, useIsSavingHotelPricing } from "@/lib/queries/hotel-pricing";
 import { ROUTES } from "@/lib/routes";
 import { CageFormDialog } from "../components/cage-form-dialog";
@@ -50,19 +51,10 @@ function PricingSkeleton() {
 
 export function CagesScreen() {
   const tab = parseTab(useSearchParams().get("tab"));
-  const [cages, setCages] = useState<Cage[]>([]);
   const [dialog, setDialog] = useState<DialogState>(null);
+  const cages = useCages();
   const pricing = useHotelPricing();
   const isSavingPricing = useIsSavingHotelPricing();
-
-  // Thêm chuồng mới vào cuối danh sách phiên, hoặc thay chuồng đã có (sau khi sửa / đổi trạng thái).
-  function upsertCage(saved: Cage) {
-    setCages((current) =>
-      current.some((cage) => cage.cageId === saved.cageId)
-        ? current.map((cage) => (cage.cageId === saved.cageId ? saved : cage))
-        : [...current, saved],
-    );
-  }
 
   // Vùng 1 – Tiêu đề và nút chính theo tab; vùng 2 – Tab; vùng 4 – Bảng chuồng; vùng 5, 6 – Bảng giá và phí trả muộn.
   return (
@@ -94,6 +86,9 @@ export function CagesScreen() {
         <Link href={TAB_HREF.cages} aria-current={tab === "cages" ? "page" : undefined} className={tabClass(tab === "cages")}>
           <Icon name="grid" />
           Chuồng
+          {cages.data !== undefined && (
+            <span className="rounded-full bg-lagoon-50 px-2 text-xs font-semibold leading-5 text-lagoon-700">{cages.data.total}</span>
+          )}
         </Link>
         <Link
           href={TAB_HREF.pricing}
@@ -108,7 +103,7 @@ export function CagesScreen() {
       {/* Cả hai tab luôn được dựng, tab không chọn chỉ bị ẩn: đổi tab không làm mất danh sách chuồng hay giá đang nhập dở,
           và thao tác đang gửi vẫn kịp cập nhật giao diện và báo toast khi xong. */}
       <div hidden={tab !== "cages"}>
-        <CagesTab cages={cages} onAdd={() => setDialog("new")} onEdit={setDialog} onChanged={upsertCage} />
+        <CagesTab query={cages} onAdd={() => setDialog("new")} onEdit={setDialog} />
       </div>
       <div hidden={tab !== "pricing"}>
         {pricing.data !== undefined ? (
@@ -128,7 +123,7 @@ export function CagesScreen() {
       </div>
 
       {dialog !== null && (
-        <CageFormDialog cage={dialog === "new" ? null : dialog} onClose={() => setDialog(null)} onSaved={upsertCage} />
+        <CageFormDialog cage={dialog === "new" ? null : dialog} onClose={() => setDialog(null)} />
       )}
     </>
   );
