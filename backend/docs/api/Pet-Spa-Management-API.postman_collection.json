@@ -39309,7 +39309,505 @@
       "item": [
         {
           "name": "09.N Thông báo: sự kiện, danh sách, đánh dấu đã đọc (task 170)",
-          "item": [],
+          "item": [
+            {
+              "name": "09.N.0 Tạo các sự kiện còn lại",
+              "item": [
+                {
+                  "name": "POST /appointments/{id}/check-in – LT tiếp nhận P2, 12 kg, cần xác nhận chi phí mới (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const check = body.weightCheck;",
+                          "",
+                          "    pm.test(\"Lịch chuyển sang Received\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Received\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Kết quả đối chiếu là NEEDS_CONFIRMATION\", function () {",
+                          "        pm.expect(check.result).to.eql(\"NEEDS_CONFIRMATION\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Có nhóm mới, tiền cũ, tiền mới và hạn phản hồi\", function () {",
+                          "        pm.expect(check.newSizeGroup).to.eql(\"Medium\");",
+                          "        pm.expect(check.oldAmount).to.eql(100000);",
+                          "        pm.expect(check.newAmount).to.eql(130000);",
+                          "        pm.expect(check.expiresAt).to.be.a(\"string\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP2}}/check-in",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP2}}",
+                        "check-in"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"actualWeightKg\": 12\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch P2 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Cancelled\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP2}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP2}}",
+                        "cancel"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên B, P3 quay về Chờ xác nhận (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Đúng 1 lịch spa (P3) quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(pm.response.json().returnedToPending).to.eql(1);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{payStaffBId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{payStaffBId}}",
+                        "deactivate"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/cancel – quản lý hủy lịch P3 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Cancelled\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Cancelled\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP3}}/cancel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP3}}",
+                        "cancel"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/weight-check – LT đối chiếu H1, 9 kg, kết quả OK (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const check = pm.response.json().weightCheck;",
+                          "",
+                          "    pm.test(\"Kết quả đối chiếu là OK\", function () {",
+                          "        pm.expect(check.result).to.eql(\"OK\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payH1}}/weight-check",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payH1}}",
+                        "weight-check"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"actualWeightKg\": 9\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/counter – LT ghi nhận khoản Stay của H1 bằng tiền mặt, đủ tiền (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Paid\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Paid\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPayStay}}/counter",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPayStay}}",
+                        "counter"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"method\": \"Cash\",\n  \"receivedAmount\": {{payStayAmount}}\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/check-in – LT tiếp nhận H1 vào chuồng (200) → InStay",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là InStay\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"InStay\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payH1}}/check-in",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payH1}}",
+                        "check-in"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/check-out – LT trả H1 đúng hạn (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Lịch chuyển sang Completed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Completed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payH1}}/check-out",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payH1}}",
+                        "check-out"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Tạo các sự kiện còn lại\n\nChạy sau 08.O.4. P2: lễ tân tiếp nhận 12 kg (đổi nhóm, phát sinh chi phí mới) rồi quản lý hủy. P3: quản lý vô hiệu hóa nhân viên B nên P3 quay về Chờ xác nhận, sau đó hủy. H1: đối chiếu cân nặng, thanh toán khoản Stay tại quầy, tiếp nhận vào chuồng, trả đúng hạn. Các sự kiện của P1 đã phát sinh ở 08.O.1 đến 08.O.4."
+            }
+          ],
           "description": "### Thông báo: sự kiện, danh sách, đánh dấu đã đọc (FR-NOT-01, FR-NOT-02, FR-NOT-03, FR-NOT-04, FR-NOT-05, FR-NOT-06)\n\nChạy sau khi đã chạy xong 08.O.4, theo thứ tự 09.N.0 → 09.N.3. Dữ liệu (lịch P1, P2, P3, H1, nhân viên A, B, token) lấy từ 08.O.0 đến 08.O.4 nên không chạy riêng folder này.\n\n09.N.0 tạo nốt các sự kiện (tiếp nhận có chi phí mới, hủy, vô hiệu hóa nhân viên, thanh toán và tiếp nhận/trả lưu trú); 09.N.1 và 09.N.2 kiểm tra nội dung thông báo từng vai trò, phân quyền, phân trang, đánh dấu đã đọc; 09.N.3 dọn dữ liệu thử và xóa các biến môi trường pay*, ntf*.\n\nPhạm vi: chỉ thông báo do sự kiện đặt lịch, xác nhận/phân công, đổi trạng thái, hủy do quản lý, thanh toán, chi phí mới. Thông báo hủy do tác vụ tự động thuộc task 171. Khách vãng lai không có tài khoản nên không có thông báo."
         }
       ]
