@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/auth/use-session";
 import { getInitials } from "@/lib/format";
+import { useUnreadNotificationCount } from "@/lib/queries/notifications";
 import { ROUTE_ROLES } from "@/lib/route-access";
 import { ROUTES } from "@/lib/routes";
 import { STAFF_ROLE_LABELS, type StaffRole } from "@/lib/staff-role";
@@ -63,6 +64,8 @@ type HeaderNavProps = {
   initials?: string | null;
   onLogout?: () => void;
   isLoggingOut?: boolean;
+  /** Số thông báo chưa đọc trên chuông (chỉ nhân viên spa); 0 thì ẩn chấm đỏ. */
+  unread?: number;
 };
 
 // Khung xương của menu trong lúc chờ biết vai trò; giữ chỗ để thanh trên không nhảy.
@@ -84,6 +87,7 @@ export function HeaderNav({
   initials = null,
   onLogout,
   isLoggingOut = false,
+  unread = 0,
 }: HeaderNavProps) {
   const notificationsActive = isUnder(pathname, ROUTES.notifications);
 
@@ -117,18 +121,29 @@ export function HeaderNav({
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        {/* Chỉ nhân viên spa có thông báo (SA 6.2). Số chưa đọc hiển thị ở thẻ 1.6.3.3. */}
+        {/* Chỉ nhân viên spa có thông báo (SA 6.2). Chấm đỏ số chưa đọc như chuông của Web Khách hàng (UI-Screens 2.1, vùng C). */}
         {canSee(["SpaStaff"], role) && (
           <Link
             href={ROUTES.notifications}
-            aria-label="Thông báo"
+            aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : "Thông báo"}
             title="Thông báo"
             aria-current={notificationsActive ? "page" : undefined}
-            className={`relative grid size-11 place-items-center rounded-xl text-white hover:bg-white/10 ${onDarkFocusClass} ${
-              notificationsActive ? "bg-white text-lagoon-700 hover:bg-white" : ""
+            // Chỉ một màu chữ trong mỗi trạng thái: để cả `text-white` lẫn `text-lagoon-700` thì lớp nào thắng tùy thứ tự
+            // trong CSS, và chuông đang chọn từng ra chữ trắng trên nền trắng.
+            className={`relative grid size-11 place-items-center rounded-xl ${onDarkFocusClass} ${
+              notificationsActive ? "bg-white text-lagoon-700" : "text-white hover:bg-white/10"
             }`}
           >
             <Icon name="bell" className="size-[22px]" />
+            {/* Viền cùng màu thanh trên để chấm đỏ tách khỏi chuông. */}
+            {unread > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute right-[3px] top-1 h-[18px] min-w-[18px] rounded-full border-2 border-lagoon-700 bg-danger px-[5px] text-center text-[11px] font-bold leading-[14px] text-white tabular-nums"
+              >
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
           </Link>
         )}
         {/* Tên và vai trò người dùng (`.user-chip` và `.uc-text` trong ui-demo); màn hẹp chỉ còn biểu tượng. */}
@@ -186,6 +201,8 @@ export function HeaderNav({
  */
 export function ActiveHeaderNav() {
   const { me, logout, isLoggingOut } = useSession();
+  // Thanh trên nằm ngoài SessionGate: chỉ gọi khi đã biết là nhân viên spa (lễ tân không có thông báo, API trả 403).
+  const { data: unread = 0 } = useUnreadNotificationCount({ enabled: me?.staffRole === "SpaStaff" });
   return (
     <HeaderNav
       pathname={usePathname()}
@@ -195,6 +212,7 @@ export function ActiveHeaderNav() {
       initials={me?.fullName ? getInitials(me.fullName) || null : null}
       onLogout={logout}
       isLoggingOut={isLoggingOut}
+      unread={unread}
     />
   );
 }

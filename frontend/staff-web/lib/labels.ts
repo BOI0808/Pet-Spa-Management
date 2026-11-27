@@ -2,6 +2,7 @@ import type {
   AppointmentStatus,
   AppointmentType,
   CancelReason,
+  NotificationType,
   PaymentKind,
   PaymentMethod,
   PaymentStatus,
@@ -85,4 +86,17 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   Cash: "Tiền mặt",
   BankQR: "Chuyển khoản QR",
   Online: "Trực tuyến",
+};
+
+/**
+ * Nhãn theo loại thông báo, nhìn từ phía nhân viên spa. Backend chỉ gửi cho NVS hai loại `ConfirmedAssigned` và
+ * `Cancelled` (FR-NOT-02, FR-NOT-04); các loại còn lại để màn SW-13 không bị trống tiêu đề nếu sau này có thêm.
+ */
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  BookingReceived: "Lịch hẹn mới",
+  ConfirmedAssigned: "Bạn được phân công lịch hẹn",
+  StatusChanged: "Lịch hẹn có cập nhật trạng thái",
+  Cancelled: "Lịch hẹn đã hủy",
+  PaymentRecorded: "Đã ghi nhận thanh toán",
+  CostConfirmation: "Lịch hẹn chờ khách xác nhận chi phí mới",
 };
