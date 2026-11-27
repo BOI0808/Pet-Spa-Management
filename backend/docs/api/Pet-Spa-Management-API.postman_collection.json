@@ -36498,6 +36498,1141 @@
                 }
               ],
               "description": "### Chuẩn bị dữ liệu cho thanh toán trực tuyến và thông báo\n\nĐăng nhập 4 vai trò, tạo nhân viên spa A và B kèm ca làm việc, dịch vụ spa, giá lưu trú, chuồng, thú cưng của khách 1 và khách 2. Request tạo nhân viên A sinh ra các biến ngày giờ và RunId ngẫu nhiên cho cả task. Token hết hạn sau 15 phút: gặp 401 ngoài ý muốn thì gửi lại các request đăng nhập ở folder này."
+            },
+            {
+              "name": "08.O.1 Tạo lịch thử và xác nhận",
+              "item": [
+                {
+                  "name": "POST /appointments/spa – KH1 đặt P1 lúc 09:00 (201) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payP1\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{payPetP1}}\",\n  \"serviceIds\": [\n    \"{{payServiceId}}\"\n  ],\n  \"slotStart\": \"{{paySlot0900}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – KH1 đặt P2 lúc 13:00 (201) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payP2\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{payPetP2}}\",\n  \"serviceIds\": [\n    \"{{payServiceId}}\"\n  ],\n  \"slotStart\": \"{{paySlot1300}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/spa – KH2 đặt P3 lúc 11:00 (201) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payP3\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "spa"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{payPetP3}}\",\n  \"serviceIds\": [\n    \"{{payServiceId}}\"\n  ],\n  \"slotStart\": \"{{paySlot1100}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/hotel – KH1 đặt H1 (201) → Pending",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    const body = pm.response.json();",
+                          "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                          "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payH1\", body.appointmentId);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/hotel",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "hotel"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"petId\": \"{{payPetH1}}\",\n  \"plannedCheckIn\": \"{{payHotelIn}}\",\n  \"plannedCheckOut\": \"{{payHotelOut}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận P1 với nhân viên A (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Confirmed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "confirm"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{payStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận P2 với nhân viên A (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Confirmed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP2}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP2}}",
+                        "confirm"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{payStaffAId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận P3 với nhân viên B (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Confirmed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP3}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP3}}",
+                        "confirm"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"staffIds\": [\n    \"{{payStaffBId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/confirm – xác nhận H1 với chuồng (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Confirmed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payH1}}/confirm",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payH1}}",
+                        "confirm"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"cageId\": \"{{payCageId}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – LT xem khoản Stay của H1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const stay = body.find(function (p) {",
+                          "        return p.kind === \"Stay\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Có đúng 1 khoản Stay chưa thanh toán, 260000\", function () {",
+                          "        pm.expect(body.length).to.eql(1);",
+                          "        pm.expect(stay.status).to.eql(\"Unpaid\");",
+                          "        pm.expect(stay.amount).to.eql(260000);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payPayStay\", stay.paymentId);",
+                          "    pm.environment.set(\"payStayAmount\", stay.amount);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payH1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payH1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id} – QL xem P1 đã xác nhận, in SQL-1 ra Console (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "const keys = [\"payP1\", \"payP2\", \"payP3\", \"payH1\"];",
+                          "",
+                          "pm.test(\"P1 đang Confirmed và Environment có đủ 4 mã lịch hẹn\", function () {",
+                          "    pm.expect(pm.response.json().status).to.eql(\"Confirmed\");",
+                          "    keys.forEach(function (k) {",
+                          "        pm.expect(pm.environment.get(k), k).to.be.a(\"string\");",
+                          "    });",
+                          "});",
+                          "",
+                          "const id = (k) => `'${pm.environment.get(k)}'`;",
+                          "const tonight = \"((date_trunc('day', now() AT TIME ZONE 'Asia/Ho_Chi_Minh') + interval '23 hours 50 minutes') AT TIME ZONE 'Asia/Ho_Chi_Minh')\";",
+                          "",
+                          "const sql = [",
+                          "    `UPDATE \"Appointment\" SET \"SlotEnd\" = \"SlotEnd\" + (${tonight} - \"SlotStart\"), \"BusyUntil\" = \"BusyUntil\" + (${tonight} - \"SlotStart\"), \"SlotStart\" = ${tonight}, \"UpdatedAt\" = now() WHERE \"AppointmentId\" IN (${id(\"payP1\")}, ${id(\"payP2\")});`,",
+                          "    `UPDATE \"Appointment\" SET \"PlannedCheckIn\" = ${tonight}, \"PlannedCheckOut\" = ${tonight} + interval '2 days', \"UpdatedAt\" = now() WHERE \"AppointmentId\" = ${id(\"payH1\")};`",
+                          "].join(\"\\n\");",
+                          "",
+                          "pm.environment.set(\"paySql1\", sql);",
+                          "console.log(sql);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Tạo lịch thử và xác nhận\n\nKH1 đặt P1 (09:00) và P2 (13:00), KH2 đặt P3 (11:00), KH1 đặt lưu trú H1; quản lý xác nhận P1, P2 với nhân viên A, P3 với nhân viên B, H1 với chuồng. Sau khi xác nhận lịch lưu trú, hệ thống tự tạo khoản Stay chưa thanh toán nên lấy mã khoản này để dùng ở 08.O.3. Request cuối in câu SQL-1 ra Postman Console: SQL-1 kéo giờ hẹn của P1, P2 và ngày nhận chuồng của H1 về tối nay 23:50 (giờ Việt Nam) để tiếp nhận được ngay; chạy SQL-1 trên Supabase SQL Editor trước khi sang 08.O.2."
+            },
+            {
+              "name": "08.O.2 Đưa lịch spa P1 đến Hoàn tất",
+              "item": [
+                {
+                  "name": "GET /appointments/{id} – cổng kiểm tra: đã chạy SQL-1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Đã chạy SQL-1: giờ hẹn của P1 nằm trong 24 giờ tới\", function () {",
+                          "        const start = new Date(pm.response.json().slotStart).getTime();",
+                          "        pm.expect(start).to.be.below(Date.now() + 24 * 60 * 60 * 1000);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/check-in – LT tiếp nhận P1, 8 kg, kết quả OK (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const check = body.weightCheck;",
+                          "",
+                          "    pm.test(\"Lịch chuyển sang Received\", function () {",
+                          "        pm.expect(body.status).to.eql(\"Received\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Kết quả đối chiếu là OK\", function () {",
+                          "        pm.expect(check.result).to.eql(\"OK\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/check-in",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "check-in"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"actualWeightKg\": 8\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/photos – nhân viên A tải ảnh Before (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có photoId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().photoId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "photos"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "kind",
+                          "value": "Before",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "postman-photo.jpg"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/start – nhân viên A bắt đầu P1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là InProgress\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"InProgress\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/start",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "start"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /appointments/{id}/services/{serviceId} – nhân viên A đánh dấu dịch vụ xong (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/services/{{payServiceId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "services",
+                        "{{payServiceId}}"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isDone\": true,\n  \"note\": \"Cắt tỉa xong, lông gọn\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/photos – nhân viên A tải ảnh After (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 201 Created\", function () {",
+                          "    pm.response.to.have.status(201);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 201) {",
+                          "    pm.test(\"Có photoId dạng GUID\", function () {",
+                          "        pm.expect(pm.response.json().photoId).to.match(/^[0-9a-f-]{36}$/i);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/photos",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "photos"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "kind",
+                          "value": "After",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "postman-photo.jpg"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /appointments/{id}/complete – nhân viên A hoàn tất P1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Trạng thái là Completed\", function () {",
+                          "        pm.expect(pm.response.json().status).to.eql(\"Completed\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/complete",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "complete"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – KH1 xem khoản Spa của P1 chưa thanh toán (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const spa = body.find(function (p) {",
+                          "        return p.kind === \"Spa\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Có đúng 1 khoản Spa chưa thanh toán, 100000\", function () {",
+                          "        pm.expect(body.length).to.eql(1);",
+                          "        pm.expect(spa.status).to.eql(\"Unpaid\");",
+                          "        pm.expect(spa.amount).to.eql(100000);",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payPaySpa\", spa.paymentId);",
+                          "    pm.environment.set(\"payAmount\", spa.amount);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Đưa lịch spa P1 đến Hoàn tất\n\nChạy sau khi đã chạy SQL-1 (request đầu là cổng kiểm tra, báo đỏ nếu chưa chạy). Lễ tân tiếp nhận P1 (8 kg, không đổi nhóm), nhân viên A tải ảnh Before, bắt đầu, đánh dấu dịch vụ xong, tải ảnh After, hoàn tất. Khi lịch Hoàn tất, hệ thống tạo khoản Spa chưa thanh toán; request cuối lấy mã và số tiền khoản này để dùng ở 08.O.3 và 08.O.4."
             }
           ],
           "description": "### Thanh toán trực tuyến VNPAY: khởi tạo và webhook (FR-PAY-03)\n\nChạy theo thứ tự 08.O.0 → 08.O.4, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình VNPAY (Payment__Vnpay__TmnCode, Payment__Vnpay__HashSecret, Payment__Vnpay__ReturnUrl), đã cấu hình Supabase Storage; Environment có biến vnpHashSecret (Type secret) bằng đúng HashSecret của backend; tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 08.O.0. Giữa 08.O.1 và 08.O.2 có một bước SQL trên Supabase (câu SQL được in ra Postman Console ở request cuối 08.O.1).\n\nPhạm vi: khởi tạo thanh toán trực tuyến, webhook VNPAY (chữ ký, số tiền, TxnRef đã xử lý, cập nhật Paid). Webhook được giả lập bằng cách Postman tự ký bằng vnpHashSecret. Backend chỉ hỗ trợ VNPAY; MoMo chỉ kiểm tra ở dạng chưa hỗ trợ (400). Thanh toán tại quầy thuộc task 169; tác vụ tự động thuộc task 171."
