@@ -111,6 +111,14 @@ const ICON_PATHS = {
       <path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3" />
     </>
   ),
+  // Thông báo phân công ở SW-13 (`#i-user-plus` của ui-demo).
+  "user-plus": (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6M22 11h-6" />
+    </>
+  ),
   "x-circle": (
     <>
       <circle cx="12" cy="12" r="10" />

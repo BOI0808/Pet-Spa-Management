@@ -396,3 +396,25 @@ export type Cage = {
 };
 
 export type CagePage = Page<Cage>;
+
+// ── Thông báo ──
+export type NotificationType =
+  | "BookingReceived"
+  | "ConfirmedAssigned"
+  | "StatusChanged"
+  | "Cancelled"
+  | "PaymentRecorded"
+  | "CostConfirmation";
+
+export type Notification = {
+  notificationId: string;
+  type: NotificationType;
+  appointmentId?: string | null;
+  /** ≤ 500 ký tự, backend soạn sẵn. */
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
+/** `unread`: số thông báo chưa đọc của cả tài khoản, không chỉ trang này. */
+export type NotificationPage = Page<Notification> & { unread: number };
