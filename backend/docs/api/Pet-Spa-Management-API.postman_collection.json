@@ -37436,6 +37436,511 @@
             }
           ],
           "description": "### Endpoint tác vụ tự động chỉ nhận header X-Job-Secret\n\nPOST /internal/jobs/run không dùng JWT và không nhận dữ liệu trong body. Thiếu hoặc sai X-Job-Secret trả 401 UNAUTHENTICATED (FR-EXE-07). Trường hợp đúng secret trả 200 { processed } được kiểm thử ở các folder 10.3 đến 10.6."
+        },
+        {
+          "name": "10.3 Vắng mặt 3 lần chưa khóa, chạy lặp – FR-EXE-07, FR-BOOK-06 – chạy từng request, xen bước SQL (xem hướng dẫn)",
+          "item": [
+            {
+              "name": "GET /appointments/{id} – cổng kiểm tra: đã chạy SQL-1, giờ hẹn của T1 đã quá khứ (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Đã chạy SQL-1: giờ hẹn của T1 nằm trong quá khứ\", function () {",
+                      "        pm.expect(new Date(body.slotStart).getTime()).to.be.below(Date.now());",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT1}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT1}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /internal/jobs/run – đúng X-Job-Secret, chạy tác vụ lần 1 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Đã đặt biến môi trường jobSecret\", function () {",
+                      "    pm.expect(pm.environment.get(\"jobSecret\"), \"Chưa đặt jobSecret trong Environment\").to.be.a(\"string\").and.not.empty;",
+                      "});",
+                      "",
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test(\"processed là số nguyên không âm\", function () {",
+                      "        const processed = pm.response.json().processed;",
+                      "        pm.expect(Number.isInteger(processed) && processed >= 0).to.be.true;",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Job-Secret",
+                    "value": "{{jobSecret}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/internal/jobs/run",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "internal",
+                    "jobs",
+                    "run"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – T1 bị hủy do vắng mặt, hết giữ chỗ nhân viên (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T1 Cancelled, lý do NoShow, có thời điểm hủy\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "        pm.expect(body.cancelReason).to.eql(\"NoShow\");",
+                      "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.test(\"Nhân viên A vẫn gắn với lịch nhưng không còn giữ chỗ\", function () {",
+                      "        pm.expect(body.staff).to.have.lengthOf(1);",
+                      "        pm.expect(body.staff[0].staffId).to.eql(pm.environment.get(\"jobStaffAId\"));",
+                      "        pm.expect(body.staff[0].isHolding).to.be.false;",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobT1CancelledAt\", body.cancelledAt);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT1}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT1}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – T2 bị hủy do vắng mặt (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T2 Cancelled, lý do NoShow, có thời điểm hủy\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "        pm.expect(body.cancelReason).to.eql(\"NoShow\");",
+                      "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT2}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT2}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – T3 bị hủy do vắng mặt (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T3 Cancelled, lý do NoShow, có thời điểm hủy\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "        pm.expect(body.cancelReason).to.eql(\"NoShow\");",
+                      "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT3}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT3}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /customers – quản lý không thấy khách thử trong danh sách bị khóa, mới 3 lần vắng mặt (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const customer = body.items.find((c) => c.customerId === pm.environment.get(\"jobCustomerId\"));",
+                      "    pm.test(\"Khách thử chưa bị khóa (3 lần vắng mặt chưa vượt ngưỡng 3)\", function () {",
+                      "        pm.expect(customer).to.eql(undefined);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers?search={{jobCustomerPhone}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "{{jobCustomerPhone}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử vẫn tự đặt được khi mới 3 lần vắng mặt (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT6\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1400}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /internal/jobs/run – chạy lại, xử lý lặp an toàn (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Đã đặt biến môi trường jobSecret\", function () {",
+                      "    pm.expect(pm.environment.get(\"jobSecret\"), \"Chưa đặt jobSecret trong Environment\").to.be.a(\"string\").and.not.empty;",
+                      "});",
+                      "",
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test(\"processed là số nguyên không âm\", function () {",
+                      "        const processed = pm.response.json().processed;",
+                      "        pm.expect(Number.isInteger(processed) && processed >= 0).to.be.true;",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Job-Secret",
+                    "value": "{{jobSecret}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/internal/jobs/run",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "internal",
+                    "jobs",
+                    "run"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – T1 không đổi sau lần chạy lại (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T1 vẫn Cancelled, lý do NoShow, thời điểm hủy không đổi\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "        pm.expect(body.cancelReason).to.eql(\"NoShow\");",
+                      "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.test(\"Thời điểm hủy không đổi so với lần chạy đầu\", function () {",
+                      "        pm.expect(body.cancelledAt).to.eql(pm.environment.get(\"jobT1CancelledAt\"));",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT1}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT1}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "### Tự hủy lịch vắng mặt sau 15 phút, chưa quá 3 lần thì chưa khóa (FR-EXE-07, FR-BOOK-06, BR-08, BR-15)\n\nQuy trình:\n\n1. Chạy xong 10.0, 10.1, 10.2 và đặt biến môi trường jobSecret.\n\n2. Copy SQL-1 từ Postman Console (in ở request cuối folder 10.1), chạy một lần trên Supabase SQL Editor. SQL-1 dời giờ hẹn của T1, T2, T3 về 20 phút trước (quá thời gian giữ chỗ 15 phút, chưa được tiếp nhận).\n\n3. Gửi lần lượt các request của folder này.\n\nBackend còn tự quét mỗi 1 phút (AutoCancelBackgroundService) nên lịch có thể đã bị hủy trước khi gửi request chạy tác vụ; vì vậy các request chỉ kiểm tra trạng thái cuối, không kiểm tra con số processed cụ thể. Request đầu tiên là cổng kiểm tra: đỏ nghĩa là chưa chạy SQL-1."
         }
       ]
     },
