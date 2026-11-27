@@ -40913,6 +40913,187 @@
                 }
               ],
               "description": "### Thông báo của nhân viên spa, khách hàng 2, phân quyền, phân trang, đánh dấu đã đọc\n\nNhân viên spa A chỉ nhận thông báo phân công và hủy của P1, P2 (đúng 3 thông báo, chưa đọc). Khách hàng 2 chỉ thấy thông báo của P3 (đặt, xác nhận, quay về Chờ xác nhận do nhân viên bị vô hiệu hóa, hủy), không thấy thông báo của khách 1. Quản lý và lễ tân không có quyền (403), không token (401), pageSize vượt 100 và page bằng 0 bị từ chối (400). Đánh dấu đã đọc: thành công (204), gọi lại vẫn 204, số chưa đọc giảm đúng 1; người khác đánh dấu thông báo không phải của mình bị 403, thông báo không tồn tại 404."
+            },
+            {
+              "name": "09.N.3 Dọn dữ liệu thử",
+              "item": [
+                {
+                  "name": "PATCH /cages/{id}/status – ngừng dùng chuồng thử (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/cages/{{payCageId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "cages",
+                        "{{payCageId}}",
+                        "status"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "PATCH /services/{id}/status – ngừng cung cấp dịch vụ spa thử (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/services/{{payServiceId}}/status",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "services",
+                        "{{payServiceId}}",
+                        "status"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên A và xóa biến môi trường của task 170 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
+                          "        pm.expect(pm.response.json().returnedToPending).to.eql(0);",
+                          "    });",
+                          "}",
+                          "",
+                          "const envObj = pm.environment.toObject();",
+                          "Object.keys(envObj).forEach(function (key) {",
+                          "    if (key.startsWith(\"pay\") || key.startsWith(\"ntf\")) {",
+                          "        pm.environment.unset(key);",
+                          "    }",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/staff/{{payStaffAId}}/deactivate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "staff",
+                        "{{payStaffAId}}",
+                        "deactivate"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Dọn dữ liệu thử\n\nNgừng dùng chuồng và dịch vụ thử, vô hiệu hóa nhân viên spa A (nhân viên B đã bị vô hiệu hóa ở 09.N.0). Các lịch P1, P2, P3, H1 đã ở trạng thái cuối (Hoàn tất hoặc Đã hủy) nên không cần dọn. Request cuối xóa các biến môi trường pay*, ntf* của task 170 (không xóa vnpHashSecret). Chạy cuối cùng, sau khi đã kiểm tra xong."
             }
           ],
           "description": "### Thông báo: sự kiện, danh sách, đánh dấu đã đọc (FR-NOT-01, FR-NOT-02, FR-NOT-03, FR-NOT-04, FR-NOT-05, FR-NOT-06)\n\nChạy sau khi đã chạy xong 08.O.4, theo thứ tự 09.N.0 → 09.N.3. Dữ liệu (lịch P1, P2, P3, H1, nhân viên A, B, token) lấy từ 08.O.0 đến 08.O.4 nên không chạy riêng folder này.\n\n09.N.0 tạo nốt các sự kiện (tiếp nhận có chi phí mới, hủy, vô hiệu hóa nhân viên, thanh toán và tiếp nhận/trả lưu trú); 09.N.1 và 09.N.2 kiểm tra nội dung thông báo từng vai trò, phân quyền, phân trang, đánh dấu đã đọc; 09.N.3 dọn dữ liệu thử và xóa các biến môi trường pay*, ntf*.\n\nPhạm vi: chỉ thông báo do sự kiện đặt lịch, xác nhận/phân công, đổi trạng thái, hủy do quản lý, thanh toán, chi phí mới. Thông báo hủy do tác vụ tự động thuộc task 171. Khách vãng lai không có tài khoản nên không có thông báo."
