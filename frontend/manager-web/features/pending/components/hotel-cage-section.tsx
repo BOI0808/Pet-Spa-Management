@@ -80,10 +80,11 @@ export function HotelCageSection({ query, nights, cages, selectedCageId, onSelec
     }
 
     // Chưa có danh sách chuồng (đang tải, lỗi, hoặc chuồng đề xuất nằm ngoài trang đã tải) thì chỉ còn chuồng đề xuất.
-    const activeCages = cages.data?.items.filter((item) => item.isActive) ?? [];
+    const sameSpeciesActiveCages =
+      cages.data?.items.filter((item) => item.isActive && item.species === cage.species) ?? [];
     const fits = (item: Cage) => item.species === cage.species && item.sizeGroup === cage.sizeGroup;
-    const allOptions = activeCages.some((item) => item.cageId === cage.cageId) ? activeCages : [cage];
-    // Chuồng chọn được lên trước, chuồng khác loài, nhóm (mờ) xuống sau; trong mỗi nhóm giữ thứ tự mã chuồng backend trả.
+    const allOptions = sameSpeciesActiveCages.some((item) => item.cageId === cage.cageId) ? sameSpeciesActiveCages : [cage];
+    // Chuồng chọn được lên trước, chuồng cùng loài khác nhóm (mờ) xuống sau; trong mỗi nhóm giữ thứ tự mã chuồng backend trả.
     const options = [...allOptions.filter(fits), ...allOptions.filter((item) => !fits(item))];
     const hasAlternative = options.some((item) => item.cageId !== cage.cageId && fits(item));
     const today = getStoreToday();
@@ -122,7 +123,7 @@ export function HotelCageSection({ query, nights, cages, selectedCageId, onSelec
                 </div>
               </ChoiceCard>
             ) : (
-              // Chuồng khác loài, nhóm: chỉ để tham khảo, không chọn được.
+              // Chuồng cùng loài khác nhóm: chỉ để tham khảo, không chọn được.
               <div key={item.cageId} className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-white px-3.5 py-3 opacity-50">
                 <div className="min-w-0 grow">
                   <span className="text-base font-semibold">{item.code}</span>

@@ -17,7 +17,7 @@ export type CageSummary = {
   occupied: number;
   /** Chuồng đang sử dụng và chưa có thú cưng: sẵn sàng nhận. */
   free: number;
-  /** Chuồng đã ngừng sử dụng, không tính vào sức chứa. */
+  /** Chuồng đã ngừng sử dụng và đang trống, không tính vào sức chứa. */
   inactive: number;
   /** Mã các chuồng đang chứa, theo thứ tự backend trả (sắp theo mã). */
   occupiedCodes: string[];
@@ -30,7 +30,7 @@ export function summarizeCages(cages: Cage[]): CageSummary {
     capacity: cages.filter((cage) => cage.isActive).length,
     occupied: occupiedCages.length,
     free: cages.filter((cage) => getCageStatus(cage) === "free").length,
-    inactive: cages.filter((cage) => !cage.isActive).length,
+    inactive: cages.filter((cage) => getCageStatus(cage) === "inactive").length,
     occupiedCodes: occupiedCages.map((cage) => cage.code),
   };
 }

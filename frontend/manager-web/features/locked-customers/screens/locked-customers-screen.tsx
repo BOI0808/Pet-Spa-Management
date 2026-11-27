@@ -70,29 +70,30 @@ export function LockedCustomersScreen() {
         )
       ) : (
         <Card>
-          <div className="overflow-x-auto rounded-2xl">
-            <table className="w-full border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr>
-                  <th className={headCellClass}>Khách hàng</th>
-                  <th className={headCellClass}>Số điện thoại</th>
-                  <th className={headCellClass}>Email</th>
-                  <th className={`${headCellClass} text-right`}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr:last-child>td]:border-b-0">
-                {customers ? (
-                  customers.map((customer) => (
-                    <LockedCustomerRow key={customer.customerId} customer={customer} onUnlock={() => setUnlocking(customer)} />
-                  ))
-                ) : (
-                  <LockedCustomersSkeleton />
-                )}
-              </tbody>
-            </table>
-          </div>
-          {customers?.length === 0 && (
+          {customers?.length === 0 ? (
             <EmptyState icon="lock" title="Không có khách nào bị khóa." description="Khách vắng mặt quá 3 lần trong 30 ngày sẽ hiện ở đây." />
+          ) : (
+            <div className="overflow-x-auto rounded-2xl">
+              <table className="w-full border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr>
+                    <th className={headCellClass}>Khách hàng</th>
+                    <th className={headCellClass}>Số điện thoại</th>
+                    <th className={headCellClass}>Email</th>
+                    <th className={`${headCellClass} text-right`}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="[&>tr:last-child>td]:border-b-0">
+                  {customers ? (
+                    customers.map((customer) => (
+                      <LockedCustomerRow key={customer.customerId} customer={customer} onUnlock={() => setUnlocking(customer)} />
+                    ))
+                  ) : (
+                    <LockedCustomersSkeleton />
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       )}
