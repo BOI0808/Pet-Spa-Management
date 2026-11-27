@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/endpoints/appointments";
 import { toApiError } from "@/lib/api/errors";
 import type { Appointment, AppointmentDetail, AppointmentStatus, AppointmentType, Photo, WeightCheck } from "@/lib/api/types";
+import { invalidateCages } from "@/lib/queries/cages";
 
 // Backend giới hạn `pageSize` tối đa 100 và luôn sắp theo `CreatedAt` tăng dần;
 // tạm tải hết các trang `Pending` (tối đa 1.000 lịch) để web sắp theo giờ hẹn gần nhất, đếm đúng và tìm đủ `?appointmentId=`.
@@ -340,7 +341,7 @@ function runExecution(request: ExecutionRequest): Promise<ExecutionResult> {
  * viên vừa đổi trạng thái, PAYMENT_NOT_DUE khi vừa phát sinh khoản LateFee) tải lại chi tiết, ảnh, danh sách và số liệu lịch hẹn.
  * Dùng `void` giống `useCancelAppointment`/`useUpdateAppointment` để callback `onSuccess` tại nơi gọi (`showSuccess`) luôn chạy trước khi
  * chi tiết mới làm đổi `key` hoặc ẩn thẻ (tránh TanStack Query bỏ qua callback khi observer unmount).
- * Chưa tải lại danh sách chuồng vì web Quản lý chưa có query chuồng (thẻ 150).
+ * Cũng tải lại danh sách chuồng (MW-07, MW-02) vì nhận và trả thú cưng làm đổi thú cưng đang chứa của chuồng.
  */
 export function useUpdateExecutionStatus() {
   const queryClient = useQueryClient();
@@ -348,9 +349,13 @@ export function useUpdateExecutionStatus() {
     mutationFn: runExecution,
     onSuccess: () => {
       void invalidateAppointments(queryClient);
+      void invalidateCages(queryClient);
     },
     onError: (error) => {
-      if (toApiError(error).status === 409) void invalidateAppointments(queryClient);
+      if (toApiError(error).status === 409) {
+        void invalidateAppointments(queryClient);
+        void invalidateCages(queryClient);
+      }
     },
   });
 }

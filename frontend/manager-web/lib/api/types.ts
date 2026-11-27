@@ -88,13 +88,24 @@ export type HotelPricing = {
   lateFeePerBlock: number;
 };
 
-/** Chuồng. `occupant` (đang chứa) chỉ có ở GET /cages nên thêm vào khi làm thẻ 150. */
+/** Thú cưng đang lưu trú trong chuồng (`occupant` của GET /cages): chỉ lịch `InStay` có `cageId` mới được tính là đang chứa. */
+export type CageOccupant = {
+  petId: string;
+  petName: string;
+  customerId: string;
+  customerName: string;
+  plannedCheckOut: string;
+};
+
+/** Chuồng. `occupant` (đang chứa) chỉ có ở GET /cages (FR-HTL-08); chuồng đề xuất của lịch lưu trú không có trường này. */
 export type Cage = {
   cageId: string;
   code: string;
   species: Species;
   sizeGroup: SizeGroup;
   isActive: boolean;
+  /** `null` hoặc vắng mặt khi chuồng trống. */
+  occupant?: CageOccupant | null;
 };
 
 /** Body của POST /cages. */
@@ -108,6 +119,20 @@ export type CageCreateRequest = {
 export type CageUpdateRequest = Partial<CageCreateRequest>;
 
 export type CageCreated = { cageId: string };
+
+// ── Khách hàng (FR-BOOK-06, FR-BOOK-07) ──
+
+/**
+ * Một khách trong `items` của GET /customers. Quản lý chỉ nhận khách đang bị khóa tự đặt lịch (`isBookingLocked = true`).
+ * Chưa có số lần và ngày vắng mặt, thời điểm bị khóa (UI-Screens G-10).
+ */
+export type Customer = {
+  customerId: string;
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  isBookingLocked: boolean;
+};
 
 // ── Nhân viên (FR-STF-01 → 03) ──
 
@@ -197,7 +222,7 @@ export type Appointment = {
   plannedCheckOut?: string | null;
   /** Chỉ lịch lưu trú; giờ trả thực tế, có giá trị từ lần gọi check-out đầu tiên. */
   actualCheckOut?: string | null;
-  /** Chỉ lịch lưu trú; mã chuồng cần `GET /cages` (thẻ 150), MW-03 chỉ dùng để biết đã gán chuồng hay chưa. */
+  /** Chỉ lịch lưu trú; mã chuồng tra trong `GET /cages` theo `cageId` (UI-Screens G-05). */
   cageId?: string | null;
   /** Lý do hủy khi `status = Cancelled` (MW-03 hiện ở dòng phụ của cột Trạng thái). */
   cancelReason?: CancelReason | null;
@@ -361,11 +386,15 @@ export type UpdateSpaAppointmentRequest = {
   confirmOutOfShift?: true;
 };
 
-/** Body PUT /appointments/{id} của lịch lưu trú: bắt buộc đủ `plannedCheckIn`, `plannedCheckOut`, `petId`. Không gửi `cageId` thì giữ chuồng hiện tại. */
+/**
+ * Body PUT /appointments/{id} của lịch lưu trú: bắt buộc đủ `plannedCheckIn`, `plannedCheckOut`, `petId`. Không gửi `cageId` thì giữ chuồng hiện tại;
+ * `cageId` chỉ Quản lý gửi và chỉ có tác dụng với lịch Đã xác nhận (lịch Chờ xác nhận bỏ qua).
+ */
 export type UpdateHotelAppointmentRequest = {
   plannedCheckIn: string;
   plannedCheckOut: string;
   petId: string;
+  cageId?: string;
 };
 
 export type UpdateAppointmentRequest = UpdateSpaAppointmentRequest | UpdateHotelAppointmentRequest;

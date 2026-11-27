@@ -10,6 +10,7 @@ import { toApiError } from "@/lib/api/errors";
 import type { Appointment, Pet } from "@/lib/api/types";
 import { formatAppointmentCode } from "@/lib/format";
 import { useConfirmHotelAppointment, useHotelSuggestions } from "@/lib/queries/appointments";
+import { useCages } from "@/lib/queries/cages";
 import { getStayNights } from "../hotel-stay";
 import { HotelCageSection } from "./hotel-cage-section";
 import { HotelStaySummary } from "./hotel-stay-summary";
@@ -25,15 +26,20 @@ type HotelAssignmentPanelProps = {
 
 /**
  * MW-04 vùng 4, 8 và 6 cho lịch lưu trú: thông tin lịch, chuồng đề xuất, nút Từ chối và Xác nhận – UI-Screens.md (FR-HTL-05, FR-HTL-06).
- * Chỉ gửi `cageId`; số tiền, trạng thái, nhóm kích cỡ do backend quyết định (Frontend-Conventions 4.1).
+ * Chỉ gửi `cageId` (chuồng đề xuất hoặc chuồng Quản lý chọn thay); số tiền, trạng thái, nhóm kích cỡ do backend quyết định (Frontend-Conventions 4.1).
  */
 export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAssignmentPanelProps) {
   const { showSuccess, showError } = useToast();
   const suggestionQuery = useHotelSuggestions(appointment.appointmentId);
+  const cagesQuery = useCages();
   const confirm = useConfirmHotelAppointment();
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  // Chuồng Quản lý chọn thay chuồng đề xuất; `null` là dùng chuồng đề xuất. Panel được tạo lại cho mỗi lịch (`key` ở PendingDetailCard).
+  const [chosenCageId, setChosenCageId] = useState<string | null>(null);
 
   const cage = suggestionQuery.data?.cage ?? null;
+  const selectedCageId = chosenCageId ?? cage?.cageId ?? null;
+  const selectedCode = cagesQuery.data?.items.find((item) => item.cageId === selectedCageId)?.code ?? cage?.code ?? "";
   const { plannedCheckIn, plannedCheckOut } = appointment;
   const nights = plannedCheckIn && plannedCheckOut ? getStayNights(plannedCheckIn, plannedCheckOut).length : 0;
 
@@ -43,17 +49,20 @@ export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAss
   }, [appointment.appointmentId, cage?.cageId, resetConfirm]);
 
   function handleConfirm() {
-    if (!cage) return;
+    if (!selectedCageId) return;
     confirm.mutate(
-      { appointmentId: appointment.appointmentId, cageId: cage.cageId },
+      { appointmentId: appointment.appointmentId, cageId: selectedCageId },
       {
         onSuccess: () => {
-          showSuccess(`Đã xác nhận ${formatAppointmentCode(appointment.appointmentId)}, gán chuồng ${cage.code}`);
+          showSuccess(`Đã xác nhận ${formatAppointmentCode(appointment.appointmentId)}, gán chuồng ${selectedCode}`);
           onProcessed(appointment.appointmentId);
         },
-        // Lịch không còn chờ: danh sách được tải lại và lịch biến mất cùng thông báo lỗi tại chỗ, nên báo bằng toast để người dùng kịp đọc.
         onError: (error) => {
-          if (toApiError(error).code === "INVALID_TRANSITION") showError(error);
+          const { code } = toApiError(error);
+          // Chuồng đã bị gán trong thời gian này: đề xuất được tải lại, quay về chuồng đề xuất mới thay vì giữ chuồng vừa bị trùng.
+          if (code === "CAGE_CONFLICT") setChosenCageId(null);
+          // Lịch không còn chờ: danh sách được tải lại và lịch biến mất cùng thông báo lỗi tại chỗ, nên báo bằng toast để người dùng kịp đọc.
+          if (code === "INVALID_TRANSITION") showError(error);
         },
       },
     );
@@ -63,7 +72,13 @@ export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAss
     <>
       <div className="flex flex-col gap-5 border-t border-line-soft p-5">
         <HotelStaySummary appointment={appointment} species={pet?.species} />
-        <HotelCageSection query={suggestionQuery} nights={nights} />
+        <HotelCageSection
+          query={suggestionQuery}
+          nights={nights}
+          cages={cagesQuery}
+          selectedCageId={selectedCageId}
+          onSelect={setChosenCageId}
+        />
         <ErrorAlert error={confirm.error} />
       </div>
 
@@ -75,7 +90,7 @@ export function HotelAssignmentPanel({ appointment, pet, onProcessed }: HotelAss
         <Button
           variant="primary"
           className="ml-auto"
-          disabled={!cage || suggestionQuery.isFetching}
+          disabled={!selectedCageId || suggestionQuery.isFetching}
           loading={confirm.isPending}
           onClick={handleConfirm}
         >

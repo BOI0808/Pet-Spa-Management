@@ -6,12 +6,14 @@ import { Icon, type IconName } from "@/components/icons";
 import { Button } from "./button";
 import { Overlay } from "./overlay";
 
-type DialogTone = "warn" | "danger";
+type DialogTone = "warn" | "danger" | "teal";
 
-// `.mh-icon.warn`, `.mh-icon.danger` của ui-demo: `danger` cho hành động khó hoàn tác như vô hiệu hóa tài khoản.
+// `.mh-icon.warn`, `.mh-icon.danger`, `.mh-icon.teal` của ui-demo: `danger` cho hành động khó hoàn tác như vô hiệu hóa tài khoản;
+// `teal` cho hành động khôi phục không nguy hiểm như gỡ khóa tự đặt lịch, nút xác nhận là nút chính thay vì nút đỏ.
 const ICON_TONE_CLASS: Record<DialogTone, string> = {
   warn: "bg-apricot-50 text-[#B87400]",
   danger: "bg-danger-50 text-danger",
+  teal: "bg-lagoon-50 text-lagoon",
 };
 
 type ConfirmDialogProps = {
@@ -34,7 +36,7 @@ type ConfirmDialogProps = {
   children: ReactNode;
 };
 
-/** Hộp thoại xác nhận hành động nguy hiểm (SA 6.6): nút xác nhận nêu đúng hậu quả, nút còn lại mặc định là “Quay lại”. */
+/** Hộp thoại xác nhận (SA 6.6): nút xác nhận nêu đúng hậu quả, nút còn lại mặc định là “Quay lại”. Tông `teal` dùng nút chính, các tông còn lại dùng nút đỏ. */
 export function ConfirmDialog({
   title,
   subtitle,
@@ -72,7 +74,7 @@ export function ConfirmDialog({
           <Button variant="ghost" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button variant="danger-solid" onClick={onConfirm} loading={loading}>
+          <Button variant={tone === "teal" ? "primary" : "danger-solid"} onClick={onConfirm} loading={loading}>
             {confirmLabel}
           </Button>
         </div>

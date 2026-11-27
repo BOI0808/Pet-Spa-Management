@@ -1,7 +1,6 @@
 "use client";
 
-// MW-02 Tổng quan và giám sát tiến độ – UI-Screens.md (UC-11; FR-EXE-08, UF-04). Số liệu làm mới 60 giây/lần khi tab đang hiển thị.
-// Chưa làm: thẻ “Chuồng đang chứa” và vùng 5 “Chuồng đang chứa” (cần GET /cages, thẻ 150).
+// MW-02 Tổng quan và giám sát tiến độ – UI-Screens.md (UC-11; FR-EXE-08, FR-HTL-08, UF-04). Số liệu làm mới 60 giây/lần khi tab đang hiển thị.
 import Link from "next/link";
 import { ErrorAlert } from "@/components/feedback/error-alert";
 import { Alert } from "@/components/feedback/alert";
@@ -11,16 +10,26 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
 import { useAppointmentCount, useAppointmentDetails, useTodayAppointments } from "@/lib/queries/appointments";
+import { useCages } from "@/lib/queries/cages";
 import { useUnpaidPayments, useUnpaidSummary } from "@/lib/queries/payments";
 import { useStaff } from "@/lib/queries/staff";
 import { useWorkShiftsOfDay } from "@/lib/queries/work-shifts";
 import { ROUTES } from "@/lib/routes";
 import { toStoreDate, toStoreTime } from "@/lib/time";
 import type { Appointment, AppointmentDetail } from "@/lib/api/types";
+import { summarizeCages } from "@/features/cages/cage-status";
 import { AttentionCard } from "../components/attention-card";
 import { KpiTile } from "../components/kpi-tile";
+import { OccupiedCagesCard } from "../components/occupied-cages-card";
 import { ProgressChart, ProgressChartEmpty } from "../components/progress-chart";
-import { buildAttentionItems, buildChartData, formatDashboardDate, getNowPercent, summarizeSpaToday } from "../dashboard";
+import {
+  buildAttentionItems,
+  buildChartData,
+  formatDashboardDate,
+  getNowPercent,
+  summarizeHotelToday,
+  summarizeSpaToday,
+} from "../dashboard";
 import { useMinuteClock } from "../use-minute-clock";
 
 const linkButtonClass =
@@ -50,6 +59,7 @@ function DashboardContent({ now }: { now: number }) {
   const shifts = useWorkShiftsOfDay(today, DASHBOARD_REFETCH_OPTIONS);
   const unpaidSummary = useUnpaidSummary(DASHBOARD_REFETCH_OPTIONS);
   const unpaidPayments = useUnpaidPayments(DASHBOARD_REFETCH_OPTIONS);
+  const cages = useCages(DASHBOARD_REFETCH_OPTIONS);
 
   const spaItems = spaToday.data?.items;
   const detailIds = (spaItems ?? []).filter(needsDetail).map((item) => item.appointmentId);
@@ -70,6 +80,15 @@ function DashboardContent({ now }: { now: number }) {
   const isErrorSpa = spaToday.isError && !spaItems;
   const spaSummary = spaItems ? summarizeSpaToday(spaItems) : undefined;
   const todayQuery = `?type=Spa&date=${today}`;
+
+  const cageItems = cages.data?.items;
+  const cageSummary = cageItems ? summarizeCages(cageItems) : undefined;
+  const isPendingCages = cages.isPending;
+  const hotelSummary = hotelToday.data ? summarizeHotelToday(hotelToday.data.items, today) : undefined;
+  // Vùng 5: chuồng đang chứa, sắp theo giờ trả gần nhất.
+  const occupiedCages = cageItems
+    ?.filter((cage) => cage.occupant)
+    .sort((a, b) => Date.parse(a.occupant?.plannedCheckOut ?? "") - Date.parse(b.occupant?.plannedCheckOut ?? ""));
 
   const isPendingUnpaid = unpaidSummary.isPending;
   const isErrorUnpaid = unpaidSummary.isError && unpaidSummary.data === undefined;
@@ -117,7 +136,7 @@ function DashboardContent({ now }: { now: number }) {
       </div>
 
       {/* Vùng 2 – Thẻ số liệu */}
-      <div className="mb-4 grid grid-cols-3 gap-4 max-[980px]:grid-cols-1">
+      <div className="mb-4 grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[640px]:grid-cols-1">
         <KpiTile
           icon="clipboard"
           label="Chờ xác nhận"
@@ -145,6 +164,32 @@ function DashboardContent({ now }: { now: number }) {
                 : spaSummary.total === 0
                   ? "Chưa có lịch spa nào."
                   : `${spaSummary.description}.${spaToday.data && spaToday.data.total > spaToday.data.items.length ? " Chỉ tính 100 lịch đầu." : ""}`
+          }
+        />
+        <KpiTile
+          icon="grid"
+          label="Chuồng đang chứa"
+          value={
+            cageSummary ? (
+              <>
+                {cageSummary.occupied}
+                <span className="text-base font-medium text-muted"> / {cageSummary.capacity}</span>
+              </>
+            ) : (
+              kpiValueFallback
+            )
+          }
+          href={ROUTES.cages}
+          note={
+            isPendingCages
+              ? "Đang tải…"
+              : cageSummary === undefined
+                ? "Chưa tải được số liệu."
+                : hotelSummary
+                  ? `Nhận hôm nay ${hotelSummary.checkIn}, trả hôm nay ${hotelSummary.checkOut}.${cages.data && cages.data.total > cages.data.items.length ? " Chỉ tính 100 chuồng đầu." : ""}`
+                  : hotelToday.isError
+                    ? "Chưa tải được lịch lưu trú."
+                    : "Đang tải…"
           }
         />
         <KpiTile
@@ -197,7 +242,12 @@ function DashboardContent({ now }: { now: number }) {
         </Card>
 
         {/* Vùng 4 – Cần chú ý */}
-        <AttentionCard items={attentionItems} isError={attentionError} />
+        <div className="flex flex-col gap-4">
+          <AttentionCard items={attentionItems} isError={attentionError} />
+
+          {/* Vùng 5 – Chuồng đang chứa */}
+          <OccupiedCagesCard cages={occupiedCages} isError={cages.isError && !cageItems} today={today} />
+        </div>
       </div>
     </>
   );
@@ -207,7 +257,8 @@ function DashboardSkeleton() {
   return (
     <div aria-busy="true" aria-label="Đang tải tổng quan">
       <Skeleton className="mb-6 h-10 w-64" />
-      <div className="mb-4 grid grid-cols-3 gap-4 max-[980px]:grid-cols-1">
+      <div className="mb-4 grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[640px]:grid-cols-1">
+        <Skeleton className="h-[110px] rounded-2xl" />
         <Skeleton className="h-[110px] rounded-2xl" />
         <Skeleton className="h-[110px] rounded-2xl" />
         <Skeleton className="h-[110px] rounded-2xl" />
