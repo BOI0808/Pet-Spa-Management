@@ -38721,6 +38721,806 @@
             }
           ],
           "description": "### Lần vắng mặt thứ 4 trong 30 ngày thì khóa tự đặt lịch; lịch lưu trú vắng mặt giải phóng chuồng (FR-EXE-07, FR-BOOK-06, BR-08, BR-15)\n\nQuy trình:\n\n1. Chạy xong 10.5.\n\n2. Copy SQL-4 từ Postman Console, chạy một lần trên Supabase SQL Editor. SQL-4 dời giờ nhận chuồng của H1 về 20 phút trước.\n\n3. Gửi lần lượt 6 request của folder này.\n\nLần vắng mặt này là lịch lưu trú, được đếm chung với lịch spa: T2, T3, T4 và H1 là 4 lần trong 30 ngày nên khách thử bị khóa. Lịch lưu trú H1 bị hủy thì chuồng A được giải phóng, nên H2 (cùng đêm) xác nhận được vào chuồng A (ở 10.1 request này trả 409). Request đầu tiên là cổng kiểm tra: đỏ nghĩa là chưa chạy SQL-4."
+        },
+        {
+          "name": "10.7 Quản lý gỡ khóa tự đặt lịch – FR-BOOK-07",
+          "item": [
+            {
+              "name": "POST /customers/{id}/unlock-booking – không có token (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/{{jobCustomerId}}/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "{{jobCustomerId}}",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/{id}/unlock-booking – lễ tân không có quyền (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 403\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{receptionistToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/{{jobCustomerId}}/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "{{jobCustomerId}}",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/{id}/unlock-booking – khách hàng không có quyền (403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 403\", function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/{{jobCustomerId}}/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "{{jobCustomerId}}",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/{id}/unlock-booking – khách hàng không tồn tại (404)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 404\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/00000000-0000-0000-0000-000000000000/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "00000000-0000-0000-0000-000000000000",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/{id}/unlock-booking – quản lý gỡ khóa khách thử (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/{{jobCustomerId}}/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "{{jobCustomerId}}",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /customers – quản lý không còn thấy khách thử trong danh sách bị khóa (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const customer = body.items.find((c) => c.customerId === pm.environment.get(\"jobCustomerId\"));",
+                      "    pm.test(\"Khách thử đã được gỡ khóa nên không còn trong danh sách bị khóa\", function () {",
+                      "        pm.expect(customer).to.eql(undefined);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers?search={{jobCustomerPhone}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "{{jobCustomerPhone}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /customers/{id}/unlock-booking – khách thử không còn bị khóa (409 CUSTOMER_NOT_LOCKED)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 409 Conflict\", function () {",
+                      "    pm.response.to.have.status(409);",
+                      "});",
+                      "",
+                      "pm.test(\"Mã lỗi là CUSTOMER_NOT_LOCKED\", function () {",
+                      "    pm.expect(pm.response.json().code).to.eql(\"CUSTOMER_NOT_LOCKED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/customers/{{jobCustomerId}}/unlock-booking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "{{jobCustomerId}}",
+                    "unlock-booking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/spa – khách thử tự đặt lại được sau khi gỡ khóa (201) → Pending",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Có appointmentId dạng GUID\", function () {",
+                      "        pm.expect(body.appointmentId).to.match(/^[0-9a-f-]{36}$/i);",
+                      "    });",
+                      "",
+                      "    pm.test(\"Lịch ở trạng thái Pending\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Pending\");",
+                      "    });",
+                      "",
+                      "    pm.environment.set(\"jobApptT7\", body.appointmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jobCustomerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/spa",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "spa"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"petId\": \"{{jobPetSpaId}}\",\n  \"serviceIds\": [\n    \"{{jobServiceId}}\"\n  ],\n  \"slotStart\": \"{{jobSlot1500}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "### Quản lý gỡ khóa quyền tự đặt lịch trực tuyến (FR-BOOK-07, BR-15)\n\nChạy sau 10.6 (khách thử đang bị khóa). Các request lỗi chạy trước, request gỡ khóa thành công chạy sau; sau khi gỡ khóa khách thử tự đặt lịch lại được (tiêu chí nghiệm thu FR-BOOK-07)."
+        },
+        {
+          "name": "10.8 Dọn dữ liệu thử (task 171)",
+          "item": [
+            {
+              "name": "POST /appointments/{id}/cancel – quản lý hủy lịch T6 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT6}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT6}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/cancel – quản lý hủy lịch T7 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT7}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT7}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /appointments/{id}/cancel – quản lý hủy lịch lưu trú H2 (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Lịch chuyển sang Cancelled\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobHotelH2}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobHotelH2}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"StoreUnable\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /cages/{id}/status – ngừng dùng chuồng Dog/Small A (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cages/{{jobCageAId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cages",
+                    "{{jobCageAId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /cages/{id}/status – ngừng dùng chuồng Dog/Small B (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cages/{{jobCageBId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cages",
+                    "{{jobCageBId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /services/{id}/status – ngừng cung cấp dịch vụ spa thử (204)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 204 No Content\", function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/services/{{jobServiceId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "services",
+                    "{{jobServiceId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /staff/{id}/deactivate – vô hiệu hóa nhân viên A (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"Không có lịch spa nào phải quay về Chờ xác nhận\", function () {",
+                      "        pm.expect(body.returnedToPending).to.eql(0);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/staff/{{jobStaffAId}}/deactivate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "staff",
+                    "{{jobStaffAId}}",
+                    "deactivate"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "### Dọn dữ liệu thử (task 171)\n\nChạy sau 10.7. Hủy các lịch còn mở (T6, T7, H2), ngừng dùng 2 chuồng và dịch vụ thử, vô hiệu hóa nhân viên A. T1 đến T5 và H1 đã bị tác vụ tự động hủy. Khách thử không xóa được, giữ lại như các khách thử của task trước."
         }
       ]
     },
