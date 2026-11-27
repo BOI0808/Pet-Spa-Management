@@ -8,11 +8,19 @@ export const cageKeys = {
 export type CageQueryOptions = {
   /** `false` khi chưa cần danh sách chuồng (vd. hộp thoại chỉ cần chuồng với lịch đã xác nhận). */
   enabled?: boolean;
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
 };
 
 /** GET /cages (FR-HTL-08): toàn bộ chuồng kèm thú cưng đang chứa. */
 export function useCages(options?: CageQueryOptions) {
-  return useQuery({ queryKey: cageKeys.all, queryFn: listCages, enabled: options?.enabled });
+  return useQuery({
+    queryKey: cageKeys.all,
+    queryFn: listCages,
+    enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
+  });
 }
 
 /** Tải lại danh sách chuồng; gọi sau khi một thao tác làm đổi chuồng hoặc thú cưng đang chứa (nhận, trả thú cưng). */

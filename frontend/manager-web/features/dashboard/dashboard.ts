@@ -73,6 +73,25 @@ export type SpaTodaySummary = {
   description: string;
 };
 
+export type HotelTodaySummary = {
+  /** Lịch lưu trú Đã xác nhận có ngày nhận là hôm nay (còn chờ nhận). */
+  checkIn: number;
+  /** Lịch lưu trú Đang lưu trú có ngày trả dự kiến là hôm nay (còn chờ trả). */
+  checkOut: number;
+};
+
+/** Số lịch lưu trú nhận, trả hôm nay cho thẻ “Chuồng đang chứa” của MW-02; cùng điều kiện với các dòng lưu trú của `buildAttentionItems`. */
+export function summarizeHotelToday(hotelItems: Appointment[], date: string): HotelTodaySummary {
+  return {
+    checkIn: hotelItems.filter(
+      (item) => item.status === "Confirmed" && item.plannedCheckIn && toStoreDate(item.plannedCheckIn) === date,
+    ).length,
+    checkOut: hotelItems.filter(
+      (item) => item.status === "InStay" && item.plannedCheckOut && toStoreDate(item.plannedCheckOut) === date,
+    ).length,
+  };
+}
+
 /** “2026-10-06” → “Thứ ba 06/10/2026” (dòng phụ của tiêu đề MW-02). */
 export function formatDashboardDate(date: string) {
   const [year, month, day] = date.split("-");
