@@ -111,11 +111,23 @@ export function matchesReceptionFilter(appointment: Appointment, filter: Recepti
 
 /**
  * Lịch Đã xác nhận có ngày hẹn (spa) hoặc ngày nhận (lưu trú) là hôm nay thì mở SW-07 để tiếp nhận; lịch spa ngày khác
- * backend trả 409 nên không mời bấm. Lịch lưu trú: SW-07 làm bước đối chiếu cân nặng (thẻ 126), thu tiền và đưa vào
- * chuồng ở thẻ 127, 128.
+ * backend trả 409 nên không mời bấm. Lịch lưu trú: SW-07 làm đủ ba bước đối chiếu cân nặng, thu tiền, đưa vào chuồng.
  */
 export function canCheckIn(appointment: Appointment, today: string) {
   return appointment.status === "Confirmed" && appointmentDate(appointment) === today;
+}
+
+/**
+ * Luật “đến lúc trả bé” dùng chung cho SW-02 và SW-08: giờ trả dự kiến là hôm nay, hoặc đã qua mà bé vẫn còn lưu trú
+ * (khách đón trễ qua ngày). Cả hai trường hợp đều hiện nút “Trả thú cưng” → SW-10.
+ */
+export function isCheckOutDue(plannedCheckOut: string | null | undefined, today: string) {
+  return plannedCheckOut != null && toStoreDate(plannedCheckOut) <= today;
+}
+
+/** SW-02 vùng 3: lịch Đang lưu trú đến lúc trả → thao tác “Trả thú cưng”. */
+export function isDueForCheckOutToday(appointment: Appointment, today: string) {
+  return appointment.status === "InStay" && isCheckOutDue(appointment.plannedCheckOut, today);
 }
 
 /**
