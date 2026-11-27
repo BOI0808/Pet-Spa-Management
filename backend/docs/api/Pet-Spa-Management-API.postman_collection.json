@@ -37633,6 +37633,705 @@
                 }
               ],
               "description": "### Đưa lịch spa P1 đến Hoàn tất\n\nChạy sau khi đã chạy SQL-1 (request đầu là cổng kiểm tra, báo đỏ nếu chưa chạy). Lễ tân tiếp nhận P1 (8 kg, không đổi nhóm), nhân viên A tải ảnh Before, bắt đầu, đánh dấu dịch vụ xong, tải ảnh After, hoàn tất. Khi lịch Hoàn tất, hệ thống tạo khoản Spa chưa thanh toán; request cuối lấy mã và số tiền khoản này để dùng ở 08.O.3 và 08.O.4."
+            },
+            {
+              "name": "08.O.3 Khởi tạo thanh toán trực tuyến",
+              "item": [
+                {
+                  "name": "POST /payments/{id}/online – không token (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – quản lý không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – thiếu gateway (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – cổng MoMo chưa hỗ trợ (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"MoMo\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – gateway sai giá trị (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"ZaloPay\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – khoản không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/11111111-1111-1111-1111-111111111111/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "11111111-1111-1111-1111-111111111111",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – KH2 thanh toán khoản của KH1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – khoản Stay của lịch lưu trú, chỉ thanh toán tại quầy (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPayStay}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPayStay}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – KH1 khởi tạo thanh toán khoản Spa của P1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "",
+                          "    pm.test(\"Có paymentUrl và txnRef\", function () {",
+                          "        pm.expect(body.paymentUrl).to.be.a(\"string\");",
+                          "        pm.expect(body.txnRef).to.match(/^[0-9a-f]{32}$/);",
+                          "    });",
+                          "",
+                          "    pm.test(\"paymentUrl mang số tiền do hệ thống xác định, không phải 1000 do client gửi\", function () {",
+                          "        const amount = Number(pm.environment.get(\"payAmount\")) * 100;",
+                          "        pm.expect(body.paymentUrl).to.include(\"vnp_Amount=\" + amount + \"&\");",
+                          "        pm.expect(body.paymentUrl).to.include(\"vnp_TxnRef=\" + body.txnRef);",
+                          "        pm.expect(body.paymentUrl).to.include(\"vnp_SecureHash=\");",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payTxnRef1\", body.txnRef);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\",\n  \"amount\": 1000\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – khoản Spa vẫn Unpaid sau khi khởi tạo (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const spa = pm.response.json().find(function (p) {",
+                          "        return p.kind === \"Spa\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Khoản Spa vẫn Unpaid, chưa có phương thức và chưa có thời điểm thanh toán\", function () {",
+                          "        pm.expect(spa.status).to.eql(\"Unpaid\");",
+                          "        pm.expect(spa.method).to.be.oneOf([null, undefined]);",
+                          "        pm.expect(spa.paidAt).to.be.oneOf([null, undefined]);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Khởi tạo thanh toán trực tuyến (FR-PAY-03)\n\nKhách hàng gọi POST /payments/{id}/online để lấy paymentUrl và txnRef của VNPAY. Số tiền do hệ thống lấy từ khoản thanh toán, không nhận từ client. Kiểm tra: phân quyền (chỉ Khách hàng), cổng chưa hỗ trợ (MoMo) hoặc sai giá trị, khoản không tồn tại, khoản của khách khác (403), khoản Stay của lịch lưu trú (409), khởi tạo thành công và khoản vẫn Unpaid cho đến khi webhook báo về (08.O.4). Cần backend đã cấu hình VNPAY, nếu không request thành công trả 500."
             }
           ],
           "description": "### Thanh toán trực tuyến VNPAY: khởi tạo và webhook (FR-PAY-03)\n\nChạy theo thứ tự 08.O.0 → 08.O.4, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình VNPAY (Payment__Vnpay__TmnCode, Payment__Vnpay__HashSecret, Payment__Vnpay__ReturnUrl), đã cấu hình Supabase Storage; Environment có biến vnpHashSecret (Type secret) bằng đúng HashSecret của backend; tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 08.O.0. Giữa 08.O.1 và 08.O.2 có một bước SQL trên Supabase (câu SQL được in ra Postman Console ở request cuối 08.O.1).\n\nPhạm vi: khởi tạo thanh toán trực tuyến, webhook VNPAY (chữ ký, số tiền, TxnRef đã xử lý, cập nhật Paid). Webhook được giả lập bằng cách Postman tự ký bằng vnpHashSecret. Backend chỉ hỗ trợ VNPAY; MoMo chỉ kiểm tra ở dạng chưa hỗ trợ (400). Thanh toán tại quầy thuộc task 169; tác vụ tự động thuộc task 171."
