@@ -21,7 +21,8 @@ Kiểm tra trước khi tạo PR: `npm run lint`, `npx tsc --noEmit` và `npm ru
 | `app/api/session` | Route handler phiên đăng nhập: `login`, `refresh`, `logout` (cookie httpOnly) |
 | `features/auth` | Màn MW-01 Đăng nhập |
 | `features/services` | Màn MW-06 Danh mục dịch vụ: bảng, ngăn kéo thêm/sửa, hộp thoại ngừng cung cấp |
-| `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
+| `features/cages` | Màn MW-07 Chuồng và giá lưu trú: tab Chuồng (4 thẻ số liệu, bảng kèm cột "Đang chứa", hộp thoại thêm/sửa, ngừng/mở lại), tab Giá lưu trú và phí trả muộn |
+| `features/locked-customers` | Màn MW-09 Khách bị khóa tự đặt lịch: bảng khách đang bị khóa, hộp thoại gỡ khóa |
 | `features/pending` | Màn MW-04 Chờ xác nhận: bộ lọc loại lịch, danh sách phiếu hẹn sắp theo giờ hẹn, đầu thẻ chi tiết và hồ sơ thú cưng chỉ xem; lịch lưu trú: thông tin lịch + tạm tính, chuồng đề xuất, xác nhận và từ chối; lịch spa: thông tin lịch + tạm tính, nhân viên đề xuất và điều chỉnh, xác nhận (kèm hộp thoại nhân viên ngoài ca) và từ chối (`RejectAppointmentDialog` dùng chung cho cả hai loại lịch) |
 | `app/globals.css` | Token màu, chữ theo System Analysis mục 6.1 |
 | `components/layout` | Thanh bên của web quản lý: menu, số lịch chờ xác nhận, khối tài khoản |
@@ -79,18 +80,24 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 ## Chuồng và giá lưu trú (MW-07)
 
 - Tab Giá: `GET/PUT /hotel/pricing`. Chỉ gửi nhóm đã nhập đủ cả hai ô; nhóm chưa có giá có thể để trống, nhóm đã có giá không được để trống (backend chỉ có `PUT`, không có thao tác xóa giá). Phí trả muộn (`lateFeePerBlock`) luôn bắt buộc.
-- Tab Chuồng: `POST /cages`, `PUT /cages/{id}`, `PATCH /cages/{id}/status`; mã trùng (409 `DUPLICATE_CAGE_CODE`) báo dưới ô Mã.
+- Tab Chuồng: `GET /cages` (`useCages`) đọc danh sách; `POST /cages`, `PUT /cages/{id}`, `PATCH /cages/{id}/status` ghi; mã trùng (409 `DUPLICATE_CAGE_CODE`) báo dưới ô Mã. Sau mỗi lần ghi, danh sách được tải lại (khóa `cageKeys.all`).
 - Chú thích phí trả muộn (miễn phí 30 phút đầu, mỗi 60 phút tính 1 lần) dùng `LATE_GRACE_MINUTES` / `LATE_BLOCK_MINUTES` trong `features/cages/forms.ts`: tạm là mặc định của `Hotel.LateGraceMinutes` / `Hotel.LateBlockMinutes` vì backend chưa có `GET /config` (chưa thẻ nào làm MW-13). Quản lý đổi được hai mốc này ở Cấu hình nên chú thích có thể lệch; khi có `GET /config` thì đọc từ `settings[...]`.
 - Phí trả muộn chưa thiết lập (chưa có giá nào và `lateFeePerBlock` = 0) thì ô phí để trống để Quản lý phải nhập; ô giá hiện dấu chấm hàng nghìn (`180.000`) khi nạp từ backend.
 - Form giá đi theo dữ liệu backend (`values` + `keepDirtyValues` của React Hook Form): refetch cập nhật các ô chưa sửa, giữ ô đang gõ dở.
-- Tạm thời: backend chưa có `GET /cages` (FR-HTL-08, thẻ 88) nên bảng chuồng chỉ liệt kê chuồng đã thêm/sửa trong lần mở trang (state trong `CagesScreen`, mất khi tải lại). Thẻ 150 nối `GET /cages`: thay danh sách này, thêm 4 thẻ số liệu, cột "Đang chứa", tổng số chuồng trên tab và tải lại danh sách sau khi ghi (`lib/queries/cages.ts`).
+- Tình trạng chuồng (FR-HTL-08, thẻ 150): `occupant` của `GET /cages` chỉ có khi lịch lưu trú đang `InStay` có `cageId`. 4 thẻ số liệu (`summarizeCages` trong `features/cages/cage-status.ts`): Sức chứa là số chuồng đang sử dụng, Đang chứa là số chuồng có `occupant`, Trống là chuồng đang sử dụng chưa có `occupant`, Ngừng sử dụng là chuồng `isActive = false`. Chuồng đang chứa không có nút "Ngừng sử dụng" (backend không chặn việc này nên giao diện là chỗ chặn duy nhất). Chỉ tải một trang 100 chuồng; nhiều hơn thì có thông báo số liệu chưa đủ. Nhận và trả thú cưng (`useUpdateExecutionStatus`) cũng tải lại danh sách chuồng.
 - Cả hai tab luôn được dựng (tab không chọn bị ẩn bằng `hidden`) nên đổi tab không mất danh sách chuồng hay giá đang nhập. Chưa làm (Đề xuất trong UI-Screens): hỏi xác nhận khi rời trang hoặc tải lại lúc có giá chưa lưu.
+
+## Khách bị khóa tự đặt lịch (MW-09, thẻ 150)
+
+- `GET /customers` (với Quản lý chỉ trả khách đang bị khóa) và `POST /customers/{id}/unlock-booking` (FR-BOOK-07, BR-15) ở `lib/api/endpoints/customers.ts`, `lib/queries/customers.ts`; trang `/go-khoa-dat-lich`.
+- Bảng chỉ có tên, số điện thoại, email vì API chưa trả số lần vắng mặt và thời điểm khóa (UI-Screens G-10). Chỉ tải một trang 100 khách.
+- Hộp thoại gỡ khóa dùng `ConfirmDialog` tông `teal` (nút chính, không phải nút đỏ). 409 `CUSTOMER_NOT_LOCKED` hoặc 404: toast lỗi, đóng hộp thoại và tải lại danh sách; lỗi khác hiện ngay trong hộp thoại để thử lại.
 
 ## Xác nhận và từ chối lịch lưu trú (MW-04, thẻ 145)
 
 - Chọn lịch lưu trú ở `/cho-xac-nhan`: `GET /appointments/{id}/suggestions` (`useHotelSuggestions`) trả `{ cage }`; `cage` là `null` khi không còn chuồng phù hợp thì nút "Xác nhận lịch lưu trú" bị khóa, chỉ còn "Từ chối".
 - Xác nhận: `POST /appointments/{id}/confirm` chỉ gửi `{ cageId }` (không gửi số tiền, trạng thái, nhóm kích cỡ). Từ chối: `POST /appointments/{id}/reject` không body (`RejectAppointmentDialog`, dùng chung cho lịch spa ở thẻ 144).
-- Tạm thời chỉ hiện chuồng hệ thống đề xuất, chưa chọn chuồng khác vì backend chưa có `GET /cages` (thẻ 88; UI-Screens G-08). Thẻ 150 nối `GET /cages` thì thêm danh sách chuồng vào `HotelCageSection`.
+- Chuồng đề xuất được chọn sẵn; `HotelCageSection` liệt kê thêm các chuồng đang sử dụng từ `GET /cages` (thẻ 150): chuồng cùng loài, nhóm chọn được, chuồng khác loài, nhóm hiện mờ "Không phù hợp kích cỡ". Chuồng khác có trống trong cả các đêm hay không do backend kiểm tra khi xác nhận (G-08): trùng thì 409 `CAGE_CONFLICT` và quay về chuồng đề xuất. Chưa tải được `GET /cages` thì vẫn xác nhận được chuồng đề xuất.
 - "Tạm tính" tính ở web (`features/pending/hotel-stay.ts`) từ `GET /hotel/pricing` và hồ sơ thú cưng chỉ để hiển thị; số tiền thật do backend tính (BR-22, BR-26).
 - Lỗi 409: `CAGE_CONFLICT` hiện `ErrorAlert` trong thẻ rồi tải lại đề xuất chuồng; `INVALID_TRANSITION` hiện toast lỗi rồi tải lại danh sách chờ và huy hiệu.
 - Sau khi xác nhận hoặc từ chối: `PendingScreen.handleProcessed` đổi `?appointmentId=` sang lịch kế tiếp bằng History API (không chờ máy chủ), gỡ lịch khỏi cache rồi tải lại danh sách và huy hiệu.
@@ -99,7 +106,7 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 
 - Trang `/lich-hen/[appointmentId]` mới có vùng đầu trang (thông tin lịch, trạng thái, nút "Đổi lịch" và "Hủy lịch"); thẻ 147 bổ sung danh sách MW-03 và các vùng giám sát, thẻ 149 bổ sung cập nhật trạng thái.
 - Đổi lịch: `PUT /appointments/{id}` (`useUpdateAppointment`). Backend bắt buộc đủ `slotStart + petId + serviceIds` (spa) hoặc `plannedCheckIn + plannedCheckOut + petId` (lưu trú) nên web luôn gửi lại thú cưng và dịch vụ hiện tại; `staffIds` chỉ gửi khi Quản lý đổi người (lịch Đã xác nhận). Quản lý chỉ đổi được lịch Chờ xác nhận hoặc Đã xác nhận (`canChangeAppointment`), trạng thái lịch giữ nguyên.
-- Mốc giờ spa chọn trong `SLOT_TIME_OPTIONS` vì `GET /spa/slots` không dành cho Quản lý; backend kiểm tra còn chỗ khi lưu (409 `SLOT_FULL`). Lịch lưu trú không gửi `cageId` nên giữ chuồng hiện tại; thẻ 150 nối `GET /cages` thì thêm chọn chuồng vào hộp thoại.
+- Mốc giờ spa chọn trong `SLOT_TIME_OPTIONS` vì `GET /spa/slots` không dành cho Quản lý; backend kiểm tra còn chỗ khi lưu (409 `SLOT_FULL`). Lịch lưu trú Đã xác nhận có ô "Chuồng" (chuồng cùng loài, nhóm từ `GET /cages`, thẻ 150): không chọn thì không gửi `cageId` và backend giữ chuồng hiện tại; lịch Chờ xác nhận không có ô này vì backend bỏ qua `cageId`.
 - Hủy lịch: `POST /appointments/{id}/cancel` chỉ gửi `{ reason }` là `StoreUnable` hoặc `CustomerBeyondDeadline`; hủy được ở mọi trạng thái trừ Hoàn tất và Đã hủy (`canCancelAppointment`). Hoàn tiền xử lý ngoài hệ thống (BR-24).
 - Lỗi 409: `STAFF_OUT_OF_SHIFT` mở `OutOfShiftDialog` rồi gửi lại kèm `confirmOutOfShift: true`; `INVALID_TRANSITION` hiện toast lỗi; mọi lỗi 409 tải lại dữ liệu lịch hẹn. Chưa hiện thông báo "đã gửi thông báo cho khách" vì thông báo tự động do thẻ 97 nối.
 
@@ -107,7 +114,7 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 
 - Trang `/lich-hen` (`AppointmentListScreen`) liệt kê lịch spa và lưu trú của toàn cửa hàng bằng `GET /appointments` (`useAppointmentList`, 20 dòng mỗi trang). Bộ lọc loại, trạng thái, ngày và trang nằm trên URL: `?type=&status=&date=&page=` (`features/appointments/list-params.ts`); đổi bộ lọc thì về trang 1.
 - Không truyền `sort`: backend tự chọn thứ tự (có `date` hoặc trạng thái đang xử lý → giờ hẹn tăng dần; Hoàn tất/Đã hủy → giờ hẹn giảm dần; còn lại → mới tạo trước). `date` của lịch lưu trú khớp ngày nhận hoặc ngày trả.
-- `GET /appointments` chưa trả tên nhân viên (G-05) nên mỗi dòng lịch spa đã xác nhận trở đi gọi thêm `GET /appointments/{id}` (cùng khóa cache với trang chi tiết); lịch chờ xác nhận, đã hủy và lưu trú không gọi. Lịch lưu trú chỉ hiện "Đã gán chuồng"/"Chưa gán" cho đến khi thẻ 150 nối `GET /cages`.
+- `GET /appointments` chưa trả tên nhân viên (G-05) nên mỗi dòng lịch spa đã xác nhận trở đi gọi thêm `GET /appointments/{id}` (cùng khóa cache với trang chi tiết); lịch chờ xác nhận, đã hủy và lưu trú không gọi. Lịch lưu trú hiện "Chuồng <mã>" tra từ `GET /cages` theo `cageId` (thẻ 150; mọi dòng dùng chung một lần gọi); chưa tải được danh sách chuồng thì hiện "Đã gán chuồng", chưa gán chuồng thì "Chưa gán".
 - Chưa làm: ô tìm theo mã, thú cưng, khách (API chưa có tham số tìm), khoảng ngày (API chỉ nhận một ngày), cột Thanh toán (không thuộc FR-EXE-08; MW-10 đã có ở thẻ 152). Nút "Xử lý" của lịch chờ xác nhận mở MW-04 kèm `?appointmentId=`.
 
 ## Giám sát và ảnh minh chứng (MW-05 vùng 2, 3, 4, thẻ 147)
@@ -123,4 +130,4 @@ Chạy được khi backend đang chạy và đã có tài khoản Quản lý (`
 - Lịch trong ngày lấy bằng `GET /appointments?type=&date=&pageSize=100` (`useTodayAppointments`). Danh sách chưa trả tên nhân viên (G-05) nên `useAppointmentDetails` gọi `GET /appointments/{id}` cho lịch spa đã xác nhận trở đi (cùng khóa cache với trang chi tiết). Ca làm lấy bằng `GET /work-shifts` (`useWorkShiftsOfDay`).
 - Logic thuần nằm ở `features/dashboard/dashboard.ts`: lịch chờ xác nhận vào hàng "Chưa phân công", lịch đã hủy không vẽ, lịch Hoàn tất hiện theo người đã làm. Thời gian dọn dẹp tạm là hằng số `CLEANING_BUFFER_MINUTES = 15` vì backend chưa có `GET /config`.
 - "Cần chú ý" gồm lịch spa chờ khách xác nhận chi phí, lịch lưu trú nhận hoặc trả trong ngày (kèm "Chưa thu tiền lưu trú" khi khoản nằm trong 100 khoản chưa thanh toán đầu). Chưa có mục "lịch cần phân công lại" vì backend chưa cho biết lý do (G-08).
-- Chưa làm: thẻ "Chuồng đang chứa" và vùng 5 "Chuồng đang chứa" (cần `GET /cages`, thẻ 150 làm và thêm vào lưới số liệu thành 4 cột).
+- Thẻ "Chuồng đang chứa" (a / b chuồng, nhận và trả hôm nay) và vùng 5 "Chuồng đang chứa" (thẻ 150) lấy từ `GET /cages` (cùng chu kỳ làm mới 60 giây). a là số chuồng có `occupant`, b là số chuồng đang sử dụng; "nhận hôm nay" và "trả hôm nay" cùng điều kiện với các dòng lưu trú ở "Cần chú ý". Lưới số liệu có 4 cột.
