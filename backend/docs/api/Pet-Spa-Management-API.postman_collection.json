@@ -37941,6 +37941,182 @@
             }
           ],
           "description": "### Tự hủy lịch vắng mặt sau 15 phút, chưa quá 3 lần thì chưa khóa (FR-EXE-07, FR-BOOK-06, BR-08, BR-15)\n\nQuy trình:\n\n1. Chạy xong 10.0, 10.1, 10.2 và đặt biến môi trường jobSecret.\n\n2. Copy SQL-1 từ Postman Console (in ở request cuối folder 10.1), chạy một lần trên Supabase SQL Editor. SQL-1 dời giờ hẹn của T1, T2, T3 về 20 phút trước (quá thời gian giữ chỗ 15 phút, chưa được tiếp nhận).\n\n3. Gửi lần lượt các request của folder này.\n\nBackend còn tự quét mỗi 1 phút (AutoCancelBackgroundService) nên lịch có thể đã bị hủy trước khi gửi request chạy tác vụ; vì vậy các request chỉ kiểm tra trạng thái cuối, không kiểm tra con số processed cụ thể. Request đầu tiên là cổng kiểm tra: đỏ nghĩa là chưa chạy SQL-1."
+        },
+        {
+          "name": "10.4 Hết hạn xác nhận chi phí mới – FR-EXE-11 – chạy từng request, xen bước SQL (xem hướng dẫn)",
+          "item": [
+            {
+              "name": "GET /appointments/{id} – cổng kiểm tra: đã chạy SQL-2, yêu cầu chi phí của T5 đã quá hạn (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    const pending = body.pendingCostConfirmation;",
+                      "    const expired = !!pending && new Date(pending.expiresAt).getTime() < Date.now();",
+                      "    const alreadyCancelled = body.status === \"Cancelled\" && body.cancelReason === \"CostNotConfirmed\";",
+                      "",
+                      "    pm.test(\"Đã chạy SQL-2: yêu cầu chi phí quá hạn (hoặc backend đã tự hủy lịch)\", function () {",
+                      "        pm.expect(expired || alreadyCancelled).to.be.true;",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT5}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT5}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /internal/jobs/run – đúng X-Job-Secret, chạy tác vụ (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Đã đặt biến môi trường jobSecret\", function () {",
+                      "    pm.expect(pm.environment.get(\"jobSecret\"), \"Chưa đặt jobSecret trong Environment\").to.be.a(\"string\").and.not.empty;",
+                      "});",
+                      "",
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    pm.test(\"processed là số nguyên không âm\", function () {",
+                      "        const processed = pm.response.json().processed;",
+                      "        pm.expect(Number.isInteger(processed) && processed >= 0).to.be.true;",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Job-Secret",
+                    "value": "{{jobSecret}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/internal/jobs/run",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "internal",
+                    "jobs",
+                    "run"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET /appointments/{id} – T5 bị hủy do khách không phản hồi chi phí mới (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Trả 200 OK\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const body = pm.response.json();",
+                      "    pm.test(\"T5 Cancelled, lý do CostNotConfirmed, có thời điểm hủy\", function () {",
+                      "        pm.expect(body.status).to.eql(\"Cancelled\");",
+                      "        pm.expect(body.cancelReason).to.eql(\"CostNotConfirmed\");",
+                      "        pm.expect(body.cancelledAt).to.be.a(\"string\");",
+                      "    });",
+                      "",
+                      "    pm.test(\"Nhân viên A vẫn gắn với lịch nhưng không còn giữ chỗ\", function () {",
+                      "        pm.expect(body.staff).to.have.lengthOf(1);",
+                      "        pm.expect(body.staff[0].staffId).to.eql(pm.environment.get(\"jobStaffAId\"));",
+                      "        pm.expect(body.staff[0].isHolding).to.be.false;",
+                      "    });",
+                      "",
+                      "    pm.test(\"Không còn yêu cầu chi phí đang chờ\", function () {",
+                      "        pm.expect(body.pendingCostConfirmation || null).to.eql(null);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/appointments/{{jobApptT5}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "appointments",
+                    "{{jobApptT5}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "### Tự hủy lịch khi khách không phản hồi chi phí mới trong 30 phút (FR-EXE-11, BR-23)\n\nQuy trình:\n\n1. Chạy xong 10.3.\n\n2. Copy SQL-2 từ Postman Console, chạy một lần trên Supabase SQL Editor. SQL-2 đưa T5 sang Đã tiếp nhận (API tiếp nhận chỉ chạy đúng ngày hẹn nên dùng SQL) và tạo yêu cầu xác nhận chi phí mới đã quá hạn từ 10 phút trước.\n\n3. Gửi lần lượt 3 request của folder này.\n\nKhông gọi API phản hồi chi phí mới (cost-confirmation/respond) cho T5: API đó cũng tự hủy khi quá hạn (đã kiểm thử ở task 169), còn folder này kiểm thử đường tác vụ tự động. Request đầu tiên là cổng kiểm tra: đỏ nghĩa là chưa chạy SQL-2."
         }
       ]
     },
