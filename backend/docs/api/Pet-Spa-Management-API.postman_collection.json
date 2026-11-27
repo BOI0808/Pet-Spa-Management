@@ -38332,6 +38332,972 @@
                 }
               ],
               "description": "### Khởi tạo thanh toán trực tuyến (FR-PAY-03)\n\nKhách hàng gọi POST /payments/{id}/online để lấy paymentUrl và txnRef của VNPAY. Số tiền do hệ thống lấy từ khoản thanh toán, không nhận từ client. Kiểm tra: phân quyền (chỉ Khách hàng), cổng chưa hỗ trợ (MoMo) hoặc sai giá trị, khoản không tồn tại, khoản của khách khác (403), khoản Stay của lịch lưu trú (409), khởi tạo thành công và khoản vẫn Unpaid cho đến khi webhook báo về (08.O.4). Cần backend đã cấu hình VNPAY, nếu không request thành công trả 500."
+            },
+            {
+              "name": "08.O.4 Webhook VNPAY",
+              "item": [
+                {
+                  "name": "GET /payments/ipn/vnpay – sai chữ ký, không cập nhật (200, RspCode 97)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef1\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", \"0\".repeat(128));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 97, Message là Invalid Checksum\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"97\");",
+                          "    pm.expect(body.Message).to.eql(\"Invalid Checksum\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – TxnRef không tồn tại (200, RspCode 01)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = \"00000000000000000000000000000000\";",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 01, Message là Order not found\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"01\");",
+                          "    pm.expect(body.Message).to.eql(\"Order not found\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – sai số tiền, không cập nhật (200, RspCode 04)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String((Number(pm.environment.get(\"payAmount\")) - 1000) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef1\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 04, Message là Invalid amount\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"04\");",
+                          "    pm.expect(body.Message).to.eql(\"Invalid amount\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – khoản Spa vẫn Unpaid sau sai chữ ký và sai số tiền (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const spa = pm.response.json().find(function (p) {",
+                          "        return p.kind === \"Spa\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Khoản Spa vẫn Unpaid, chưa có phương thức và chưa có thời điểm thanh toán\", function () {",
+                          "        pm.expect(spa.status).to.eql(\"Unpaid\");",
+                          "        pm.expect(spa.method).to.be.oneOf([null, undefined]);",
+                          "        pm.expect(spa.paidAt).to.be.oneOf([null, undefined]);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – giao dịch thất bại do khách hủy (200, RspCode 00)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"24\";",
+                          "const transactionStatus = \"02\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef1\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 00, Message là Confirm Success\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"00\");",
+                          "    pm.expect(body.Message).to.eql(\"Confirm Success\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – TxnRef đã xử lý, bỏ qua (200, RspCode 02)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef1\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 02, Message là Order already confirmed\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"02\");",
+                          "    pm.expect(body.Message).to.eql(\"Order already confirmed\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – khoản Spa vẫn Unpaid sau giao dịch thất bại (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const spa = pm.response.json().find(function (p) {",
+                          "        return p.kind === \"Spa\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Khoản Spa vẫn Unpaid, chưa có phương thức và chưa có thời điểm thanh toán\", function () {",
+                          "        pm.expect(spa.status).to.eql(\"Unpaid\");",
+                          "        pm.expect(spa.method).to.be.oneOf([null, undefined]);",
+                          "        pm.expect(spa.paidAt).to.be.oneOf([null, undefined]);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – KH1 khởi tạo lại sau giao dịch thất bại (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "",
+                          "    pm.test(\"Có txnRef mới khác lần khởi tạo trước\", function () {",
+                          "        pm.expect(body.txnRef).to.match(/^[0-9a-f]{32}$/);",
+                          "        pm.expect(body.txnRef).to.not.eql(pm.environment.get(\"payTxnRef1\"));",
+                          "    });",
+                          "",
+                          "    pm.environment.set(\"payTxnRef2\", body.txnRef);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – thanh toán thành công (200, RspCode 00)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef2\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 00, Message là Confirm Success\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"00\");",
+                          "    pm.expect(body.Message).to.eql(\"Confirm Success\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /appointments/{id}/payments – khoản Spa đã Paid bằng Online (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const spa = pm.response.json().find(function (p) {",
+                          "        return p.kind === \"Spa\";",
+                          "    });",
+                          "",
+                          "    pm.test(\"Khoản Spa đã Paid bằng Online, đủ tiền, có thời điểm thanh toán\", function () {",
+                          "        pm.expect(spa.status).to.eql(\"Paid\");",
+                          "        pm.expect(spa.method).to.eql(\"Online\");",
+                          "        pm.expect(spa.receivedAmount).to.eql(Number(pm.environment.get(\"payAmount\")));",
+                          "        pm.expect(spa.paidAt).to.be.a(\"string\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/appointments/{{payP1}}/payments",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "appointments",
+                        "{{payP1}}",
+                        "payments"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /payments/ipn/vnpay – webhook lặp lại, bỏ qua (200, RspCode 02)",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.expect(pm.environment.get(\"vnpHashSecret\"), \"vnpHashSecret\").to.be.a(\"string\");",
+                          "",
+                          "const amount = String(Number(pm.environment.get(\"payAmount\")) * 100);",
+                          "const responseCode = \"00\";",
+                          "const transactionStatus = \"00\";",
+                          "const txnRef = pm.environment.get(\"payTxnRef2\");",
+                          "",
+                          "const params = {",
+                          "    vnp_Amount: amount,",
+                          "    vnp_ResponseCode: responseCode,",
+                          "    vnp_TransactionStatus: transactionStatus,",
+                          "    vnp_TxnRef: txnRef",
+                          "};",
+                          "const data = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join(\"&\");",
+                          "const hash = CryptoJS.HmacSHA512(data, pm.environment.get(\"vnpHashSecret\")).toString(CryptoJS.enc.Hex);",
+                          "",
+                          "pm.variables.set(\"payIpnAmount\", amount);",
+                          "pm.variables.set(\"payIpnResponseCode\", responseCode);",
+                          "pm.variables.set(\"payIpnTransactionStatus\", transactionStatus);",
+                          "pm.variables.set(\"payIpnTxnRef\", txnRef);",
+                          "pm.variables.set(\"payIpnHash\", hash);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "pm.test(\"RspCode là 02, Message là Order already confirmed\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.RspCode).to.eql(\"02\");",
+                          "    pm.expect(body.Message).to.eql(\"Order already confirmed\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/ipn/vnpay?vnp_Amount={{payIpnAmount}}&vnp_ResponseCode={{payIpnResponseCode}}&vnp_TransactionStatus={{payIpnTransactionStatus}}&vnp_TxnRef={{payIpnTxnRef}}&vnp_SecureHash={{payIpnHash}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "ipn",
+                        "vnpay"
+                      ],
+                      "query": [
+                        {
+                          "key": "vnp_Amount",
+                          "value": "{{payIpnAmount}}"
+                        },
+                        {
+                          "key": "vnp_ResponseCode",
+                          "value": "{{payIpnResponseCode}}"
+                        },
+                        {
+                          "key": "vnp_TransactionStatus",
+                          "value": "{{payIpnTransactionStatus}}"
+                        },
+                        {
+                          "key": "vnp_TxnRef",
+                          "value": "{{payIpnTxnRef}}"
+                        },
+                        {
+                          "key": "vnp_SecureHash",
+                          "value": "{{payIpnHash}}"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /payments/{id}/online – khoản đã thanh toán (409 INVALID_TRANSITION)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 409\", function () {",
+                          "    pm.response.to.have.status(409);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là INVALID_TRANSITION\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"INVALID_TRANSITION\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/payments/{{payPaySpa}}/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "payments",
+                        "{{payPaySpa}}",
+                        "online"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"gateway\": \"VNPAY\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Webhook VNPAY (FR-PAY-03, BR-17)\n\nGiả lập VNPAY gọi GET /payments/ipn/vnpay: Postman tự ký HMAC-SHA512 bằng biến vnpHashSecret (Environment) rồi gắn vnp_SecureHash vào query. Phản hồi luôn là HTTP 200 với { RspCode, Message }: 00 ghi nhận, 01 không thấy giao dịch, 02 đã xử lý, 04 sai số tiền, 97 sai chữ ký. Kiểm tra: sai chữ ký, TxnRef lạ, sai số tiền (khoản vẫn Unpaid), giao dịch thất bại (khoản vẫn Unpaid, TxnRef bị đóng), khởi tạo lần 2 rồi thanh toán thành công (Paid, Method Online, đủ tiền), webhook lặp lại, không thanh toán lại khoản đã Paid."
             }
           ],
           "description": "### Thanh toán trực tuyến VNPAY: khởi tạo và webhook (FR-PAY-03)\n\nChạy theo thứ tự 08.O.0 → 08.O.4, từng folder, từng request từ trên xuống. Điều kiện: backend đang chạy và đã cấu hình VNPAY (Payment__Vnpay__TmnCode, Payment__Vnpay__HashSecret, Payment__Vnpay__ReturnUrl), đã cấu hình Supabase Storage; Environment có biến vnpHashSecret (Type secret) bằng đúng HashSecret của backend; tài khoản thử 0900000101, 0900000102, 0900000201 đã tồn tại; tệp postman-photo.jpg đã có trong Working directory của Postman.\n\nMỗi folder con cần dữ liệu của các folder trước, nên mỗi lần chạy lại phải bắt đầu từ 08.O.0. Giữa 08.O.1 và 08.O.2 có một bước SQL trên Supabase (câu SQL được in ra Postman Console ở request cuối 08.O.1).\n\nPhạm vi: khởi tạo thanh toán trực tuyến, webhook VNPAY (chữ ký, số tiền, TxnRef đã xử lý, cập nhật Paid). Webhook được giả lập bằng cách Postman tự ký bằng vnpHashSecret. Backend chỉ hỗ trợ VNPAY; MoMo chỉ kiểm tra ở dạng chưa hỗ trợ (400). Thanh toán tại quầy thuộc task 169; tác vụ tự động thuộc task 171."
