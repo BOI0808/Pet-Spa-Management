@@ -39806,6 +39806,1113 @@
                 }
               ],
               "description": "### Tạo các sự kiện còn lại\n\nChạy sau 08.O.4. P2: lễ tân tiếp nhận 12 kg (đổi nhóm, phát sinh chi phí mới) rồi quản lý hủy. P3: quản lý vô hiệu hóa nhân viên B nên P3 quay về Chờ xác nhận, sau đó hủy. H1: đối chiếu cân nặng, thanh toán khoản Stay tại quầy, tiếp nhận vào chuồng, trả đúng hạn. Các sự kiện của P1 đã phát sinh ở 08.O.1 đến 08.O.4."
+            },
+            {
+              "name": "09.N.1 Thông báo của khách hàng 1",
+              "item": [
+                {
+                  "name": "GET /notifications – KH1 thấy thông báo của lịch spa P1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const of = (type, key) => body.items.filter(function (n) {",
+                          "        return n.type === type && n.appointmentId === pm.environment.get(key);",
+                          "    });",
+                          "    const money = (v) => String(v).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \".\") + \"đ\";",
+                          "    const amount = money(pm.environment.get(\"payAmount\"));",
+                          "",
+                          "    pm.test(\"FR-NOT-01: có thông báo đã ghi nhận yêu cầu đặt lịch spa P1\", function () {",
+                          "        const list = of(\"BookingReceived\", \"payP1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"Chờ xác nhận\");",
+                          "        pm.expect(list[0].isRead).to.eql(false);",
+                          "        pm.environment.set(\"ntfReadId\", list[0].notificationId);",
+                          "        pm.environment.set(\"ntfUnreadBefore\", String(body.unread));",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-02: có thông báo xác nhận lịch spa P1 kèm số tiền\", function () {",
+                          "        const list = of(\"ConfirmedAssigned\", \"payP1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"đã được xác nhận\");",
+                          "        pm.expect(list[0].message).to.include(\"Số tiền: \" + amount);",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-03: có thông báo Đã tiếp nhận, Đang thực hiện, Hoàn tất của P1\", function () {",
+                          "        const messages = of(\"StatusChanged\", \"payP1\").map(function (n) {",
+                          "            return n.message;",
+                          "        });",
+                          "        pm.expect(messages.length).to.eql(3);",
+                          "        [\"Đã tiếp nhận\", \"Đang thực hiện\", \"Hoàn tất\"].forEach(function (status) {",
+                          "            pm.expect(messages.some(function (m) {",
+                          "                return m.includes(\"trạng thái \" + status);",
+                          "            }), status).to.eql(true);",
+                          "        });",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-05: có thông báo thanh toán trực tuyến thành công của P1\", function () {",
+                          "        const list = of(\"PaymentRecorded\", \"payP1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"tiền dịch vụ spa \" + amount);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – KH1 thấy thông báo của lịch spa P2: chi phí mới, hủy (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const of = (type, key) => body.items.filter(function (n) {",
+                          "        return n.type === type && n.appointmentId === pm.environment.get(key);",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-01, FR-NOT-02: có thông báo ghi nhận và xác nhận lịch spa P2\", function () {",
+                          "        pm.expect(of(\"BookingReceived\", \"payP2\").length).to.eql(1);",
+                          "        pm.expect(of(\"ConfirmedAssigned\", \"payP2\").length).to.eql(1);",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-03: có thông báo Đã tiếp nhận của P2\", function () {",
+                          "        const list = of(\"StatusChanged\", \"payP2\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"trạng thái Đã tiếp nhận\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-06: có thông báo yêu cầu xác nhận chi phí mới kèm cân nặng thực tế\", function () {",
+                          "        const list = of(\"CostConfirmation\", \"payP2\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.match(/12(\\.0+)? kg/);",
+                          "        pm.expect(list[0].message).to.include(\"Chi phí mới\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-04: có thông báo hủy lịch P2 kèm lý do\", function () {",
+                          "        const list = of(\"Cancelled\", \"payP2\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"Lý do: cửa hàng không thể đáp ứng\");",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – KH1 thấy thông báo của lịch lưu trú H1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const of = (type, key) => body.items.filter(function (n) {",
+                          "        return n.type === type && n.appointmentId === pm.environment.get(key);",
+                          "    });",
+                          "    const money = (v) => String(v).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \".\") + \"đ\";",
+                          "",
+                          "    pm.test(\"FR-NOT-01: có thông báo đã ghi nhận yêu cầu đặt lịch lưu trú H1\", function () {",
+                          "        const list = of(\"BookingReceived\", \"payH1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"lịch lưu trú\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-02: có thông báo xác nhận lịch lưu trú H1, không có số tiền\", function () {",
+                          "        const list = of(\"ConfirmedAssigned\", \"payH1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"đã được xác nhận\");",
+                          "        pm.expect(list[0].message).to.not.include(\"Số tiền\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-03: có thông báo Đang lưu trú và Hoàn tất của H1\", function () {",
+                          "        const messages = of(\"StatusChanged\", \"payH1\").map(function (n) {",
+                          "            return n.message;",
+                          "        });",
+                          "        pm.expect(messages.length).to.eql(2);",
+                          "        [\"Đang lưu trú\", \"Hoàn tất\"].forEach(function (status) {",
+                          "            pm.expect(messages.some(function (m) {",
+                          "                return m.includes(\"trạng thái \" + status);",
+                          "            }), status).to.eql(true);",
+                          "        });",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-05: có thông báo thanh toán tiền lưu trú của H1\", function () {",
+                          "        const list = of(\"PaymentRecorded\", \"payH1\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"tiền lưu trú \" + money(pm.environment.get(\"payStayAmount\")));",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Thông báo của khách hàng 1 (FR-NOT-01 đến FR-NOT-06)\n\nBa request cùng gọi GET /notifications?page=1&pageSize=100 bằng token khách hàng 1, mỗi request kiểm tra thông báo của một lịch: P1 (đặt, xác nhận kèm số tiền, tiếp nhận, đang thực hiện, hoàn tất, thanh toán trực tuyến), P2 (đặt, xác nhận, tiếp nhận, chi phí mới 12 kg, hủy kèm lý do) và H1 (đặt, xác nhận không có số tiền, đang lưu trú, hoàn tất, thanh toán tiền lưu trú). Request đầu còn lưu mã một thông báo chưa đọc để dùng ở 09.N.2."
+            },
+            {
+              "name": "09.N.2 Thông báo nhân viên, khách hàng 2, phân quyền, đánh dấu đã đọc",
+              "item": [
+                {
+                  "name": "GET /notifications – nhân viên spa A chỉ thấy thông báo phân công và hủy của mình (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const p1 = pm.environment.get(\"payP1\");",
+                          "    const p2 = pm.environment.get(\"payP2\");",
+                          "",
+                          "    pm.test(\"FR-NOT-02: NV spa A nhận thông báo được phân công P1 và P2\", function () {",
+                          "        const list = body.items.filter(function (n) {",
+                          "            return n.type === \"ConfirmedAssigned\";",
+                          "        });",
+                          "        pm.expect(list.map(function (n) { return n.appointmentId; }).sort()).to.eql([p1, p2].sort());",
+                          "        list.forEach(function (n) {",
+                          "            pm.expect(n.message).to.include(\"Bạn được phân công\");",
+                          "        });",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-04: NV spa A nhận thông báo hủy P2 kèm lý do\", function () {",
+                          "        const list = body.items.filter(function (n) {",
+                          "            return n.type === \"Cancelled\";",
+                          "        });",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].appointmentId).to.eql(p2);",
+                          "        pm.expect(list[0].message).to.include(\"Lý do: cửa hàng không thể đáp ứng\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"NV spa A chỉ thấy đúng 3 thông báo của mình, cả 3 chưa đọc\", function () {",
+                          "        pm.expect(body.total).to.eql(3);",
+                          "        pm.expect(body.unread).to.eql(3);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – KH2 chỉ thấy thông báo của lịch P3 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const p3 = body.items.filter(function (n) {",
+                          "        return n.appointmentId === pm.environment.get(\"payP3\");",
+                          "    });",
+                          "    const typeOf = (type) => p3.filter(function (n) {",
+                          "        return n.type === type;",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-01, FR-NOT-02, FR-NOT-04: KH2 có thông báo ghi nhận, xác nhận và hủy lịch P3\", function () {",
+                          "        pm.expect(typeOf(\"BookingReceived\").length).to.eql(1);",
+                          "        pm.expect(typeOf(\"ConfirmedAssigned\").length).to.eql(1);",
+                          "        pm.expect(typeOf(\"Cancelled\").length).to.eql(1);",
+                          "    });",
+                          "",
+                          "    pm.test(\"FR-NOT-03: KH2 có thông báo P3 quay về Chờ xác nhận do nhân viên bị vô hiệu hóa\", function () {",
+                          "        const list = typeOf(\"StatusChanged\");",
+                          "        pm.expect(list.length).to.eql(1);",
+                          "        pm.expect(list[0].message).to.include(\"quay về trạng thái Chờ xác nhận\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"KH2 không thấy thông báo của lịch P1, P2, H1 thuộc KH1\", function () {",
+                          "        const others = [\"payP1\", \"payP2\", \"payH1\"].map(function (k) {",
+                          "            return pm.environment.get(k);",
+                          "        });",
+                          "        body.items.forEach(function (n) {",
+                          "            pm.expect(others).to.not.include(n.appointmentId);",
+                          "        });",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – không token (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – quản lý không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{managerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – pageSize vượt 100 (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=101",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "101"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – page bằng 0 (400)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 400\", function () {",
+                          "    pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là VALIDATION_ERROR\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=0&pageSize=20",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "0"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – KH1 đánh dấu đã đọc thông báo đặt lịch P1 (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – KH1 đánh dấu lần 2 vẫn thành công (204)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 204\", function () {",
+                          "    pm.response.to.have.status(204);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET /notifications – thông báo đã đọc, số chưa đọc giảm đúng 1 (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 200 OK\", function () {",
+                          "    pm.response.to.have.status(200);",
+                          "});",
+                          "",
+                          "if (pm.response.code === 200) {",
+                          "    const body = pm.response.json();",
+                          "    const item = body.items.find(function (n) {",
+                          "        return n.notificationId === pm.environment.get(\"ntfReadId\");",
+                          "    });",
+                          "",
+                          "    pm.test(\"Thông báo đã được đánh dấu đã đọc\", function () {",
+                          "        pm.expect(item.isRead).to.eql(true);",
+                          "    });",
+                          "",
+                          "    pm.test(\"Số chưa đọc giảm đúng 1\", function () {",
+                          "        pm.expect(body.unread).to.eql(Number(pm.environment.get(\"ntfUnreadBefore\")) - 1);",
+                          "    });",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications?page=1&pageSize=100",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "pageSize",
+                          "value": "100"
+                        }
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – KH2 đánh dấu thông báo của KH1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customer2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – nhân viên spa A đánh dấu thông báo của KH1 (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{payStaffAToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – thông báo không tồn tại (404)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 404\", function () {",
+                          "    pm.response.to.have.status(404);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là NOT_FOUND\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/11111111-1111-1111-1111-111111111111/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "11111111-1111-1111-1111-111111111111",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{customerToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – không token (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 401\", function () {",
+                          "    pm.response.to.have.status(401);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là UNAUTHENTICATED\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"UNAUTHENTICATED\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST /notifications/{id}/read – lễ tân không có quyền (403)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Trả 403\", function () {",
+                          "    pm.response.to.have.status(403);",
+                          "});",
+                          "",
+                          "pm.test(\"Mã lỗi là FORBIDDEN\", function () {",
+                          "    pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/notifications/{{ntfReadId}}/read",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "notifications",
+                        "{{ntfReadId}}",
+                        "read"
+                      ]
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{receptionistToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "### Thông báo của nhân viên spa, khách hàng 2, phân quyền, phân trang, đánh dấu đã đọc\n\nNhân viên spa A chỉ nhận thông báo phân công và hủy của P1, P2 (đúng 3 thông báo, chưa đọc). Khách hàng 2 chỉ thấy thông báo của P3 (đặt, xác nhận, quay về Chờ xác nhận do nhân viên bị vô hiệu hóa, hủy), không thấy thông báo của khách 1. Quản lý và lễ tân không có quyền (403), không token (401), pageSize vượt 100 và page bằng 0 bị từ chối (400). Đánh dấu đã đọc: thành công (204), gọi lại vẫn 204, số chưa đọc giảm đúng 1; người khác đánh dấu thông báo không phải của mình bị 403, thông báo không tồn tại 404."
             }
           ],
           "description": "### Thông báo: sự kiện, danh sách, đánh dấu đã đọc (FR-NOT-01, FR-NOT-02, FR-NOT-03, FR-NOT-04, FR-NOT-05, FR-NOT-06)\n\nChạy sau khi đã chạy xong 08.O.4, theo thứ tự 09.N.0 → 09.N.3. Dữ liệu (lịch P1, P2, P3, H1, nhân viên A, B, token) lấy từ 08.O.0 đến 08.O.4 nên không chạy riêng folder này.\n\n09.N.0 tạo nốt các sự kiện (tiếp nhận có chi phí mới, hủy, vô hiệu hóa nhân viên, thanh toán và tiếp nhận/trả lưu trú); 09.N.1 và 09.N.2 kiểm tra nội dung thông báo từng vai trò, phân quyền, phân trang, đánh dấu đã đọc; 09.N.3 dọn dữ liệu thử và xóa các biến môi trường pay*, ntf*.\n\nPhạm vi: chỉ thông báo do sự kiện đặt lịch, xác nhận/phân công, đổi trạng thái, hủy do quản lý, thanh toán, chi phí mới. Thông báo hủy do tác vụ tự động thuộc task 171. Khách vãng lai không có tài khoản nên không có thông báo."
