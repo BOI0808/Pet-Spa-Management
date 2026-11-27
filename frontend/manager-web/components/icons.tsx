@@ -88,6 +88,12 @@ const ICON_PATHS = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </>
   ),
+  unlock: (
+    <>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </>
+  ),
   sliders: <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />,
   "chev-d": <path d="m6 9 6 6 6-6" />,
   bell: (

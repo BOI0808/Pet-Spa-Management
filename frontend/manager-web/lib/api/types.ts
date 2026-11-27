@@ -120,6 +120,20 @@ export type CageUpdateRequest = Partial<CageCreateRequest>;
 
 export type CageCreated = { cageId: string };
 
+// ── Khách hàng (FR-BOOK-06, FR-BOOK-07) ──
+
+/**
+ * Một khách trong `items` của GET /customers. Quản lý chỉ nhận khách đang bị khóa tự đặt lịch (`isBookingLocked = true`).
+ * Chưa có số lần và ngày vắng mặt, thời điểm bị khóa (UI-Screens G-10).
+ */
+export type Customer = {
+  customerId: string;
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  isBookingLocked: boolean;
+};
+
 // ── Nhân viên (FR-STF-01 → 03) ──
 
 /** Một nhân viên trong `items` của GET /staff (gồm cả người đã vô hiệu hóa). Chưa có ngày tạo, ngày vô hiệu hóa (UI-Screens G-09). */
